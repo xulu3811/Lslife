@@ -27,6 +27,7 @@ android {
             buildConfigField("String", "WS_BASE_URL", "\"wss://mentalhlp.site/ws\"")
         }
         release {
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "API_BASE_URL", "\"https://mentalhlp.site/api/\"")
@@ -85,4 +86,24 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+}
+
+afterEvaluate {
+    val copyApks by tasks.registering(Copy::class) {
+        from(layout.buildDirectory.dir("outputs/apk"))
+        into(rootProject.file("../releases"))
+        include("**/*.apk")
+        eachFile {
+            path = name
+        }
+        includeEmptyDirs = false
+    }
+
+    tasks.named("assembleDebug") {
+        finalizedBy(copyApks)
+    }
+
+    tasks.named("assembleRelease") {
+        finalizedBy(copyApks)
+    }
 }

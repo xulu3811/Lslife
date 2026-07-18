@@ -189,3 +189,9 @@ data class AiRecommendation(
 
 @Serializable
 data class AiReply(val reply: String, val recommendations: List<AiRecommendation> = emptyList())
+
+@Serializable
+data class ProfileUpdateRequest(
+    val nickname: String? = null,
+    val avatar: String? = null,
+)

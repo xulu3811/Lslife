@@ -12,6 +12,10 @@ object Routes {
     const val PRIVACY = "privacy"
     const val MERCHANT = "merchant/{merchantId}"
     const val ORDER_TRACK = "order_track/{orderId}"
+    const val PERSONAL_INFO = "personal_info"
+    const val ADDRESS_LIST = "address_list"
+    const val MESSAGE_LIST = "message_list"
+    const val REAL_NAME_AUTH = "real_name_auth"
 
     fun merchant(id: String) = "merchant/$id"
     fun orderTrack(id: String) = "order_track/$id"

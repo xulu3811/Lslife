@@ -2,8 +2,10 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 
 export interface JwtPayload {
-  sub: string; // userId
-  phone: string;
+  sub: string; // userId or adminId
+  phone?: string;
+  role?: string;
+  isAdmin?: boolean;
 }
 
 export function signToken(payload: JwtPayload): string {

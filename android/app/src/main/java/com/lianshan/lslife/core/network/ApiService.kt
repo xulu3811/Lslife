@@ -22,6 +22,9 @@ interface ApiService {
     @POST("auth/realname")
     suspend fun realName(@Body body: RealNameRequest): ApiEnvelope<User>
 
+    @PATCH("auth/profile")
+    suspend fun updateProfile(@Body body: ProfileUpdateRequest): ApiEnvelope<User>
+
     // 商家
     @GET("merchants")
     suspend fun merchants(

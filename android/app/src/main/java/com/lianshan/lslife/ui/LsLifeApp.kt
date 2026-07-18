@@ -47,7 +47,11 @@ import com.lianshan.lslife.feature.home.HomeScreen
 import com.lianshan.lslife.feature.merchant.MerchantDetailScreen
 import com.lianshan.lslife.feature.orders.OrderListScreen
 import com.lianshan.lslife.feature.orders.OrderTrackScreen
+import com.lianshan.lslife.feature.profile.AddressScreen
+import com.lianshan.lslife.feature.profile.MessageScreen
+import com.lianshan.lslife.feature.profile.PersonalInfoScreen
 import com.lianshan.lslife.feature.profile.ProfileScreen
+import com.lianshan.lslife.feature.profile.RealNameScreen
 import com.lianshan.lslife.feature.publish.PublishScreen
 import com.lianshan.lslife.feature.settings.AboutScreen
 import com.lianshan.lslife.feature.settings.PrivacyScreen
@@ -200,11 +204,19 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
             composable(Routes.PROFILE) {
                 ProfileScreen(
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    onOpenPersonalInfo = { navController.navigate(Routes.PERSONAL_INFO) },
+                    onOpenAddress = { navController.navigate(Routes.ADDRESS_LIST) },
+                    onOpenMessage = { navController.navigate(Routes.MESSAGE_LIST) },
+                    onOpenRealName = { navController.navigate(Routes.REAL_NAME_AUTH) },
                     onLoggedOut = {
                         navController.navigate(Routes.LOGIN) { popUpTo(0) }
                     },
                 )
             }
+            composable(Routes.PERSONAL_INFO) { PersonalInfoScreen(onBack = { navController.popBackStack() }) }
+            composable(Routes.ADDRESS_LIST) { AddressScreen(onBack = { navController.popBackStack() }) }
+            composable(Routes.MESSAGE_LIST) { MessageScreen(onBack = { navController.popBackStack() }) }
+            composable(Routes.REAL_NAME_AUTH) { RealNameScreen(onBack = { navController.popBackStack() }) }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     onBack = { navController.popBackStack() },

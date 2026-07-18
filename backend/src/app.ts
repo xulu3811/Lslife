@@ -14,6 +14,7 @@ import membershipRoutes from './modules/membership.js';
 import notificationRoutes from './modules/notifications.js';
 import addressRoutes from './modules/addresses.js';
 import aiRoutes from './modules/ai.js';
+import adminRoutes from './modules/admin.js';
 
 export function createApp() {
   const app = express();
@@ -49,6 +50,7 @@ export function createApp() {
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/addresses', addressRoutes);
   app.use('/api/ai', aiRoutes);
+  app.use('/api/admin', adminRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

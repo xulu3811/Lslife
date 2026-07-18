@@ -62,6 +62,10 @@ import com.lianshan.lslife.ui.theme.Dimens
 @Composable
 fun ProfileScreen(
     onOpenSettings: () -> Unit,
+    onOpenPersonalInfo: () -> Unit,
+    onOpenAddress: () -> Unit,
+    onOpenMessage: () -> Unit,
+    onOpenRealName: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
@@ -103,6 +107,7 @@ fun ProfileScreen(
                             listOf(scheme.primary, scheme.primary.copy(alpha = 0.9f), scheme.primaryContainer),
                         ),
                     )
+                    .clickable(onClick = onOpenPersonalInfo)
                     .statusBarsPadding()
                     .padding(Dimens.xl),
             ) {
@@ -152,10 +157,10 @@ fun ProfileScreen(
 
                 SoftCard {
                     Column {
-                        ProfileMenuRow(Icons.Filled.Place, "收货地址", "管理常用地址")
-                        ProfileMenuRow(Icons.Filled.Notifications, "消息通知", "${state.unread} 条未读")
-                        ProfileMenuRow(Icons.Filled.VerifiedUser, "实名认证", if (user?.realNameStatus == "verified") "已完成" else "去认证")
-                        ProfileMenuRow(Icons.Filled.WorkspacePremium, "会员权益", tierLabel(user?.membershipTier))
+                        ProfileMenuRow(Icons.Filled.Place, "收货地址", "管理常用地址", onClick = onOpenAddress)
+                        ProfileMenuRow(Icons.Filled.Notifications, "消息通知", "${state.unread} 条未读", onClick = onOpenMessage)
+                        ProfileMenuRow(Icons.Filled.VerifiedUser, "实名认证", if (user?.realNameStatus == "verified") "已完成" else "去认证", onClick = onOpenRealName)
+                        ProfileMenuRow(Icons.Filled.WorkspacePremium, "会员权益", tierLabel(user?.membershipTier), onClick = { showPlans = true })
                         ProfileMenuRow(
                             Icons.Filled.Settings,
                             "设置",

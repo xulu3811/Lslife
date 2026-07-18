@@ -253,3 +253,15 @@ model Notification {
 
   @@index([userId])
 }
+
+// ================= 管理后台 =================
+model AdminUser {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String   // Hash
+  role      String   @default("admin") // superadmin | admin | editor | auditor
+  lastLogin DateTime?
+  lastIp    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

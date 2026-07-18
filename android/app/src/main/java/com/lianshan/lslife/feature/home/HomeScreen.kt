@@ -13,13 +13,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lianshan.lslife.ui.components.BrandHero
@@ -33,15 +40,21 @@ import com.lianshan.lslife.ui.components.SectionHeader
 import com.lianshan.lslife.ui.components.WarmSearchField
 import com.lianshan.lslife.ui.theme.Dimens
 
+private data class CategoryItem(
+    val id: String,
+    val name: String,
+    val icon: String
+)
+
 private val categories = listOf(
-    "all" to "全部",
-    "job" to "招聘",
-    "house" to "租售",
-    "housekeeping" to "家政",
-    "maintenance" to "维修",
-    "moving" to "货运",
-    "veggies" to "果蔬",
-    "secondhand" to "闲置",
+    CategoryItem("all", "全部", "✨"),
+    CategoryItem("job", "招聘", "💼"),
+    CategoryItem("house", "房租租售", "🏠"),
+    CategoryItem("housekeeping", "家政保洁", "🧹"),
+    CategoryItem("maintenance", "水电维修", "🔧"),
+    CategoryItem("moving", "货运搬家", "🚚"),
+    CategoryItem("veggies", "水果蔬菜", "🍎"),
+    CategoryItem("secondhand", "个人闲置", "🛍️"),
 )
 
 private val sorts = listOf(
@@ -81,8 +94,8 @@ fun HomeScreen(
             Column {
                 Column(
                     modifier = Modifier.padding(
-                        start = Dimens.lg,
-                        end = Dimens.lg,
+                        start = Dimens.sm,
+                        end = Dimens.sm,
                         top = Dimens.md,
                         bottom = Dimens.sm,
                     ),
@@ -91,15 +104,36 @@ fun HomeScreen(
                     categories.chunked(4).forEach { categoryRow ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Dimens.sm),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
                         ) {
-                            categoryRow.forEach { (id, name) ->
-                                CategoryPill(
-                                    label = name,
-                                    selected = state.category == id,
-                                    onClick = { viewModel.onCategory(id) },
-                                    modifier = Modifier.weight(1f),
-                                )
+                            categoryRow.forEach { item ->
+                                val selected = state.category == item.id
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { viewModel.onCategory(item.id) }
+                                        .padding(vertical = Dimens.xs),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .background(
+                                                color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                shape = CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = item.icon, fontSize = 24.sp)
+                                    }
+                                    Spacer(Modifier.height(Dimens.xs))
+                                    Text(
+                                        text = item.name,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
                             }
                         }
                     }
