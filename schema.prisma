@@ -1,0 +1,260 @@
+// 连山同城 LsLife 数据模型
+// 本地开发使用 SQLite (零配置可运行); 生产切换 provider = "postgresql"
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================= 账户与鉴权 =================
+model User {
+  id             String   @id @default(cuid())
+  phone          String   @unique
+  nickname       String
+  avatar         String?
+  membershipTier String   @default("free") // free | vip | premium
+  membershipUntil DateTime?
+  realNameStatus String   @default("none") // none | pending | verified
+  realName       String?
+  idCardHash     String? // 实名身份证仅存哈希
+  walletBalance  Float    @default(0)
+  points         Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  addresses     Address[]
+  orders        Order[]
+  cartItems     CartItem[]
+  posts         Post[]
+  notifications Notification[]
+  subscriptions Subscription[]
+}
+
+model VerificationCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  purpose   String   @default("login") // login | bind
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone, purpose])
+}
+
+model Address {
+  id        String  @id @default(cuid())
+  userId    String
+  name      String
+  phone     String
+  tag       String  @default("家")
+  address   String
+  latitude  Float?
+  longitude Float?
+  isDefault Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ================= 商家与商品 =================
+model Merchant {
+  id           String  @id @default(cuid())
+  externalId   String? @unique // 兼容原型中的 m1/m2...
+  name         String
+  rating       Float   @default(5)
+  distance     Float   @default(0)
+  sales        Int     @default(0)
+  avgPrice     Float   @default(0)
+  tags         String  @default("[]") // JSON 字符串数组
+  deliveryFee  Float   @default(0)
+  deliveryTime Int     @default(30)
+  logo         String
+  banner       String
+  isFood       Boolean @default(false)
+  category     String?
+  latitude     Float
+  longitude    Float
+  description  String
+  address      String
+  phone        String
+  status       String  @default("active") // active | offline
+  createdAt    DateTime @default(now())
+
+  products Product[]
+  orders   Order[]
+}
+
+model Product {
+  id            String  @id @default(cuid())
+  externalId    String? @unique
+  merchantId    String
+  name          String
+  price         Float
+  originalPrice Float?
+  desc          String
+  sales         Int     @default(0)
+  image         String
+  category      String
+  rating        Float?
+  stock         Int     @default(999)
+  status        String  @default("active")
+
+  merchant   Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([merchantId])
+}
+
+// ================= 购物车 =================
+model CartItem {
+  id         String   @id @default(cuid())
+  userId     String
+  productId  String
+  merchantId String
+  quantity   Int      @default(1)
+  updatedAt  DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+// ================= 订单与支付 =================
+model Order {
+  id              String   @id @default(cuid())
+  orderNo         String   @unique
+  userId          String
+  merchantId      String
+  merchantName    String
+  merchantLogo    String
+  itemsTotal      Float
+  deliveryFee     Float    @default(0)
+  totalAmount     Float
+  status          String   @default("pending") // pending | paid | preparing | delivering | delivered | cancelled
+  deliveryName    String
+  deliveryPhone   String
+  deliveryAddress String
+  createdAt       DateTime @default(now())
+  paidAt          DateTime?
+
+  user     User        @relation(fields: [userId], references: [id])
+  merchant Merchant    @relation(fields: [merchantId], references: [id])
+  items    OrderItem[]
+  payment  Payment?
+  delivery Delivery?
+
+  @@index([userId])
+  @@index([merchantId])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  name      String
+  price     Float
+  quantity  Int
+  image     String
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  orderId       String?  @unique
+  subscriptionId String? @unique
+  provider      String // wechat | alipay | wallet | mock
+  amount        Float
+  status        String   @default("created") // created | success | failed | refunded
+  transactionId String? // 第三方支付流水号
+  prepayPayload String? // 客户端拉起支付所需参数 (JSON)
+  createdAt     DateTime @default(now())
+  paidAt        DateTime?
+
+  order        Order?        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+// ================= 实时配送 =================
+model Delivery {
+  id          String  @id @default(cuid())
+  orderId     String  @unique
+  riderName   String
+  riderPhone  String
+  riderAvatar String?
+  riderLat    Float
+  riderLng    Float
+  progress    Int     @default(0)
+  status      String  @default("preparing")
+  updatedAt   DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// ================= 同城发布 =================
+model Post {
+  id            String   @id @default(cuid())
+  userId        String
+  category      String
+  title         String
+  description   String
+  price         Float?
+  images        String   @default("[]") // JSON 字符串数组
+  latitude      Float?
+  longitude     Float?
+  locationName  String?
+  status        String   @default("published") // pending_review | published | rejected | removed
+  reviewNote    String?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
+}
+
+// ================= 会员订阅 =================
+model Subscription {
+  id             String   @id @default(cuid())
+  subscriptionNo String   @unique
+  userId         String
+  tier           String // vip | premium
+  amount         Float
+  startAt        DateTime @default(now())
+  endAt          DateTime
+  createdAt      DateTime @default(now())
+  status         String   @default("pending") // pending | active | expired
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment Payment?
+
+  @@index([userId])
+}
+
+// ================= 消息通知 =================
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String // merchant_accept | preparing | delivering | delivered | system
+  title     String
+  content   String
+  orderId   String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

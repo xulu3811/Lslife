@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">连山同城</string>
+    <string name="nav_home">首页</string>
+    <string name="nav_orders">订单</string>
+    <string name="nav_publish">发布</string>
+    <string name="nav_cart">购物车</string>
+    <string name="nav_profile">我的</string>
+</resources>
