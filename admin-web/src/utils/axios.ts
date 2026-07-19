@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://115.191.6.95/api/admin',
+  baseURL: 'https://mentalhlp.site/api/admin',
   timeout: 10000,
 });
 

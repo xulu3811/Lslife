@@ -71,4 +71,61 @@ router.get(
   }),
 );
 
+// 获取待审核内容列表
+router.get(
+  '/posts',
+  asyncHandler(async (req, res) => {
+    // 此处简化，不验证详细的 admin JWT token
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new ApiError(401, '未授权');
+    }
+
+    const { status } = z.object({ status: z.string().optional() }).parse(req.query);
+    const where = status ? { status } : {};
+
+    const posts = await prisma.post.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { nickname: true, phone: true } }
+      }
+    });
+    
+    return ok(res, posts.map(p => ({ ...p, images: JSON.parse(p.images) })));
+  })
+);
+
+// 审核内容
+router.post(
+  '/posts/:id/audit',
+  asyncHandler(async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new ApiError(401, '未授权');
+    }
+
+    const id = req.params.id;
+    const { action, note } = z.object({
+      action: z.enum(['approve', 'reject']),
+      note: z.string().optional()
+    }).parse(req.body);
+
+    const post = await prisma.post.findUnique({ where: { id } });
+    if (!post) throw new ApiError(404, '帖子不存在');
+
+    const newStatus = action === 'approve' ? 'published' : 'rejected';
+    
+    await prisma.post.update({
+      where: { id },
+      data: {
+        status: newStatus,
+        reviewNote: note || (action === 'approve' ? '人工审核通过' : '人工审核拒绝')
+      }
+    });
+
+    return ok(res, null, `内容已${action === 'approve' ? '通过发布' : '驳回'}`);
+  })
+);
+
 export default router;

@@ -751,21 +751,19 @@ export default function App() {
             )}
           </button>
 
-          {/* Core Publish Button (FAB) */}
+          {/* Core Publish Button */}
           <button
             onClick={() => currentScreen === 'publish' ? navigateToScreen('home') : navigateToScreen('publish')}
-            className={`relative -top-4 flex flex-col items-center gap-1 cursor-pointer transition-all duration-300 group z-50 ${
-              currentScreen === 'publish' ? 'scale-105' : ''
+            className={`flex flex-col items-center gap-1 cursor-pointer transition-all duration-300 ${
+              currentScreen === 'publish' 
+                ? 'text-[#FF1A1A] scale-105' 
+                : 'text-gray-400 hover:text-gray-500'
             }`}
           >
-            <div className={`flex items-center justify-center w-11 h-11 rounded-full shadow-[0_8px_20px_rgba(59,130,246,0.3)] border-[3px] border-white dark:border-gray-950 text-white transform group-hover:scale-105 transition duration-300 ${
-              currentScreen === 'publish' 
-                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_8px_20px_rgba(99,102,241,0.4)]'
-                : 'bg-gradient-to-br from-red-500 to-indigo-600 shadow-[0_8px_20px_rgba(59,130,246,0.3)]'
-            }`}>
-              <Plus size={22} strokeWidth={3} className={currentScreen === 'publish' ? 'rotate-45 transition-transform duration-300' : 'transition-transform duration-300'} />
+            <div className={`p-1 rounded-xl ${currentScreen === 'publish' ? 'bg-red-50 dark:bg-[#FF1A1A]/10' : ''}`}>
+              <PlusCircle size={20} strokeWidth={currentScreen === 'publish' ? 3 : 2.5} className={currentScreen === 'publish' ? 'text-[#FF1A1A] dark:text-[#FF1A1A]' : ''} />
             </div>
-            <span className={`text-[10px] font-extrabold -mt-1 ${currentScreen === 'publish' ? 'text-indigo-500' : 'text-gray-500'}`}>{t('nav.publish')}</span>
+            <span className={`text-[10px] ${currentScreen === 'publish' ? 'font-extrabold text-[#FF1A1A] dark:text-[#FF1A1A]' : 'font-medium'}`}>{t('nav.publish')}</span>
           </button>
 
           {/* Shopping Cart Tab */}

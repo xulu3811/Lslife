@@ -7,17 +7,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -68,6 +67,7 @@ private data class Tab(
 private val tabs = listOf(
     Tab(Routes.HOME, R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
     Tab(Routes.ORDERS, R.string.nav_orders, Icons.Filled.Receipt, Icons.Outlined.Receipt),
+    Tab(Routes.PUBLISH, R.string.nav_publish, Icons.Filled.AddCircle, Icons.Outlined.AddCircle),
     Tab(Routes.CART, R.string.nav_cart, Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
     Tab(Routes.PROFILE, R.string.nav_profile, Icons.Filled.Person, Icons.Outlined.Person),
 )
@@ -91,8 +91,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                         containerColor = MaterialTheme.colorScheme.surface,
                         tonalElevation = 2.dp,
                     ) {
-                        // 左两 + 占位 + 右两，中间留给发布 FAB
-                        tabs.take(2).forEach { tab ->
+                        tabs.forEach { tab ->
                             val selected = backStackEntry?.destination?.hierarchy?.any { it.route == tab.route } == true
                             NavigationBarItem(
                                 selected = selected,
@@ -116,66 +115,9 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                                     indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                ),
+                                )
                             )
                         }
-
-                        // 中央占位
-                        NavigationBarItem(
-                            selected = false,
-                            onClick = {},
-                            enabled = false,
-                            icon = { Box(Modifier.size(24.dp)) },
-                            label = { Text("") },
-                        )
-
-                        tabs.drop(2).forEach { tab ->
-                            val selected = backStackEntry?.destination?.hierarchy?.any { it.route == tab.route } == true
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = {
-                                    navController.navigate(tab.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = {
-                                    Icon(
-                                        if (selected) tab.selectedIcon else tab.unselectedIcon,
-                                        contentDescription = stringResource(tab.labelRes),
-                                    )
-                                },
-                                label = { Text(stringResource(tab.labelRes)) },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                ),
-                            )
-                        }
-                    }
-
-                    FloatingActionButton(
-                        onClick = {
-                            navController.navigate(Routes.PUBLISH) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .offset(y = (-18).dp)
-                            .size(58.dp),
-                        shape = CircleShape,
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        elevation = FloatingActionButtonDefaults.elevation(6.dp, 8.dp),
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.nav_publish))
                     }
                 }
             }

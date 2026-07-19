@@ -1,7 +1,16 @@
 import { env } from '../config/env.js';
 
-// 简易本地敏感词 (生产应接入阿里云/腾讯云内容安全 API + 人审队列)
-const BLOCK_WORDS = ['黄赌毒', '诈骗', '暴力', '违法'];
+// 简易本地敏感词 (包含违法、涉政、黑话等)
+const BLOCK_WORDS = [
+  // 黄赌毒
+  '黄', '赌', '毒', '色情', '嫖娼', '赌场', '毒品', '冰毒', '海洛因',
+  // 政治言论与领导人
+  '政治言论', '反党', '反社会', '暴乱', '习近平', '李克强', '毛泽东', '邓小平', '江泽民', '胡锦涛',
+  // 组织与政府
+  '共产党', '中共', '政府', '公安', '警察',
+  // 违法黑话术语
+  '黑话', '代考', '枪手', '办证', '发票', '洗钱', '走私', '套现', '刷单', '原味'
+];
 
 export interface ModerationResult {
   pass: boolean;
@@ -23,5 +32,5 @@ export function moderateContent(title: string, description: string): ModerationR
   if (hit) {
     return { pass: false, status: 'rejected', note: `命中违规词: ${hit}` };
   }
-  return { pass: true, status: 'published' };
+  return { pass: true, status: 'pending_review' };
 }

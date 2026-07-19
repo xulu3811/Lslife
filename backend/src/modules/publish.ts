@@ -62,7 +62,7 @@ router.post(
       },
     });
 
-    return ok(res, { ...post, images: JSON.parse(post.images) }, moderation.status === 'published' ? '发布成功' : '已提交审核');
+    return ok(res, { ...post, images: JSON.parse(post.images) }, moderation.status === 'published' ? '发布成功' : '提交成功，请等待管理员审批');
   }),
 );
 

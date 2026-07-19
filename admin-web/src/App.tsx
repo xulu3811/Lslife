@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import AdminLayout from './layouts/AdminLayout';
 import Dashboard from './pages/Dashboard';
+import ContentAudit from './pages/ContentAudit';
 
 // Placeholder pages for other routes
 const Placeholder = ({ title }: { title: string }) => (
@@ -22,7 +23,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/admin-web">
       <Routes>
         <Route path="/login" element={<Login />} />
         
@@ -34,7 +35,7 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<Placeholder title="用户管理模块" />} />
-          <Route path="content" element={<Placeholder title="内容审核模块" />} />
+          <Route path="content" element={<ContentAudit />} />
           <Route path="orders" element={<Placeholder title="资金与订单模块" />} />
           <Route path="settings" element={<Placeholder title="系统安全设置" />} />
         </Route>
