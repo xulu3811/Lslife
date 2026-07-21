@@ -10,6 +10,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,6 +24,18 @@ class TokenStore @Inject constructor(
     private val tokenKey = stringPreferencesKey("token")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val notificationsEnabledKey = booleanPreferencesKey("notifications_enabled")
+
+    var cachedToken: String? = null
+        private set
+
+    init {
+        // Collect token immediately on application start to ensure interceptor has it
+        kotlinx.coroutines.DelicateCoroutinesApi::class
+        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+        kotlinx.coroutines.GlobalScope.launch {
+            context.dataStore.data.map { it[tokenKey] }.collect { cachedToken = it }
+        }
+    }
 
     val tokenFlow: Flow<String?> = context.dataStore.data.map { it[tokenKey] }
     val themeModeFlow: Flow<ThemeMode> = context.dataStore.data.map {

@@ -34,7 +34,9 @@ class ProfileViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true) }
-            authRepository.me().onSuccess { u -> _state.update { it.copy(loading = false, user = u) } }
+            authRepository.me()
+                .onSuccess { u -> _state.update { it.copy(loading = false, user = u) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, message = "获取用户信息失败") } }
             repo.plans().onSuccess { p -> _state.update { it.copy(plans = p) } }
             repo.notifications().onSuccess { n -> _state.update { it.copy(unread = n.unread) } }
         }

@@ -10,10 +10,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class AuthMode { Login, Register }
+
 data class LoginUiState(
+    val mode: AuthMode = AuthMode.Login,
     val phone: String = "",
-    val code: String = "",
-    val codeSent: Boolean = false,
+    val email: String = "",
+    val password: String = "",
+    val confirmPassword: String = "",
+    val nickname: String = "",
     val loading: Boolean = false,
     val message: String? = null,
     val success: Boolean = false,
@@ -28,37 +33,58 @@ class AuthViewModel @Inject constructor(
     val state: StateFlow<LoginUiState> = _state
 
     fun onPhoneChange(v: String) = _state.update { it.copy(phone = v.filter(Char::isDigit).take(11)) }
-    fun onCodeChange(v: String) = _state.update { it.copy(code = v.filter(Char::isDigit).take(6)) }
+    fun onEmailChange(v: String) = _state.update { it.copy(email = v.take(64)) }
+    fun onPasswordChange(v: String) = _state.update { it.copy(password = v.take(64)) }
+    fun onConfirmPasswordChange(v: String) = _state.update { it.copy(confirmPassword = v.take(64)) }
+    fun onNicknameChange(v: String) = _state.update { it.copy(nickname = v.take(20)) }
     fun clearMessage() = _state.update { it.copy(message = null) }
 
-    fun sendCode() {
-        val phone = _state.value.phone
-        if (!phone.matches(Regex("^1\\d{10}$"))) {
-            _state.update { it.copy(message = "请输入正确的11位手机号") }
-            return
-        }
-        viewModelScope.launch {
-            _state.update { it.copy(loading = true) }
-            authRepository.sendCode(phone)
-                .onSuccess { r ->
-                    // mock 环境自动回填验证码, 方便体验
-                    _state.update { it.copy(loading = false, codeSent = true, code = r.mockCode ?: it.code, message = "验证码已发送") }
-                }
-                .onFailure { e -> _state.update { it.copy(loading = false, message = e.message ?: "发送失败") } }
+    fun switchMode(mode: AuthMode) {
+        _state.update {
+            it.copy(
+                mode = mode,
+                password = "",
+                confirmPassword = "",
+                email = "",
+                message = null,
+                success = false,
+            )
         }
     }
 
-    fun login() {
+    fun submit() {
         val s = _state.value
-        if (s.code.length != 6) {
-            _state.update { it.copy(message = "请输入6位验证码") }
+        if (!s.phone.matches(Regex("^1\\d{10}$"))) {
+            _state.update { it.copy(message = "请输入正确的11位手机号") }
             return
         }
-        viewModelScope.launch {
-            _state.update { it.copy(loading = true) }
-            authRepository.login(s.phone, s.code)
-                .onSuccess { _state.update { it.copy(loading = false, success = true) } }
-                .onFailure { e -> _state.update { it.copy(loading = false, message = e.message ?: "登录失败") } }
+        if (!s.password.matches(Regex("^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]{6,}\$"))) {
+            _state.update { it.copy(message = "密码要求6位以上数字+英文字母") }
+            return
+        }
+        if (s.mode == AuthMode.Register) {
+            if (s.email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(s.email).matches()) {
+                _state.update { it.copy(message = "请输入有效的邮箱地址") }
+                return
+            }
+            if (s.password != s.confirmPassword) {
+                _state.update { it.copy(message = "两次输入的密码不一致") }
+                return
+            }
+            viewModelScope.launch {
+                _state.update { it.copy(loading = true) }
+                val nick = s.nickname.trim().ifBlank { null }
+                authRepository.register(s.phone, s.email, s.password, nick)
+                    .onSuccess { _state.update { it.copy(loading = false, success = true) } }
+                    .onFailure { e -> _state.update { it.copy(loading = false, message = e.message ?: "注册失败") } }
+            }
+        } else {
+            viewModelScope.launch {
+                _state.update { it.copy(loading = true) }
+                authRepository.login(s.phone, s.password)
+                    .onSuccess { _state.update { it.copy(loading = false, success = true) } }
+                    .onFailure { e -> _state.update { it.copy(loading = false, message = e.message ?: "登录失败") } }
+            }
         }
     }
 }

@@ -20,6 +20,7 @@ export interface AiReply {
  */
 export interface AiProvider {
   recommend(prompt: string): Promise<AiReply>;
+  generateText(prompt: string): Promise<string>;
 }
 
 async function buildMerchantContext() {
@@ -44,6 +45,11 @@ const mockProvider: AiProvider = {
         '为您推荐连山壮族瑶族自治县的本地好物，点击卡片可直接下单体验哦！',
       recommendations: foodPicks,
     };
+  },
+  async generateText(prompt) {
+    const hintMatch = prompt.match(/“(.+)”/);
+    const hint = hintMatch ? hintMatch[1] : '这件宝贝';
+    return `我这里有一款非常不错的${hint}，平时很爱惜，功能一切正常，配件齐全。\n因为近期用不上了，所以低价转让给有需要的朋友。\n\n支持验货，喜欢的话可以直接拍下或者私聊我！`;
   },
 };
 
@@ -71,15 +77,41 @@ const dashscopeProvider: AiProvider = {
     const text = data.choices?.[0]?.message?.content ?? '{}';
     return JSON.parse(text) as AiReply;
   },
+  async generateText(prompt) {
+    if (!env.aiApiKey) throw new Error('AI_API_KEY 未配置');
+    const resp = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.aiApiKey}` },
+      body: JSON.stringify({
+        model: env.aiModel,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    const data = (await resp.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    return data.choices?.[0]?.message?.content ?? '';
+  },
+};
+
+const deepseekProvider: AiProvider = {
+  async recommend(prompt) {
+    return mockProvider.recommend(prompt);
+  },
+  async generateText(prompt) {
+    const apiKey = 'sk-30f79d21acbd487da71ec3cb5ce63d54';
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' }
+      }),
+    });
+    const data = (await resp.json()) as any;
+    return data.choices?.[0]?.message?.content ?? '{}';
+  },
 };
 
 export function getAiProvider(): AiProvider {
-  switch (env.aiProvider) {
-    case 'dashscope':
-    case 'qianfan':
-    case 'doubao':
-      return dashscopeProvider;
-    default:
-      return mockProvider;
-  }
+  return deepseekProvider;
 }

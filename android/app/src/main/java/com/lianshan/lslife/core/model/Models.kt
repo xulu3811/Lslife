@@ -25,9 +25,6 @@ data class User(
 data class LoginResult(val token: String, val user: User)
 
 @Serializable
-data class SendCodeResult(val sent: Boolean, val mockCode: String? = null)
-
-@Serializable
 data class Product(
     val id: String,
     val name: String,
@@ -144,17 +141,45 @@ data class Address(
 @Serializable
 data class Post(
     val id: String,
+    val publisherType: String = "INDIVIDUAL",
+    val merchantId: String? = null,
+    val listingType: String = "GOODS",
     val category: String,
     val title: String,
     val description: String,
     val price: Double? = null,
     val images: List<String> = emptyList(),
     val status: String,
+    val locationName: String? = null,
+    val attributes: Map<String, String> = emptyMap(),
     val createdAt: String,
+    val user: PostUser? = null,
+    val merchant: PostMerchant? = null,
 )
 
 @Serializable
-data class Quota(val used: Int, val limit: Int, val tier: String)
+data class PostMerchant(
+    val name: String,
+    val logo: String,
+    val status: String? = null,
+)
+
+@Serializable
+data class PostUser(
+    val nickname: String? = null,
+    val avatar: String? = null,
+)
+
+@Serializable
+data class PostPage(
+    val total: Int,
+    val page: Int,
+    val pageSize: Int,
+    val list: List<Post>,
+)
+
+@Serializable
+data class Quota(val used: Int, val limit: Int, val tier: String, val remaining: Int? = null)
 
 @Serializable
 data class MembershipPlan(
@@ -194,4 +219,30 @@ data class AiReply(val reply: String, val recommendations: List<AiRecommendation
 data class ProfileUpdateRequest(
     val nickname: String? = null,
     val avatar: String? = null,
+)
+
+@Serializable
+data class ChatUser(
+    val id: String,
+    val nickname: String,
+    val avatar: String? = null,
+)
+
+@Serializable
+data class ChatSession(
+    val id: String,
+    val targetUser: ChatUser? = null,
+    val lastMessage: String? = null,
+    val unread: Int = 0,
+    val updatedAt: String,
+)
+
+@Serializable
+data class ChatMessage(
+    val id: String,
+    val sessionId: String,
+    val senderId: String,
+    val type: String = "text",
+    val content: String,
+    val createdAt: String,
 )

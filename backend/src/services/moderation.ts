@@ -1,16 +1,24 @@
 import { env } from '../config/env.js';
 
-// 简易本地敏感词 (包含违法、涉政、黑话等)
+/** 明确违规词（整词/短语），避免单字误伤如「香蕉」 */
 const BLOCK_WORDS = [
-  // 黄赌毒
-  '黄', '赌', '毒', '色情', '嫖娼', '赌场', '毒品', '冰毒', '海洛因',
-  // 政治言论与领导人
-  '政治言论', '反党', '反社会', '暴乱', '习近平', '李克强', '毛泽东', '邓小平', '江泽民', '胡锦涛',
-  // 组织与政府
-  '共产党', '中共', '政府', '公安', '警察',
-  // 违法黑话术语
-  '黑话', '代考', '枪手', '办证', '发票', '洗钱', '走私', '套现', '刷单', '原味'
+  '黄赌毒',
+  '色情',
+  '嫖娼',
+  '赌场',
+  '毒品',
+  '冰毒',
+  '海洛因',
+  '代考',
+  '办证',
+  '洗钱',
+  '走私',
+  '刷单返利',
+  '原味内裤',
 ];
+
+/** 可疑内容进入人工审核 */
+const REVIEW_WORDS = ['发票', '套现', '枪手', '代练账号'];
 
 export interface ModerationResult {
   pass: boolean;
@@ -19,18 +27,23 @@ export interface ModerationResult {
 }
 
 /**
- * 内容审核。UGC 发布需机审 + 人审, 违规留存。
- * 本地: 命中敏感词直接 rejected; 否则 published。
- * 生产: 机审可疑 -> pending_review 进人审队列。
+ * 内容审核（本地词表）。
+ * - 命中 BLOCK → rejected（不入库额度）
+ * - 命中 REVIEW → pending_review（可进管理后台）
+ * - 其余 → published（信息流可见，保证发布链路可跑通）
  */
 export function moderateContent(title: string, description: string): ModerationResult {
   if (!env.contentModerationEnabled) {
     return { pass: true, status: 'published' };
   }
   const text = `${title} ${description}`;
-  const hit = BLOCK_WORDS.find((w) => text.includes(w));
-  if (hit) {
-    return { pass: false, status: 'rejected', note: `命中违规词: ${hit}` };
+  const blocked = BLOCK_WORDS.find((w) => text.includes(w));
+  if (blocked) {
+    return { pass: false, status: 'rejected', note: `命中违规词: ${blocked}` };
   }
-  return { pass: true, status: 'pending_review' };
+  const review = REVIEW_WORDS.find((w) => text.includes(w));
+  if (review) {
+    return { pass: true, status: 'pending_review', note: `可疑内容待审: ${review}` };
+  }
+  return { pass: true, status: 'published' };
 }

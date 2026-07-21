@@ -285,8 +285,8 @@ enum class StatusTone { Primary, Success, Warning, Error, Neutral }
 @Composable
 fun TagPill(text: String) {
     Surface(
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(999.dp),
     ) {
         Text(
@@ -356,74 +356,66 @@ fun MerchantListCard(
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Row(
             modifier = Modifier.padding(Dimens.md),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.md),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.md)
         ) {
+            // Left Image
             NetworkImage(
                 url = merchant.logo,
                 contentDescription = merchant.name,
-                modifier = Modifier.size(Dimens.thumbLg),
+                modifier = Modifier.size(110.dp).clip(MaterialTheme.shapes.medium),
             )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            
+            // Right Content
+            Column(
+                modifier = Modifier.weight(1f).height(110.dp),
+            ) {
+                // Title
                 Text(
                     text = merchant.name,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Spacer(Modifier.height(4.dp))
+                
+                // Rating, Sales, Distance
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        shape = RoundedCornerShape(999.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.Star,
-                                null,
-                                modifier = Modifier.size(12.dp),
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                            Text(
-                                "${merchant.rating}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
-                        }
-                    }
+                    Icon(Icons.Filled.Star, contentDescription = null, tint = androidx.compose.ui.graphics.Color(0xFFFBC02D), modifier = Modifier.size(14.dp))
                     Text(
-                        "月售${merchant.sales}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        "· ${merchant.distance}km",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "${merchant.rating}  月售${merchant.sales} · ${merchant.distance}km",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                
+                Spacer(Modifier.weight(1f))
+                
+                // Delivery Info
                 Text(
-                    if (merchant.deliveryFee == 0.0) {
-                        "免配送费 · ${merchant.deliveryTime}分钟"
-                    } else {
-                        "配送¥${merchant.deliveryFee} · ${merchant.deliveryTime}分钟"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = if (merchant.deliveryFee == 0.0) "免配送费 · ${merchant.deliveryTime}分钟" else "配送费 ¥${merchant.deliveryFee} · ${merchant.deliveryTime}分钟",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    merchant.tags.take(3).forEach { TagPill(it) }
+                
+                Spacer(Modifier.height(6.dp))
+                
+                // Tags
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.sm),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    merchant.tags.take(3).forEach { tag ->
+                        TagPill(tag)
+                    }
                 }
             }
         }

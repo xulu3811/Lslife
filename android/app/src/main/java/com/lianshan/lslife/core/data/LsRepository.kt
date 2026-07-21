@@ -14,22 +14,26 @@ class LsRepository @Inject constructor(
     private val merchantDao: MerchantDao,
 ) {
     // 商家 (offline-first: 成功后写入本地缓存, 失败时回退缓存)
-    suspend fun merchants(category: String?, q: String?, sort: String): Result<MerchantPage> {
-        val result = safeCall { api.merchants(category = category?.takeIf { it != "all" }, q = q?.takeIf { it.isNotBlank() }, sort = sort) }
-        result.onSuccess { page ->
-            if (category == null || category == "all") {
+    suspend fun merchants(category: String?, q: String?, sort: String, page: Int = 1, pageSize: Int = 20): Result<MerchantPage> {
+        val result = safeCall { api.merchants(category = category?.takeIf { it != "all" }, q = q?.takeIf { it.isNotBlank() }, sort = sort, page = page, pageSize = pageSize) }
+        result.onSuccess { resPage ->
+            if ((category == null || category == "all") && page == 1) {
                 runCatching {
-                    merchantDao.upsertAll(page.list.map { it.toEntity() })
+                    merchantDao.upsertAll(resPage.list.map { it.toEntity() })
                 }
             }
         }
-        if (result.isFailure && category in listOf(null, "all") && q.isNullOrBlank()) {
+        if (result.isFailure && category in listOf(null, "all") && q.isNullOrBlank() && page == 1) {
             val cached = runCatching { merchantDao.getAll() }.getOrNull().orEmpty()
             if (cached.isNotEmpty()) {
                 return Result.success(MerchantPage(cached.size, 1, cached.size, cached.map { it.toMerchant() }))
             }
         }
         return result
+    }
+
+    suspend fun getCachedMerchants(): List<Merchant> {
+        return runCatching { merchantDao.getAll() }.getOrNull().orEmpty().map { it.toMerchant() }
     }
 
     suspend fun recommended() = safeCall { api.recommended() }
@@ -58,7 +62,18 @@ class LsRepository @Inject constructor(
 
     // 发布
     suspend fun createPost(req: CreatePostRequest) = safeCall { api.createPost(req) }
-    suspend fun posts(category: String?, mine: Boolean?) = safeCall { api.posts(category, mine) }
+    suspend fun posts(
+        category: String? = null,
+        mine: Boolean? = null,
+        q: String? = null,
+        minPrice: Double? = null,
+        maxPrice: Double? = null,
+        sortBy: String? = null,
+        page: Int = 1,
+        pageSize: Int = 20
+    ) = safeCall { 
+        api.posts(category, mine, q, minPrice, maxPrice, sortBy, page, pageSize) 
+    }
     suspend fun quota() = safeCall { api.quota() }
 
     // 会员
@@ -71,6 +86,11 @@ class LsRepository @Inject constructor(
 
     // AI
     suspend fun aiRecommend(prompt: String) = safeCall { api.aiRecommend(AiRequest(prompt)) }
+    suspend fun aiGenerateDescription(title: String, category: String, draft: String? = null) =
+        safeCall { api.aiGenerateDescription(AiGenerateDescRequest(title, category, draft)) }
+
+    // 上传
+    suspend fun uploadImage(part: okhttp3.MultipartBody.Part) = safeCall { api.uploadImage(part) }
 }
 
 private fun Merchant.toEntity() = MerchantEntity(

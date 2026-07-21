@@ -2,6 +2,7 @@ package com.lianshan.lslife.ui.navigation
 
 object Routes {
     const val LOGIN = "login"
+    const val FORGOT_PASSWORD = "forgot_password"
     const val HOME = "home"
     const val ORDERS = "orders"
     const val PUBLISH = "publish"
@@ -13,10 +14,20 @@ object Routes {
     const val MERCHANT = "merchant/{merchantId}"
     const val ORDER_TRACK = "order_track/{orderId}"
     const val PERSONAL_INFO = "personal_info"
+    const val EDIT_PROFILE = "edit_profile"
+    const val MEMBERSHIP = "membership"
     const val ADDRESS_LIST = "address_list"
+    const val ADDRESS_EDIT = "address_edit?addressId={addressId}"
     const val MESSAGE_LIST = "message_list"
     const val REAL_NAME_AUTH = "real_name_auth"
+    const val CROP_AVATAR = "crop_avatar"
+    const val CHAT = "chat/{sessionId}/{targetUserId}/{targetName}"
+    const val SEARCH = "search"
 
     fun merchant(id: String) = "merchant/$id"
     fun orderTrack(id: String) = "order_track/$id"
+    fun addressEdit(addressId: String? = null) =
+        if (addressId.isNullOrBlank()) "address_edit?addressId=" else "address_edit?addressId=$addressId"
+    fun cropAvatar() = "crop_avatar"
+    fun chat(sessionId: String, targetUserId: String, targetName: String) = "chat/$sessionId/$targetUserId/$targetName"
 }

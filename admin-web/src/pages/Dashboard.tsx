@@ -3,7 +3,9 @@ import { Users, ShoppingBag, Activity, AlertTriangle } from 'lucide-react';
 import api from '../utils/axios';
 import '../index.css';
 
-const StatCard = ({ title, value, trend, icon: Icon, color }: any) => (
+import { Link } from 'react-router-dom';
+
+const StatCard = ({ title, value, trend, icon: Icon, color, linkTo }: any) => (
   <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
       <div>
@@ -14,11 +16,18 @@ const StatCard = ({ title, value, trend, icon: Icon, color }: any) => (
         <Icon size={24} />
       </div>
     </div>
-    <div>
-      <span style={{ color: trend >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600, fontSize: '14px' }}>
-        {trend >= 0 ? '+' : ''}{trend}%
-      </span>
-      <span style={{ color: 'var(--text-secondary)', fontSize: '14px', marginLeft: '8px' }}>较昨日</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div>
+        <span style={{ color: trend >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600, fontSize: '14px' }}>
+          {trend >= 0 ? '+' : ''}{trend}%
+        </span>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '14px', marginLeft: '8px' }}>较昨日</span>
+      </div>
+      {linkTo && (
+        <Link to={linkTo} style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none' }}>
+          前往管理 &rarr;
+        </Link>
+      )}
     </div>
   </div>
 );
@@ -40,10 +49,10 @@ export default function Dashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
-        <StatCard title="今日新增用户" value={stats.newUsers.toString()} trend={12.5} icon={Users} color="59, 130, 246" />
-        <StatCard title="活跃订单数" value={stats.activeOrders.toString()} trend={8.2} icon={ShoppingBag} color="167, 139, 250" />
+        <StatCard title="今日新增用户" value={stats.newUsers.toString()} trend={12.5} icon={Users} color="59, 130, 246" linkTo="/users" />
+        <StatCard title="活跃订单数" value={stats.activeOrders.toString()} trend={8.2} icon={ShoppingBag} color="167, 139, 250" linkTo="/orders" />
         <StatCard title="平台流水 (元)" value={`￥${stats.revenue}`} trend={-2.4} icon={Activity} color="34, 197, 94" />
-        <StatCard title="待处理违规" value={stats.pendingReviews.toString()} trend={100} icon={AlertTriangle} color="239, 68, 68" />
+        <StatCard title="待审核内容" value={stats.pendingReviews.toString()} trend={100} icon={AlertTriangle} color="239, 68, 68" linkTo="/content" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>

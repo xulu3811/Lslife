@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, MessageSquareWarning, Receipt, Settings, LogOut, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, MessageSquareWarning, Receipt, Settings, LogOut, ShieldCheck, UserCheck } from 'lucide-react';
 import '../index.css';
 
 const SIDEBAR_WIDTH = 260;
@@ -7,6 +7,7 @@ const SIDEBAR_WIDTH = 260;
 const menuItems = [
   { path: '/dashboard', label: '数据大盘', icon: <LayoutDashboard size={20} /> },
   { path: '/users', label: '用户管理', icon: <Users size={20} /> },
+  { path: '/kyc', label: '实名认证审核', icon: <UserCheck size={20} /> },
   { path: '/content', label: '内容审核', icon: <MessageSquareWarning size={20} /> },
   { path: '/orders', label: '资金与订单', icon: <Receipt size={20} /> },
   { path: '/settings', label: '系统设置', icon: <Settings size={20} /> },

@@ -9,12 +9,21 @@ interface ApiService {
     @GET("health")
     suspend fun health(): ApiEnvelope<Map<String, String>>
 
-    // 鉴权
-    @POST("auth/send-code")
-    suspend fun sendCode(@Body body: SendCodeRequest): ApiEnvelope<SendCodeResult>
+    // 鉴权（手机号+密码；短信暂未开通）
+    @POST("auth/register")
+    suspend fun register(@Body body: RegisterRequest): ApiEnvelope<LoginResult>
 
     @POST("auth/login")
     suspend fun login(@Body body: LoginRequest): ApiEnvelope<LoginResult>
+
+    @POST("auth/change-password")
+    suspend fun changePassword(@Body body: ChangePasswordRequest): ApiEnvelope<Map<String, Boolean>>
+
+    @POST("auth/forgot-password/code")
+    suspend fun sendEmailCode(@Body body: SendEmailCodeRequest): ApiEnvelope<Map<String, String>>
+
+    @POST("auth/forgot-password/reset")
+    suspend fun resetPassword(@Body body: ResetPasswordRequest): ApiEnvelope<Map<String, String>>
 
     @GET("auth/me")
     suspend fun me(): ApiEnvelope<User>
@@ -89,7 +98,16 @@ interface ApiService {
     suspend fun createPost(@Body body: CreatePostRequest): ApiEnvelope<Post>
 
     @GET("posts")
-    suspend fun posts(@Query("category") category: String? = null, @Query("mine") mine: Boolean? = null): ApiEnvelope<List<Post>>
+    suspend fun posts(
+        @Query("category") category: String? = null,
+        @Query("mine") mine: Boolean? = null,
+        @Query("q") q: String? = null,
+        @Query("minPrice") minPrice: Double? = null,
+        @Query("maxPrice") maxPrice: Double? = null,
+        @Query("sortBy") sortBy: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 20,
+    ): ApiEnvelope<PostPage>
 
     @GET("posts/quota")
     suspend fun quota(): ApiEnvelope<Quota>
@@ -111,4 +129,19 @@ interface ApiService {
     // AI 助手
     @POST("ai/recommend")
     suspend fun aiRecommend(@Body body: AiRequest): ApiEnvelope<AiReply>
+
+    @POST("ai/generate-description")
+    suspend fun aiGenerateDescription(@Body body: AiGenerateDescRequest): ApiEnvelope<Map<String, String>>
+
+    // 上传
+    @Multipart
+    @POST("upload")
+    suspend fun uploadImage(@Part image: okhttp3.MultipartBody.Part): ApiEnvelope<UploadResult>
+
+    // 聊天
+    @GET("chat/sessions")
+    suspend fun chatSessions(): ApiEnvelope<List<ChatSession>>
+
+    @GET("chat/sessions/{id}/messages")
+    suspend fun chatMessages(@Path("id") id: String): ApiEnvelope<List<ChatMessage>>
 }

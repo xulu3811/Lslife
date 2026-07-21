@@ -89,21 +89,42 @@ dependencies {
 }
 
 afterEvaluate {
-    val copyApks by tasks.registering(Copy::class) {
-        from(layout.buildDirectory.dir("outputs/apk"))
+    // Create specific copy tasks for debug and release
+    val copyDebugApk by tasks.registering(Copy::class) {
+        from(layout.buildDirectory.dir("outputs/apk/debug"))
         into(rootProject.file("../releases"))
         include("**/*.apk")
+        
+        val versionName = android.defaultConfig.versionName ?: "1.0.0"
+        val appName = "LsLife"
+
         eachFile {
+            name = "${appName}-v${versionName}-debug.apk"
+            path = name
+        }
+        includeEmptyDirs = false
+    }
+
+    val copyReleaseApk by tasks.registering(Copy::class) {
+        from(layout.buildDirectory.dir("outputs/apk/release"))
+        into(rootProject.file("../releases"))
+        include("**/*.apk")
+        
+        val versionName = android.defaultConfig.versionName ?: "1.0.0"
+        val appName = "LsLife"
+
+        eachFile {
+            name = "${appName}-v${versionName}-release.apk"
             path = name
         }
         includeEmptyDirs = false
     }
 
     tasks.named("assembleDebug") {
-        finalizedBy(copyApks)
+        finalizedBy(copyDebugApk)
     }
 
     tasks.named("assembleRelease") {
-        finalizedBy(copyApks)
+        finalizedBy(copyReleaseApk)
     }
 }

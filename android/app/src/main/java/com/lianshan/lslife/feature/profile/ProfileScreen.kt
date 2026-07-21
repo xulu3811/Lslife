@@ -24,8 +24,6 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -33,13 +31,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,7 +44,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.lianshan.lslife.core.model.MembershipPlan
 import com.lianshan.lslife.ui.components.LoadingBox
 import com.lianshan.lslife.ui.components.NetworkImage
 import com.lianshan.lslife.ui.components.PrimaryButton
@@ -58,11 +52,11 @@ import com.lianshan.lslife.ui.components.StatusChip
 import com.lianshan.lslife.ui.components.StatusTone
 import com.lianshan.lslife.ui.theme.Dimens
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onOpenSettings: () -> Unit,
     onOpenPersonalInfo: () -> Unit,
+    onOpenMembership: () -> Unit,
     onOpenAddress: () -> Unit,
     onOpenMessage: () -> Unit,
     onOpenRealName: () -> Unit,
@@ -71,7 +65,6 @@ fun ProfileScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    var showPlans by remember { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
 
     LaunchedEffect(Unit) { viewModel.load() }
@@ -151,7 +144,7 @@ fun ProfileScreen(
 
                 PrimaryButton(
                     text = "升级会员 · 提升发布额度",
-                    onClick = { showPlans = true },
+                    onClick = onOpenMembership,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -159,8 +152,18 @@ fun ProfileScreen(
                     Column {
                         ProfileMenuRow(Icons.Filled.Place, "收货地址", "管理常用地址", onClick = onOpenAddress)
                         ProfileMenuRow(Icons.Filled.Notifications, "消息通知", "${state.unread} 条未读", onClick = onOpenMessage)
-                        ProfileMenuRow(Icons.Filled.VerifiedUser, "实名认证", if (user?.realNameStatus == "verified") "已完成" else "去认证", onClick = onOpenRealName)
-                        ProfileMenuRow(Icons.Filled.WorkspacePremium, "会员权益", tierLabel(user?.membershipTier), onClick = { showPlans = true })
+                        ProfileMenuRow(
+                            Icons.Filled.VerifiedUser,
+                            "实名认证",
+                            if (user?.realNameStatus == "verified") "已完成" else "去认证",
+                            onClick = onOpenRealName,
+                        )
+                        ProfileMenuRow(
+                            Icons.Filled.WorkspacePremium,
+                            "会员权益",
+                            tierLabel(user?.membershipTier),
+                            onClick = onOpenMembership,
+                        )
                         ProfileMenuRow(
                             Icons.Filled.Settings,
                             "设置",
@@ -187,26 +190,6 @@ fun ProfileScreen(
                 )
                 Spacer(Modifier.height(Dimens.lg))
             }
-        }
-
-        if (showPlans) {
-            AlertDialog(
-                onDismissRequest = { showPlans = false },
-                confirmButton = {
-                    TextButton(onClick = { showPlans = false }) { Text("关闭") }
-                },
-                title = { Text("选择会员套餐") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(Dimens.md)) {
-                        state.plans.forEach { plan ->
-                            PlanCard(plan) {
-                                viewModel.subscribe(plan.tier)
-                                showPlans = false
-                            }
-                        }
-                    }
-                },
-            )
         }
     }
 }
@@ -258,23 +241,6 @@ private fun ProfileMenuRow(
                     .height(1.dp)
                     .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             )
-        }
-    }
-}
-
-@Composable
-private fun PlanCard(plan: MembershipPlan, onSubscribe: () -> Unit) {
-    SoftCard {
-        Column(Modifier.padding(Dimens.md), verticalArrangement = Arrangement.spacedBy(Dimens.sm)) {
-            Text(
-                "${plan.name} · ¥${plan.price}/${plan.period}",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            plan.benefits.forEach {
-                Text("· $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            PrimaryButton(text = "立即开通", onClick = onSubscribe, modifier = Modifier.fillMaxWidth())
         }
     }
 }

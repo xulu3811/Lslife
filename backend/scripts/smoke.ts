@@ -31,12 +31,16 @@ async function main() {
   const health = await call('GET', '/health');
   assert(health.status === 'up', '服务健康');
 
-  console.log('2) 短信登录');
-  const send = await call('POST', '/auth/send-code', { phone });
-  assert(send.mockCode, '验证码已发送');
-  const login = await call('POST', '/auth/login', { phone, code: send.mockCode });
+  console.log('2) 手机号+密码注册登录');
+  const password = 'Test' + Math.floor(100000 + Math.random() * 899999);
+  const registered = await call('POST', '/auth/register', { phone, password, nickname: '冒烟测试' });
+  token = registered.token;
+  assert(token, '注册获取 token');
+  // 再测一次纯登录
+  token = '';
+  const login = await call('POST', '/auth/login', { phone, password });
   token = login.token;
-  assert(token, '登录获取 token');
+  assert(token, '密码登录获取 token');
 
   console.log('3) 实名认证');
   const rn = await call('POST', '/auth/realname', { realName: '莫小美', idCard: '11010119900101001X' });
@@ -88,8 +92,24 @@ async function main() {
   assert(notif.list.length > 0, `收到 ${notif.list.length} 条通知`);
 
   console.log('12) 同城发布 + 额度');
-  const post = await call('POST', '/posts', { category: 'second_hand', title: '九成新自行车', description: '车况极佳, 自提优先', price: 80, images: [] });
-  assert(post.status === 'published', '发布成功');
+  const demoImg = 'https://images.unsplash.com/photo-1485965120186-bdfc4c6e3e1b?w=400';
+  const post = await call('POST', '/posts', {
+    category: 'second_hand',
+    title: '九成新自行车',
+    description: '车况极佳, 自提优先',
+    price: 80,
+    images: [demoImg],
+    brand: '其他',
+    condition: '几乎全新',
+    shipping: '自提',
+    locationName: '连山吉田镇',
+  });
+  assert(post.status === 'published', `发布入库 status=${post.status}`);
+  assert(post.id, '返回帖子 id');
+  const feed = await call('GET', '/posts?category=second_hand');
+  assert(Array.isArray(feed.list) && feed.list.some((p: any) => p.id === post.id), '信息流可见刚发帖子');
+  const mine = await call('GET', '/posts?mine=true');
+  assert(mine.list.some((p: any) => p.id === post.id), '我的发布可见');
   const quota = await call('GET', '/posts/quota');
   assert(quota.used === 1 && quota.limit === 3, `免费额度 ${quota.used}/${quota.limit}`);
 

@@ -332,8 +332,10 @@ throw new ApiError(429, '验证码发送过于频繁, 请稍后再试');
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |------|------|------|------|
-| POST | `/auth/send-code` | 无 | 发短信验证码 |
-| POST | `/auth/login` | 无 | 验证码登录，无用户则注册 |
+| POST | `/auth/register` | 无 | 手机号+密码注册 |
+| POST | `/auth/login` | 无 | 手机号+密码登录 |
+| POST | `/auth/change-password` | 强制 | 修改密码 |
+| POST | `/auth/send-code` | 无 | 暂未开通短信（返回 503） |
 | GET | `/auth/me` | 强制 | 当前用户（剔除 `idCardHash`） |
 | POST | `/auth/realname` | 强制 | 实名；身份证 SHA-256 |
 | PATCH | `/auth/profile` | 强制 | 昵称/头像 |

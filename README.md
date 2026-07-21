@@ -10,6 +10,7 @@
 | [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) | 商业化合规与上线清单 | 上线前对照执行 |
 | [`docs/DEVELOPER_HANDBOOK.md`](docs/DEVELOPER_HANDBOOK.md) | 开发者手册（架构/协议/二次开发） | 二次开发必读 |
 | [`docs/BACKEND_DEVELOPER_GUIDE.md`](docs/BACKEND_DEVELOPER_GUIDE.md) | 后端开发详细手册 | 后端二次开发必读 |
+| [`docs/FULL_STACK_ANALYSIS_2026-07-20.md`](docs/FULL_STACK_ANALYSIS_2026-07-20.md) | Antigravity 升级后全栈分析（含生产 SSH/DB） | 当前基线评估 |
 
 ## 架构概览
 

@@ -1,212 +1,207 @@
 package com.lianshan.lslife.feature.profile
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.lianshan.lslife.ui.components.PrimaryButton
+import androidx.compose.foundation.clickable
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import coil.compose.AsyncImage
+import com.lianshan.lslife.core.data.AuthRepository
+import com.lianshan.lslife.core.model.User
+import com.lianshan.lslife.ui.components.LoadingBox
 import com.lianshan.lslife.ui.components.SoftCard
 import com.lianshan.lslife.ui.theme.Dimens
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class PersonalInfoUiState(
+    val loading: Boolean = true,
+    val user: User? = null,
+)
+
+@HiltViewModel
+class PersonalInfoViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+) : ViewModel() {
+    private val _state = MutableStateFlow(PersonalInfoUiState())
+    val state: StateFlow<PersonalInfoUiState> = _state
+
+    fun load() {
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true) }
+            authRepository.me()
+                .onSuccess { u -> _state.update { it.copy(loading = false, user = u) } }
+                .onFailure { _state.update { it.copy(loading = false) } }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PersonalInfoScreen(onBack: () -> Unit) {
-    var avatar by remember { mutableStateOf("👨") }
-    var nickname by remember { mutableStateOf("连山用户7665") }
-    val userId = "LS-2468001"
-    val phone = "138****0000"
-    val registerDate = "2026-07-01"
+fun PersonalInfoScreen(
+    onBack: () -> Unit,
+    onEditProfile: () -> Unit,
+    onOpenMembership: () -> Unit = {},
+    viewModel: PersonalInfoViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    var showEditSheet by remember { mutableStateOf(false) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.load()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("个人信息") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") }
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
+        if (state.loading) {
+            LoadingBox(Modifier.padding(padding).fillMaxSize())
+            return@Scaffold
+        }
+        val user = state.user
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
                 .padding(Dimens.lg),
-            verticalArrangement = Arrangement.spacedBy(Dimens.md)
+            verticalArrangement = Arrangement.spacedBy(Dimens.md),
         ) {
             SoftCard {
                 Column(Modifier.padding(horizontal = Dimens.md)) {
                     InfoRow(
                         label = "头像",
-                        value = avatar,
                         isEditable = true,
-                        onClick = { showEditSheet = true },
-                        isAvatar = true
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = Dimens.xs))
+                        onClick = onEditProfile,
+                    ) {
+                        AsyncImage(
+                            model = user?.avatar,
+                            contentDescription = "头像",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+                    HorizontalDivider()
                     InfoRow(
                         label = "昵称",
-                        value = nickname,
+                        value = user?.nickname ?: "-",
                         isEditable = true,
-                        onClick = { showEditSheet = true }
+                        onClick = onEditProfile,
                     )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = Dimens.xs))
-                    InfoRow("用户ID", userId)
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = Dimens.xs))
-                    InfoRow("手机号", phone)
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = Dimens.xs))
-                    InfoRow("注册时间", registerDate)
+                    HorizontalDivider()
+                    InfoRow("用户ID", user?.id?.takeLast(8)?.let { "LS-$it" } ?: "-")
+                    HorizontalDivider()
+                    InfoRow("手机号", maskPhone(user?.phone))
+                    HorizontalDivider()
+                    InfoRow(
+                        label = "会员",
+                        value = when (user?.membershipTier) {
+                            "vip" -> "超级会员"
+                            "premium" -> "至尊会员"
+                            else -> "普通用户"
+                        },
+                        isEditable = true,
+                        onClick = onOpenMembership,
+                    )
                 }
             }
+            Text(
+                "点击头像、昵称或会员进入完整修改页",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-    }
-
-    if (showEditSheet) {
-        ProfileEditSheet(
-            currentAvatar = avatar,
-            currentNickname = nickname,
-            onDismiss = { showEditSheet = false },
-            onSave = { newAvatar, newNickname ->
-                avatar = newAvatar
-                nickname = newNickname
-                showEditSheet = false
-            }
-        )
     }
 }
 
 @Composable
 private fun InfoRow(
     label: String,
-    value: String,
+    value: String? = null,
     isEditable: Boolean = false,
     onClick: (() -> Unit)? = null,
-    isAvatar: Boolean = false
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (isEditable && onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = Dimens.md, horizontal = Dimens.xs),
+            .padding(vertical = Dimens.md),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.sm)) {
-            if (isAvatar) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(value, fontSize = 24.sp)
-                }
-            } else {
+            if (trailing != null) trailing()
+            else if (value != null) {
                 Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             }
             if (isEditable) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "Edit",
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ProfileEditSheet(
-    currentAvatar: String,
-    currentNickname: String,
-    onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    
-    var tempAvatar by remember { mutableStateOf(currentAvatar) }
-    var tempNickname by remember { mutableStateOf(currentNickname) }
-
-    val presetAvatars = listOf("👨", "👩", "👦", "👧", "👾", "🤖", "🦊", "🐶", "🐱", "🐼")
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimens.lg, vertical = Dimens.md)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(Dimens.lg)
-        ) {
-            Text(
-                "编辑个人信息",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(Dimens.sm)) {
-                Text("选择头像", style = MaterialTheme.typography.labelLarge)
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.md),
-                    contentPadding = PaddingValues(vertical = Dimens.xs)
-                ) {
-                    items(presetAvatars) { avatarEmoji ->
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (tempAvatar == avatarEmoji) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                                )
-                                .clickable { tempAvatar = avatarEmoji },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(avatarEmoji, fontSize = 32.sp)
-                        }
-                    }
-                }
-            }
-
-            OutlinedTextField(
-                value = tempNickname,
-                onValueChange = { tempNickname = it },
-                label = { Text("昵称") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(Dimens.sm))
-
-            PrimaryButton(
-                text = "保存更改",
-                onClick = { onSave(tempAvatar, tempNickname) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = tempNickname.isNotBlank()
-            )
-            Spacer(modifier = Modifier.height(Dimens.lg))
-        }
-    }
+private fun maskPhone(phone: String?): String {
+    if (phone.isNullOrBlank() || phone.length < 7) return phone ?: "-"
+    return phone.take(3) + "****" + phone.takeLast(4)
 }

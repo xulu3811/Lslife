@@ -40,14 +40,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.lianshan.lslife.R
+import com.lianshan.lslife.feature.auth.ForgotPasswordScreen
 import com.lianshan.lslife.feature.auth.LoginScreen
 import com.lianshan.lslife.feature.cart.CartScreen
 import com.lianshan.lslife.feature.home.HomeScreen
+import com.lianshan.lslife.feature.search.SearchScreen
 import com.lianshan.lslife.feature.merchant.MerchantDetailScreen
 import com.lianshan.lslife.feature.orders.OrderListScreen
 import com.lianshan.lslife.feature.orders.OrderTrackScreen
 import com.lianshan.lslife.feature.profile.AddressScreen
-import com.lianshan.lslife.feature.profile.MessageScreen
+import com.lianshan.lslife.feature.profile.CropScreen
+import com.lianshan.lslife.feature.profile.EditProfileScreen
+import com.lianshan.lslife.feature.profile.MembershipScreen
+import com.lianshan.lslife.feature.chat.ChatSessionListScreen
+import com.lianshan.lslife.feature.chat.ChatScreen
 import com.lianshan.lslife.feature.profile.PersonalInfoScreen
 import com.lianshan.lslife.feature.profile.ProfileScreen
 import com.lianshan.lslife.feature.profile.RealNameScreen
@@ -66,7 +72,7 @@ private data class Tab(
 
 private val tabs = listOf(
     Tab(Routes.HOME, R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
-    Tab(Routes.ORDERS, R.string.nav_orders, Icons.Filled.Receipt, Icons.Outlined.Receipt),
+    Tab(Routes.MESSAGE_LIST, R.string.nav_messages, Icons.Filled.Receipt, Icons.Outlined.Receipt), // TODO: update icon and string
     Tab(Routes.PUBLISH, R.string.nav_publish, Icons.Filled.AddCircle, Icons.Outlined.AddCircle),
     Tab(Routes.CART, R.string.nav_cart, Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
     Tab(Routes.PROFILE, R.string.nav_profile, Icons.Filled.Person, Icons.Outlined.Person),
@@ -129,12 +135,26 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(Routes.LOGIN) {
-                LoginScreen(onLoggedIn = {
-                    navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
-                })
+                LoginScreen(
+                    onLoggedIn = {
+                        navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
+                    },
+                    onForgotPasswordClick = {
+                        navController.navigate(Routes.FORGOT_PASSWORD)
+                    }
+                )
+            }
+            composable(Routes.FORGOT_PASSWORD) {
+                ForgotPasswordScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.HOME) {
-                HomeScreen(onOpenMerchant = { navController.navigate(Routes.merchant(it)) })
+                HomeScreen(
+                    onOpenMerchant = { navController.navigate(Routes.merchant(it)) },
+                    onSearchClick = { navController.navigate(Routes.SEARCH) }
+                )
+            }
+            composable(Routes.SEARCH) {
+                SearchScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.ORDERS) {
                 OrderListScreen(onTrack = { navController.navigate(Routes.orderTrack(it)) })
@@ -147,6 +167,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                 ProfileScreen(
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                     onOpenPersonalInfo = { navController.navigate(Routes.PERSONAL_INFO) },
+                    onOpenMembership = { navController.navigate(Routes.MEMBERSHIP) },
                     onOpenAddress = { navController.navigate(Routes.ADDRESS_LIST) },
                     onOpenMessage = { navController.navigate(Routes.MESSAGE_LIST) },
                     onOpenRealName = { navController.navigate(Routes.REAL_NAME_AUTH) },
@@ -155,9 +176,50 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     },
                 )
             }
-            composable(Routes.PERSONAL_INFO) { PersonalInfoScreen(onBack = { navController.popBackStack() }) }
+            composable(Routes.PERSONAL_INFO) {
+                PersonalInfoScreen(
+                    onBack = { navController.popBackStack() },
+                    onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
+                    onOpenMembership = { navController.navigate(Routes.MEMBERSHIP) },
+                )
+            }
+            composable(Routes.EDIT_PROFILE) { entry ->
+                val croppedAvatar = entry.savedStateHandle.get<String>("cropped_avatar")
+                EditProfileScreen(
+                    croppedAvatar = croppedAvatar,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToCrop = { navController.navigate(Routes.cropAvatar()) }
+                )
+            }
+            composable(Routes.CROP_AVATAR) { entry ->
+                CropScreen(
+                    uriString = "avatar_temp.jpg",
+                    onBack = { navController.popBackStack() },
+                    onCropped = { uploadedUrl ->
+                        navController.previousBackStackEntry?.savedStateHandle?.set("cropped_avatar", uploadedUrl)
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(Routes.MEMBERSHIP) {
+                MembershipScreen(onBack = { navController.popBackStack() })
+            }
             composable(Routes.ADDRESS_LIST) { AddressScreen(onBack = { navController.popBackStack() }) }
-            composable(Routes.MESSAGE_LIST) { MessageScreen(onBack = { navController.popBackStack() }) }
+            composable(Routes.MESSAGE_LIST) { 
+                ChatSessionListScreen(
+                    onNavigateToChat = { sessionId, targetId, targetName ->
+                        navController.navigate(Routes.chat(sessionId, targetId, targetName))
+                    }
+                )
+            }
+            composable(Routes.CHAT) { entry ->
+                ChatScreen(
+                    sessionId = entry.arguments?.getString("sessionId").orEmpty(),
+                    targetUserId = entry.arguments?.getString("targetUserId").orEmpty(),
+                    targetName = entry.arguments?.getString("targetName").orEmpty(),
+                    onBack = { navController.popBackStack() }
+                )
+            }
             composable(Routes.REAL_NAME_AUTH) { RealNameScreen(onBack = { navController.popBackStack() }) }
             composable(Routes.SETTINGS) {
                 SettingsScreen(

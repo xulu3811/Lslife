@@ -34,18 +34,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 
-private val publishCategories = listOf(
-    "second_hand" to "个人闲置",
-    "job" to "招聘",
-    "house" to "房租租售",
-    "housekeeping" to "家政保洁",
-    "maintenance" to "水电维修",
-    "moving" to "货运搬家",
-    "veggies" to "水果蔬菜",
-)
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-private val brandOptions = listOf("Apple/苹果", "PopSockets", "RTAKO")
-private val conditionOptions = listOf("全新", "几乎全新", "轻微使用痕迹")
+// Constants are now imported from CategoryConfig.kt
 
 @Composable
 fun PublishScreen(
@@ -56,9 +49,33 @@ fun PublishScreen(
     val snackbar = remember { SnackbarHostState() }
     val scheme = MaterialTheme.colorScheme
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
     val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(9)) { uris ->
         if (uris.isNotEmpty()) {
-            viewModel.onImagesSelected(uris)
+            scope.launch(Dispatchers.IO) {
+                val absolutePaths = uris.mapNotNull { uri ->
+                    try {
+                        val inputStream = context.contentResolver.openInputStream(uri) ?: return@mapNotNull null
+                        val fileName = "publish_temp_${java.util.UUID.randomUUID()}.jpg"
+                        val cacheFile = java.io.File(context.cacheDir, fileName)
+                        cacheFile.outputStream().use { output ->
+                            inputStream.copyTo(output)
+                        }
+                        cacheFile.absolutePath
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        null
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    if (absolutePaths.isNotEmpty()) {
+                        viewModel.onImagesSelected(absolutePaths)
+                    } else {
+                        viewModel.setMessage("部分图片读取失败，请重试")
+                    }
+                }
+            }
         }
     }
 
@@ -101,8 +118,7 @@ fun PublishScreen(
                         contentDescription = "Close",
                         modifier = Modifier.clickable { onClose() }
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("发闲置", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("发布信息", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("存草稿", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.clickable { })
@@ -189,11 +205,31 @@ fun PublishScreen(
 
                         Spacer(Modifier.height(16.dp))
                         
+                        // Title
+                        BasicTextField(
+                            value = state.title,
+                            onValueChange = viewModel::onTitle,
+                            textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = scheme.onSurface),
+                            cursorBrush = SolidColor(scheme.primary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            decorationBox = { innerTextField ->
+                                if (state.title.isEmpty()) {
+                                    Text("填写商品名称会有更多赞哦~", color = Color.LightGray, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                }
+                                innerTextField()
+                            }
+                        )
+
+                        HorizontalDivider(color = Color(0xFFF5F5F5))
+                        Spacer(Modifier.height(12.dp))
+
                         // Description
                         BasicTextField(
                             value = state.description,
                             onValueChange = viewModel::onDescription,
-                            textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
+                            textStyle = TextStyle(fontSize = 16.sp, color = scheme.onSurface),
                             cursorBrush = SolidColor(scheme.primary),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -232,44 +268,113 @@ fun PublishScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("分类/品牌/成色", fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
                         
+                        val config = publishCategoryConfigs.find { it.id == state.category } ?: publishCategoryConfigs.first()
+                        
                         // Category
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
                             Text("分类", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(publishCategories) { (id, name) ->
+                                items(publishCategoryConfigs) { category ->
                                     PublishPill(
-                                        label = name,
-                                        selected = state.category == id,
-                                        onClick = { viewModel.onCategory(id) }
+                                        label = category.name,
+                                        selected = state.category == category.id,
+                                        onClick = { viewModel.onCategory(category.id) }
                                     )
                                 }
                             }
                         }
 
-                        // Brand
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
-                            Text("品牌", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(brandOptions) { brand ->
-                                    PublishPill(
-                                        label = brand,
-                                        selected = state.brand == brand,
-                                        onClick = { viewModel.onBrand(brand) }
-                                    )
+                        if (config.guidedFill) {
+                            // Brand
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
+                                Text("品牌", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(secondHandBrandSuggestions) { brand ->
+                                        PublishPill(
+                                            label = brand,
+                                            selected = state.brand == brand,
+                                            onClick = { viewModel.onBrand(brand) }
+                                        )
+                                    }
                                 }
                             }
-                        }
 
-                        // Condition
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("成色", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(conditionOptions) { condition ->
-                                    PublishPill(
-                                        label = condition,
-                                        selected = state.condition == condition,
-                                        onClick = { viewModel.onCondition(condition) }
-                                    )
+                            // Condition
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("成色", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(secondHandConditionOptions) { condition ->
+                                        PublishPill(
+                                            label = condition,
+                                            selected = state.condition == condition,
+                                            onClick = { viewModel.onCondition(condition) }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Parameters
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
+                                Text("参数", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
+                                BasicTextField(
+                                    value = state.parameters,
+                                    onValueChange = viewModel::onParameters,
+                                    textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFFF7F7F7), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    decorationBox = { inner ->
+                                        if (state.parameters.isEmpty()) Text("如：256G (AI 可自动提取)", color = Color.LightGray, fontSize = 13.sp)
+                                        inner()
+                                    }
+                                )
+                            }
+
+                            // Purchase Date
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 12.dp)) {
+                                Text("购买日", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
+                                BasicTextField(
+                                    value = state.purchaseDate,
+                                    onValueChange = viewModel::onPurchaseDate,
+                                    textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFFF7F7F7), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    decorationBox = { inner ->
+                                        if (state.purchaseDate.isEmpty()) Text("如：2023.5 (AI 可提取)", color = Color.LightGray, fontSize = 13.sp)
+                                        inner()
+                                    }
+                                )
+                            }
+                        } else {
+                            if (config.attr1Label != null) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
+                                    Text(config.attr1Label, fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        items(config.attr1Options) { opt ->
+                                            PublishPill(
+                                                label = opt,
+                                                selected = state.attr1Value == opt,
+                                                onClick = { viewModel.onAttr1Value(opt) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            if (config.attr2Label != null) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
+                                    Text(config.attr2Label, fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        items(config.attr2Options) { opt ->
+                                            PublishPill(
+                                                label = opt,
+                                                selected = state.attr2Value == opt,
+                                                onClick = { viewModel.onAttr2Value(opt) }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
