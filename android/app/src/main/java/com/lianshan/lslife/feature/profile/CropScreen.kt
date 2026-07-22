@@ -68,10 +68,50 @@ class CropViewModel @Inject constructor(
             _state.update { it.copy(loading = true) }
             try {
                 val file = java.io.File(context.cacheDir, "avatar_temp.jpg")
-                val inputStream = java.io.FileInputStream(file)
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream.close()
+                if (!file.exists()) {
+                    throw Exception("文件不存在或保存失败")
+                }
+
+                // 1. Check original size
+                val options = BitmapFactory.Options()
+                options.inJustDecodeBounds = true
+                BitmapFactory.decodeFile(file.absolutePath, options)
+                
+                // 2. Calculate inSampleSize to avoid OOM
+                var scale = 1
+                while (options.outWidth / scale > 2048 || options.outHeight / scale > 2048) {
+                    scale *= 2
+                }
+                
+                // 3. Decode actual bitmap
+                options.inJustDecodeBounds = false
+                options.inSampleSize = scale
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888
+                var bitmap = BitmapFactory.decodeFile(file.absolutePath, options)
+                
                 if (bitmap != null) {
+                    // 4. Handle Exif rotation
+                    val exif = android.media.ExifInterface(file.absolutePath)
+                    val orientation = exif.getAttributeInt(
+                        android.media.ExifInterface.TAG_ORIENTATION,
+                        android.media.ExifInterface.ORIENTATION_NORMAL
+                    )
+                    
+                    val matrix = android.graphics.Matrix()
+                    when (orientation) {
+                        android.media.ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                        android.media.ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                        android.media.ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                    }
+                    
+                    if (!matrix.isIdentity) {
+                        val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                        if (rotatedBitmap != bitmap) {
+                            bitmap.recycle()
+                            bitmap = rotatedBitmap
+                        }
+                    }
+
                     val imageBitmap = bitmap.asImageBitmap()
                     _state.update { 
                         it.copy(
@@ -82,10 +122,11 @@ class CropViewModel @Inject constructor(
                         ) 
                     }
                 } else {
-                    throw Exception("Decode failed")
+                    throw Exception("图片格式不支持或无法解码")
                 }
-            } catch (e: Exception) {
-                _state.update { it.copy(loading = false, message = "无法加载图片") }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+                _state.update { it.copy(loading = false, message = "无法加载图片: ${e.message}") }
             }
         }
     }
@@ -148,9 +189,10 @@ class CropViewModel @Inject constructor(
                 } else {
                     throw Exception("Upload failed")
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    _state.update { it.copy(uploading = false, message = "裁剪上传失败: ${e.message}") }
+                    _state.update { it.copy(uploading = false, message = "裁剪上传失败: ${e.message ?: "未知错误"}") }
                 }
             }
         }
@@ -240,14 +282,15 @@ fun CropScreen(
                 .padding(padding)
                 .fillMaxSize()
                 .onSizeChanged { viewportSize = it }
+        ) {
+            Canvas(modifier = Modifier
+                .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, zoom, _ ->
                         scale = (scale * zoom).coerceIn(0.1f, 5f)
                         offset += pan
                     }
-                }
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+                }) {
                 val canvasWidth = size.width
                 val canvasHeight = size.height
 

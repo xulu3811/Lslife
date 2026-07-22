@@ -152,6 +152,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
             composable(Routes.HOME) {
                 HomeScreen(
                     onOpenMerchant = { navController.navigate(Routes.merchant(it)) },
+                    onOpenPost = { navController.navigate(Routes.postDetail(it)) },
                     onSearchClick = { navController.navigate(Routes.SEARCH) }
                 )
             }
@@ -171,6 +172,21 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                 MyPostsScreen(
                     onBack = { navController.popBackStack() },
                     onEditPost = { postId -> navController.navigate(Routes.publish(postId)) }
+                )
+            }
+            composable(Routes.POST_DETAIL) { backStackEntry ->
+                val postId = backStackEntry.arguments?.getString("postId") ?: ""
+                com.lianshan.lslife.feature.home.PostDetailScreen(
+                    postId = postId,
+                    onBack = { navController.popBackStack() },
+                    onChatClick = { targetId, targetName ->
+                        // Pass mock session id or placeholder
+                        navController.navigate(Routes.CHAT.replace("{sessionId}", "new").replace("{targetUserId}", targetId).replace("{targetName}", targetName))
+                    },
+                    onBuyClick = { id ->
+                        // Direct purchase can be simulated or a toast shown. Let's redirect to cart for now.
+                        navController.navigate(Routes.CART)
+                    }
                 )
             }
             composable(Routes.CART) {

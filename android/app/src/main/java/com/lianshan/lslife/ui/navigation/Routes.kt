@@ -24,8 +24,10 @@ object Routes {
     const val CROP_AVATAR = "crop_avatar"
     const val CHAT = "chat/{sessionId}/{targetUserId}/{targetName}"
     const val SEARCH = "search"
+    const val POST_DETAIL = "post_detail/{postId}"
 
     fun merchant(id: String) = "merchant/$id"
+    fun postDetail(id: String) = "post_detail/$id"
     fun orderTrack(id: String) = "order_track/$id"
     fun addressEdit(addressId: String? = null) =
         if (addressId.isNullOrBlank()) "address_edit?addressId=" else "address_edit?addressId=$addressId"

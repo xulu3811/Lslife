@@ -85,6 +85,7 @@ private val sorts = listOf(
 @Composable
 fun HomeScreen(
     onOpenMerchant: (String) -> Unit,
+    onOpenPost: (String) -> Unit,
     onSearchClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -312,7 +313,7 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(Dimens.sm))
                         }
                         items(state.posts, key = { it.id }) { post ->
-                            com.lianshan.lslife.ui.components.PostListCard(post)
+                            com.lianshan.lslife.ui.components.PostListCard(post) { onOpenPost(post.id) }
                         }
                         if (state.posts.isEmpty()) {
                             item {

@@ -27,7 +27,7 @@ class MyPostsViewModel @Inject constructor(
     fun load() {
         _state.update { it.copy(loading = true, message = null) }
         viewModelScope.launch {
-            val res = repository.posts(mine = true, pageSize = 100) // load up to 100 for now
+            val res = repository.posts(mine = true, pageSize = 50) // load up to 50 for now
             if (res.isSuccess) {
                 _state.update { it.copy(loading = false, posts = res.getOrNull()?.list.orEmpty()) }
             } else {
