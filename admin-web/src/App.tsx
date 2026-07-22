@@ -6,6 +6,9 @@ import Dashboard from './pages/Dashboard';
 import ContentAudit from './pages/ContentAudit';
 import KycAudit from './pages/KycAudit';
 import UserManagement from './pages/UserManagement';
+import FinanceAndOrders from './pages/FinanceAndOrders';
+import { MerchantManagement } from './pages/MerchantManagement';
+import { ProductAudit } from './pages/ProductAudit';
 
 // Placeholder pages for other routes
 const Placeholder = ({ title }: { title: string }) => (
@@ -39,7 +42,9 @@ export default function App() {
           <Route path="users" element={<UserManagement />} />
           <Route path="content" element={<ContentAudit />} />
           <Route path="kyc" element={<KycAudit />} />
-          <Route path="orders" element={<Placeholder title="资金与订单模块" />} />
+          <Route path="orders" element={<FinanceAndOrders />} />
+          <Route path="merchants" element={<MerchantManagement />} />
+          <Route path="products" element={<ProductAudit />} />
           <Route path="settings" element={<Placeholder title="系统安全设置" />} />
         </Route>
 

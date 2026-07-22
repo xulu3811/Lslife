@@ -48,6 +48,7 @@ import com.lianshan.lslife.ui.theme.Dimens
 @Composable
 fun CartScreen(
     onOpenMerchant: (String) -> Unit,
+    onCheckout: (merchantId: String?, sellerId: String?) -> Unit,
     viewModel: CartViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -73,19 +74,25 @@ fun CartScreen(
                 modifier = Modifier.padding(padding).fillMaxSize(),
             )
             else -> {
-                val grouped = state.entries.groupBy { it.merchantId }
+                // Group by merchantId or sellerId
+                val grouped = state.entries.groupBy { it.merchantId ?: it.sellerId ?: "unknown" }
                 Column(Modifier.padding(padding).fillMaxSize()) {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(Dimens.lg),
                         verticalArrangement = Arrangement.spacedBy(Dimens.md),
                     ) {
-                        grouped.forEach { (merchantId, entries) ->
-                            item(key = "header-$merchantId") {
-                                SoftCard(onClick = { onOpenMerchant(merchantId) }) {
+                        grouped.forEach { (groupId, entries) ->
+                            val isMerchant = entries.firstOrNull()?.merchantId != null
+                            val shopName = entries.firstOrNull()?.product?.merchant?.name ?: entries.firstOrNull()?.post?.user?.nickname ?: "未知卖家"
+                            
+                            item(key = "header-$groupId") {
+                                SoftCard(onClick = { 
+                                    if (isMerchant) onCheckout(groupId, null) else onCheckout(null, groupId)
+                                }) {
                                     Column(Modifier.padding(Dimens.md), verticalArrangement = Arrangement.spacedBy(Dimens.sm)) {
                                         Text(
-                                            "商家订单 · 点击进入结算",
+                                            "【$shopName】的商品 · 点击去结算",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = scheme.primary,
                                             fontWeight = FontWeight.SemiBold,
@@ -93,7 +100,6 @@ fun CartScreen(
                                         entries.forEach { entry ->
                                             CartRow(
                                                 entry = entry,
-                                                onOpenMerchant = onOpenMerchant,
                                                 onAdd = { viewModel.changeQty(entry, 1) },
                                                 onRemove = { viewModel.changeQty(entry, -1) },
                                             )
@@ -113,7 +119,7 @@ fun CartScreen(
                                 PriceText(state.total)
                             }
                             Text(
-                                "请进入对应商家页结算",
+                                "请点击上方卡片进入结算",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = scheme.onSurfaceVariant,
                             )
@@ -128,23 +134,25 @@ fun CartScreen(
 @Composable
 private fun CartRow(
     entry: CartEntry,
-    onOpenMerchant: (String) -> Unit,
     onAdd: () -> Unit,
     onRemove: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val name = entry.product?.name ?: entry.post?.title ?: "商品"
+    val price = entry.product?.price ?: entry.post?.price ?: 0.0
+    val image = entry.product?.image ?: entry.post?.images?.firstOrNull() ?: ""
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOpenMerchant(entry.merchantId) }
             .padding(vertical = Dimens.xs),
         horizontalArrangement = Arrangement.spacedBy(Dimens.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        NetworkImage(entry.product.image, entry.product.name, Modifier.size(Dimens.thumbMd))
+        NetworkImage(image, name, Modifier.size(Dimens.thumbMd))
         Column(modifier = Modifier.weight(1f)) {
-            Text(entry.product.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1)
-            PriceText(entry.product.price)
+            Text(name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1)
+            PriceText(price)
         }
         IconButton(onClick = onRemove) {
             Icon(Icons.Filled.Remove, "减", tint = scheme.onSurfaceVariant)

@@ -44,6 +44,7 @@ import com.lianshan.lslife.R
 import com.lianshan.lslife.feature.auth.ForgotPasswordScreen
 import com.lianshan.lslife.feature.auth.LoginScreen
 import com.lianshan.lslife.feature.cart.CartScreen
+import com.lianshan.lslife.feature.cart.CheckoutScreen
 import com.lianshan.lslife.feature.home.HomeScreen
 import com.lianshan.lslife.feature.search.SearchScreen
 import com.lianshan.lslife.feature.merchant.MerchantDetailScreen
@@ -190,7 +191,24 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                 )
             }
             composable(Routes.CART) {
-                CartScreen(onOpenMerchant = { navController.navigate(Routes.merchant(it)) })
+                CartScreen(
+                    onOpenMerchant = { navController.navigate(Routes.merchant(it)) },
+                    onCheckout = { mId, sId -> navController.navigate(Routes.checkout(mId, sId)) }
+                )
+            }
+            composable(
+                route = Routes.CHECKOUT,
+                arguments = listOf(
+                    navArgument("merchantId") { nullable = true },
+                    navArgument("sellerId") { nullable = true }
+                )
+            ) { entry ->
+                CheckoutScreen(
+                    merchantId = entry.arguments?.getString("merchantId"),
+                    sellerId = entry.arguments?.getString("sellerId"),
+                    onBack = { navController.popBackStack() },
+                    onOrderCreated = { orderId -> navController.navigate(Routes.orderTrack(orderId)) { popUpTo(Routes.CART) } }
+                )
             }
             composable(Routes.PROFILE) {
                 ProfileScreen(

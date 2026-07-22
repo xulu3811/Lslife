@@ -76,10 +76,10 @@ fun PostDetailScreen(
                     ) {
                         OutlinedButton(
                             onClick = {
-                                val targetId = state.post?.user?.nickname // Temporary workaround or use real ID if available, usually userId is needed.
-                                // In the post object, we have user info, but let's assume we can chat with the nickname or we'll pass postId.
-                                // Actually we need userId, but let's pass a placeholder if not available.
-                                onChatClick("user_${state.post?.id}", state.post?.user?.nickname ?: "卖家")
+                                val targetId = state.post?.user?.id
+                                if (targetId != null) {
+                                    onChatClick(targetId, state.post?.user?.nickname ?: "卖家")
+                                }
                             },
                             modifier = Modifier.weight(1f).height(48.dp),
                             shape = RoundedCornerShape(24.dp)
@@ -90,7 +90,11 @@ fun PostDetailScreen(
                         }
                         
                         Button(
-                            onClick = { onBuyClick(state.post!!.id) },
+                            onClick = { 
+                                viewModel.addToCart {
+                                    onBuyClick(state.post!!.id) 
+                                }
+                            },
                             modifier = Modifier.weight(1f).height(48.dp),
                             shape = RoundedCornerShape(24.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = scheme.error)

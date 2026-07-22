@@ -28,11 +28,14 @@ model User {
   updatedAt       DateTime  @updatedAt
 
   addresses     Address[]
-  orders        Order[]
+  orders        Order[]        @relation("BuyerOrders")
+  soldOrders    Order[]        @relation("SellerOrders")
   cartItems     CartItem[]
+  soldCartItems CartItem[]     @relation("CartSeller")
   posts         Post[]
   notifications Notification[]
   subscriptions Subscription[]
+  transactions  WalletTransaction[]
 }
 
 model VerificationCode {
@@ -86,11 +89,13 @@ model Merchant {
   address      String
   phone        String
   status       String   @default("active") // active | offline
+  walletBalance Float   @default(0) // 商户可提现余额
   createdAt    DateTime @default(now())
 
-  products Product[]
-  orders   Order[]
-  posts    Post[]
+  products     Product[]
+  orders       Order[]
+  posts        Post[]
+  transactions WalletTransaction[]
 }
 
 model Product {
@@ -119,15 +124,19 @@ model Product {
 model CartItem {
   id         String   @id @default(cuid())
   userId     String
-  productId  String
-  merchantId String
+  productId  String?  // Made optional for polymorphic
+  postId     String?  // Added for C2C
+  merchantId String?  // Made optional for polymorphic
+  sellerId   String?  // Added for C2C (User ID of post publisher)
   quantity   Int      @default(1)
   updatedAt  DateTime @updatedAt
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  seller  User?    @relation("CartSeller", fields: [sellerId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId])
+  // A cart item should either be a product or a post, handled in logic. No strict DB unique on both since one is null.
   @@index([userId])
 }
 
@@ -136,9 +145,10 @@ model Order {
   id              String    @id @default(cuid())
   orderNo         String    @unique
   userId          String
-  merchantId      String
-  merchantName    String
-  merchantLogo    String
+  merchantId      String?   // Made optional
+  sellerId        String?   // Added for C2C
+  merchantName    String?   // Actually this acts as shopName/sellerName
+  merchantLogo    String?   // avatar or logo
   itemsTotal      Float
   deliveryFee     Float     @default(0)
   totalAmount     Float
@@ -149,27 +159,32 @@ model Order {
   createdAt       DateTime  @default(now())
   paidAt          DateTime?
 
-  user     User        @relation(fields: [userId], references: [id])
-  merchant Merchant    @relation(fields: [merchantId], references: [id])
+  user     User        @relation("BuyerOrders", fields: [userId], references: [id])
+  seller   User?       @relation("SellerOrders", fields: [sellerId], references: [id])
+  merchant Merchant?   @relation(fields: [merchantId], references: [id])
   items    OrderItem[]
   payment  Payment?
   delivery Delivery?
+  transactions WalletTransaction[]
 
   @@index([userId])
   @@index([merchantId])
+  @@index([sellerId])
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
-  productId String
+  productId String? // Optional
+  postId    String? // Optional
   name      String
   price     Float
   quantity  Int
   image     String
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+  post    Post?    @relation(fields: [postId], references: [id])
 
   @@index([orderId])
 }
@@ -179,6 +194,9 @@ model Payment {
   orderId       String    @unique
   provider      String // wechat | alipay | wallet | mock
   amount        Float
+  pointsUsed    Int       @default(0)
+  pointsDiscount Float    @default(0)
+  cashAmount    Float     @default(0)
   status        String    @default("created") // created | success | failed | refunded
   transactionId String? // 第三方支付流水号
   prepayPayload String? // 客户端拉起支付所需参数 (JSON)
@@ -186,6 +204,28 @@ model Payment {
   paidAt        DateTime?
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// ================= 资金流水 =================
+model WalletTransaction {
+  id            String   @id @default(cuid())
+  userId        String
+  merchantId    String?  
+  type          String   // points | cash
+  amount        Float    // 正数表示收入，负数表示支出
+  balanceBefore Float
+  balanceAfter  Float
+  bizType       String   // recharge | order_pay | order_refund | settlement
+  orderId       String?
+  description   String?
+  createdAt     DateTime @default(now())
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant      Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order         Order?    @relation(fields: [orderId], references: [id])
+
+  @@index([userId])
+  @@index([merchantId])
 }
 
 // ================= 实时配送 =================
@@ -226,6 +266,8 @@ model Post {
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+  orderItems OrderItem[]
 
   @@index([userId])
   @@index([category])

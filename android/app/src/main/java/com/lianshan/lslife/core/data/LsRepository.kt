@@ -41,7 +41,7 @@ class LsRepository @Inject constructor(
 
     // 购物车
     suspend fun cart() = safeCall { api.cart() }
-    suspend fun upsertCart(productId: String, quantity: Int) = safeCall { api.upsertCart(CartUpsertRequest(productId, quantity)) }
+    suspend fun upsertCart(productId: String? = null, postId: String? = null, quantity: Int) = safeCall { api.upsertCart(CartUpsertRequest(productId, postId, quantity)) }
     suspend fun clearCart(merchantId: String? = null) = safeCall { api.clearCart(merchantId) }
 
     // 订单

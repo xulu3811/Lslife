@@ -21,17 +21,18 @@ data class ChangePasswordRequest(val oldPassword: String, val newPassword: Strin
 data class RealNameRequest(val realName: String, val idCard: String)
 
 @Serializable
-data class CartUpsertRequest(val productId: String, val quantity: Int)
+data class CartUpsertRequest(val productId: String? = null, val postId: String? = null, val quantity: Int)
 
 @Serializable
 data class DeliveryAddressBody(val name: String, val phone: String, val address: String)
 
 @Serializable
-data class OrderItemRequest(val productId: String, val quantity: Int)
+data class OrderItemRequest(val productId: String? = null, val postId: String? = null, val quantity: Int)
 
 @Serializable
 data class CreateOrderRequest(
-    val merchantId: String,
+    val merchantId: String? = null,
+    val sellerId: String? = null,
     val items: List<OrderItemRequest>,
     val deliveryAddress: DeliveryAddressBody,
 )

@@ -35,4 +35,12 @@ class PostDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun addToCart(onSuccess: () -> Unit) {
+        val post = _state.value.post ?: return
+        viewModelScope.launch {
+            repository.upsertCart(postId = post.id, quantity = 1)
+            onSuccess()
+        }
+    }
 }

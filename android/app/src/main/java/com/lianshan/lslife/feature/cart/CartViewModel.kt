@@ -16,7 +16,7 @@ data class CartUiState(
     val error: String? = null,
     val entries: List<CartEntry> = emptyList(),
 ) {
-    val total: Double get() = entries.sumOf { it.product.price * it.quantity }
+    val total: Double get() = entries.sumOf { (it.product?.price ?: it.post?.price ?: 0.0) * it.quantity }
 }
 
 @HiltViewModel
@@ -39,7 +39,11 @@ class CartViewModel @Inject constructor(
     fun changeQty(entry: CartEntry, delta: Int) {
         val next = (entry.quantity + delta).coerceAtLeast(0)
         viewModelScope.launch {
-            repo.upsertCart(entry.product.id, next)
+            repo.upsertCart(
+                productId = entry.product?.id,
+                postId = entry.post?.id,
+                quantity = next
+            )
             load()
         }
     }

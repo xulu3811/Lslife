@@ -26,6 +26,8 @@ object Routes {
     const val SEARCH = "search"
     const val POST_DETAIL = "post_detail/{postId}"
 
+    const val CHECKOUT = "checkout?merchantId={merchantId}&sellerId={sellerId}"
+
     fun merchant(id: String) = "merchant/$id"
     fun postDetail(id: String) = "post_detail/$id"
     fun orderTrack(id: String) = "order_track/$id"
@@ -34,4 +36,5 @@ object Routes {
     fun cropAvatar() = "crop_avatar"
     fun chat(sessionId: String, targetUserId: String, targetName: String) = "chat/$sessionId/$targetUserId/$targetName"
     fun publish(postId: String? = null) = if (postId.isNullOrBlank()) "publish" else "publish?postId=$postId"
+    fun checkout(merchantId: String?, sellerId: String?) = "checkout?merchantId=${merchantId ?: ""}&sellerId=${sellerId ?: ""}"
 }

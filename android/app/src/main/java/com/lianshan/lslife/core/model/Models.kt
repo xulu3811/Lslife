@@ -34,6 +34,7 @@ data class Product(
     val sales: Int = 0,
     val image: String,
     val category: String,
+    val merchant: Merchant? = null,
 )
 
 @Serializable
@@ -71,13 +72,17 @@ data class MerchantPage(
 data class CartEntry(
     val id: String,
     val quantity: Int,
-    val merchantId: String,
-    val product: Product,
+    val merchantId: String? = null,
+    val sellerId: String? = null,
+    val product: Product? = null,
+    val post: Post? = null,
 )
 
 @Serializable
 data class OrderItem(
     val id: String,
+    val productId: String? = null,
+    val postId: String? = null,
     val name: String,
     val price: Double,
     val quantity: Int,
@@ -105,9 +110,10 @@ data class Delivery(
 data class Order(
     val id: String,
     val orderNo: String,
-    val merchantId: String,
-    val merchantName: String,
-    val merchantLogo: String,
+    val merchantId: String? = null,
+    val sellerId: String? = null,
+    val merchantName: String? = null,
+    val merchantLogo: String? = null,
     val itemsTotal: Double,
     val deliveryFee: Double,
     val totalAmount: Double,
@@ -167,6 +173,7 @@ data class PostMerchant(
 
 @Serializable
 data class PostUser(
+    val id: String? = null,
     val nickname: String? = null,
     val avatar: String? = null,
 )
