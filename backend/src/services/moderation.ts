@@ -45,5 +45,5 @@ export function moderateContent(title: string, description: string): ModerationR
   if (review) {
     return { pass: true, status: 'pending_review', note: `可疑内容待审: ${review}` };
   }
-  return { pass: true, status: 'published' };
+  return { pass: true, status: 'published', note: '自动审核通过' };
 }

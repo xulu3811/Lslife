@@ -5,7 +5,8 @@ object Routes {
     const val FORGOT_PASSWORD = "forgot_password"
     const val HOME = "home"
     const val ORDERS = "orders"
-    const val PUBLISH = "publish"
+    const val PUBLISH = "publish?postId={postId}"
+    const val MY_POSTS = "my_posts"
     const val CART = "cart"
     const val PROFILE = "profile"
     const val SETTINGS = "settings"
@@ -30,4 +31,5 @@ object Routes {
         if (addressId.isNullOrBlank()) "address_edit?addressId=" else "address_edit?addressId=$addressId"
     fun cropAvatar() = "crop_avatar"
     fun chat(sessionId: String, targetUserId: String, targetName: String) = "chat/$sessionId/$targetUserId/$targetName"
+    fun publish(postId: String? = null) = if (postId.isNullOrBlank()) "publish" else "publish?postId=$postId"
 }

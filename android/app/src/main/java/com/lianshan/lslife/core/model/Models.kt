@@ -152,6 +152,7 @@ data class Post(
     val status: String,
     val locationName: String? = null,
     val attributes: Map<String, String> = emptyMap(),
+    val reviewNote: String? = null,
     val createdAt: String,
     val user: PostUser? = null,
     val merchant: PostMerchant? = null,

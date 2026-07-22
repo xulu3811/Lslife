@@ -75,6 +75,10 @@ class LsRepository @Inject constructor(
         api.posts(category, mine, q, minPrice, maxPrice, sortBy, page, pageSize) 
     }
     suspend fun quota() = safeCall { api.quota() }
+    suspend fun post(id: String) = safeCall { api.post(id) }
+    suspend fun updatePost(id: String, req: CreatePostRequest) = safeCall { api.updatePost(id, req) }
+    suspend fun updatePostStatus(id: String, status: String) = safeCall { api.updatePostStatus(id, mapOf("status" to status)) }
+    suspend fun deletePost(id: String) = safeCall { api.deletePost(id) }
 
     // 会员
     suspend fun plans() = safeCall { api.plans() }

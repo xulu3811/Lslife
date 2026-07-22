@@ -42,6 +42,7 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun PublishScreen(
+    postId: String? = null,
     viewModel: PublishViewModel = hiltViewModel(),
     onClose: () -> Unit = {}
 ) {
@@ -79,7 +80,12 @@ fun PublishScreen(
         }
     }
 
-    LaunchedEffect(Unit) { viewModel.loadQuota() }
+    LaunchedEffect(Unit) {
+        viewModel.loadQuota()
+        if (postId != null) {
+            viewModel.loadPost(postId)
+        }
+    }
     LaunchedEffect(state.message) {
         state.message?.let {
             snackbar.showSnackbar(it)
@@ -124,14 +130,16 @@ fun PublishScreen(
                     Text("存草稿", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.clickable { })
                     Spacer(modifier = Modifier.width(16.dp))
                     Button(
-                        onClick = viewModel::submit,
+                        onClick = { viewModel.submit() },
                         enabled = !state.submitting,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD900), contentColor = Color.Black),
-                        shape = RoundedCornerShape(20.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = scheme.primary),
                         modifier = Modifier.height(32.dp)
                     ) {
-                        Text(if (state.submitting) "发布中" else "发布", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        if (state.submitting) {
+                            CircularProgressIndicator(color = scheme.onPrimary, modifier = Modifier.size(20.dp))
+                        } else {
+                            Text(if (postId != null) "确认修改" else "确认发布", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -143,6 +151,28 @@ fun PublishScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(if (postId != null) "修改发布" else "免费发布", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    if (postId == null) {
+                        Surface(
+                            color = scheme.primaryContainer,
+                            shape = CircleShape,
+                            modifier = Modifier.clickable { /* TODO 切换为商家发布 */ }
+                        ) {
+                            Text(
+                                "切换商家身份",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = scheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
                 // Card 1: Images and Description
                 Surface(
                     shape = RoundedCornerShape(16.dp),

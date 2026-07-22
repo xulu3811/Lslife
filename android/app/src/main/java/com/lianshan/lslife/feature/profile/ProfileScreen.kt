@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -60,6 +61,7 @@ fun ProfileScreen(
     onOpenAddress: () -> Unit,
     onOpenMessage: () -> Unit,
     onOpenRealName: () -> Unit,
+    onOpenMyPosts: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
@@ -152,6 +154,7 @@ fun ProfileScreen(
                     Column {
                         ProfileMenuRow(Icons.Filled.Place, "收货地址", "管理常用地址", onClick = onOpenAddress)
                         ProfileMenuRow(Icons.Filled.Notifications, "消息通知", "${state.unread} 条未读", onClick = onOpenMessage)
+                        ProfileMenuRow(Icons.Filled.Edit, "我的发布", "管理已发布的信息", onClick = onOpenMyPosts)
                         ProfileMenuRow(
                             Icons.Filled.VerifiedUser,
                             "实名认证",

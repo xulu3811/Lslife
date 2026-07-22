@@ -112,6 +112,18 @@ interface ApiService {
     @GET("posts/quota")
     suspend fun quota(): ApiEnvelope<Quota>
 
+    @GET("posts/{id}")
+    suspend fun post(@Path("id") id: String): ApiEnvelope<Post>
+
+    @PUT("posts/{id}")
+    suspend fun updatePost(@Path("id") id: String, @Body body: CreatePostRequest): ApiEnvelope<Post>
+
+    @PUT("posts/{id}/status")
+    suspend fun updatePostStatus(@Path("id") id: String, @Body body: Map<String, String>): ApiEnvelope<Post>
+
+    @DELETE("posts/{id}")
+    suspend fun deletePost(@Path("id") id: String): ApiEnvelope<Map<String, String>>
+
     // 会员
     @GET("membership/plans")
     suspend fun plans(): ApiEnvelope<List<MembershipPlan>>

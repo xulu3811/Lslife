@@ -135,7 +135,7 @@ router.get(
         category: z.string().optional(),
         publisherType: z.enum(['INDIVIDUAL', 'MERCHANT']).optional(),
         listingType: z.enum(['GOODS', 'SERVICE']).optional(),
-        mine: z.coerce.boolean().optional(),
+        mine: z.string().optional().transform(v => v === 'true'),
         page: z.coerce.number().min(1).default(1),
         pageSize: z.coerce.number().min(1).max(50).default(20),
         q: z.string().optional(),
@@ -240,6 +240,94 @@ router.get(
       images: JSON.parse(post.images) as string[],
       attributes: JSON.parse(post.attributes) as Record<string, string>,
     });
+  }),
+);
+
+router.put(
+  '/:id',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const post = await prisma.post.findUnique({ where: { id: req.params.id } });
+    if (!post) throw new ApiError(404, '帖子不存在');
+    if (post.userId !== req.userId) throw new ApiError(403, '无权修改此帖子');
+
+    const body = z
+      .object({
+        category: z.enum(ALLOWED_CATEGORIES),
+        title: z.string().max(60).nullable().optional(),
+        description: z.string().min(1).max(2000),
+        price: z.number().nonnegative().optional().nullable(),
+        images: z.array(z.string().min(8).max(500)).max(9).default([]),
+        latitude: z.number().nullable().optional(),
+        longitude: z.number().nullable().optional(),
+        locationName: z.string().max(80).nullable().optional(),
+        attributes: z.record(z.string(), z.string()).optional().default({}),
+      })
+      .parse(req.body);
+
+    if (body.category === 'second_hand' && body.images.length === 0) {
+      throw new ApiError(400, '个人闲置请至少上传1张图片');
+    }
+
+    const title = deriveTitle(body.title, body.description);
+    const moderation = moderateContent(title, body.description);
+    if (!moderation.pass && moderation.status === 'rejected') {
+      throw new ApiError(400, `内容审核未通过: ${moderation.note}`);
+    }
+
+    const updatedPost = await prisma.post.update({
+      where: { id: post.id },
+      data: {
+        category: body.category,
+        title,
+        description: body.description.trim(),
+        price: body.price ?? null,
+        images: JSON.stringify(body.images),
+        latitude: body.latitude,
+        longitude: body.longitude,
+        locationName: body.locationName ?? '连山壮族瑶族自治县',
+        attributes: JSON.stringify(body.attributes),
+        status: moderation.status,
+        reviewNote: moderation.note,
+      },
+    });
+
+    return ok(
+      res,
+      { ...updatedPost, images: JSON.parse(updatedPost.images) as string[] },
+      '修改成功，已重新提交审核',
+    );
+  }),
+);
+
+router.put(
+  '/:id/status',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { status } = z.object({ status: z.enum(['removed', 'pending_review']) }).parse(req.body);
+    const post = await prisma.post.findUnique({ where: { id: req.params.id } });
+    if (!post) throw new ApiError(404, '帖子不存在');
+    if (post.userId !== req.userId) throw new ApiError(403, '无权操作此帖子');
+
+    const updatedPost = await prisma.post.update({
+      where: { id: post.id },
+      data: { status },
+    });
+
+    return ok(res, updatedPost, status === 'removed' ? '已成功下架' : '已重新提交审核');
+  }),
+);
+
+router.delete(
+  '/:id',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const post = await prisma.post.findUnique({ where: { id: req.params.id } });
+    if (!post) throw new ApiError(404, '帖子不存在');
+    if (post.userId !== req.userId) throw new ApiError(403, '无权删除此帖子');
+
+    await prisma.post.delete({ where: { id: post.id } });
+    return ok(res, null, '删除成功');
   }),
 );
 

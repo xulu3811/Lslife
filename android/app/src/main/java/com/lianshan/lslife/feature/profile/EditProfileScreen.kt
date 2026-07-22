@@ -153,7 +153,7 @@ fun EditProfileScreen(
                 try {
                     val inputStream = context.contentResolver.openInputStream(uri)
                     if (inputStream != null) {
-                        val cacheFile = java.io.File(context.cacheDir, "avatar_temp_${System.currentTimeMillis()}.jpg")
+                        val cacheFile = java.io.File(context.cacheDir, "avatar_temp.jpg")
                         cacheFile.outputStream().use { output ->
                             inputStream.copyTo(output)
                         }

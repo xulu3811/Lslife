@@ -45,6 +45,7 @@ data class PublishUiState(
     val submitting: Boolean = false,
     val message: String? = null,
     val success: Boolean = false,
+    val editingPostId: String? = null,
 )
 
 @HiltViewModel
@@ -59,6 +60,37 @@ class PublishViewModel @Inject constructor(
     fun loadQuota() {
         viewModelScope.launch {
             repo.quota().onSuccess { q -> _state.update { it.copy(quota = q) } }
+        }
+    }
+
+    fun loadPost(id: String) {
+        viewModelScope.launch {
+            repo.post(id).onSuccess { post ->
+                val attrs = post.attributes
+                val config = publishCategoryConfigs.find { it.id == post.category } ?: publishCategoryConfigs.first()
+                
+                _state.update {
+                    it.copy(
+                        editingPostId = post.id,
+                        publisherType = post.publisherType,
+                        merchantId = post.merchantId,
+                        listingType = post.listingType,
+                        category = post.category,
+                        title = post.title,
+                        description = post.description,
+                        price = post.price?.toString() ?: "",
+                        images = post.images,
+                        location = post.locationName ?: "连山壮族瑶族自治县",
+                        brand = attrs["brand"] ?: "未选择",
+                        parameters = attrs["parameters"] ?: "",
+                        purchaseDate = attrs["purchaseDate"] ?: "",
+                        condition = attrs["condition"] ?: "全新",
+                        shipping = attrs["shipping"] ?: "包邮",
+                        attr1Value = attrs[config.attr1Label ?: "attr1"] ?: "",
+                        attr2Value = attrs[config.attr2Label ?: "attr2"] ?: "",
+                    )
+                }
+            }
         }
     }
 
@@ -130,14 +162,18 @@ class PublishViewModel @Inject constructor(
                 coroutineScope {
                     s.images.map { uri ->
                         async {
-                            val bytes = ImageCompressor.compress(context, uri)
-                            val reqFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
-                            val part = MultipartBody.Part.createFormData("image", "upload.jpg", reqFile)
-                            val res = repo.uploadImage(part)
-                            if (res.isSuccess) {
-                                res.getOrNull()?.url ?: throw Exception("图片上传返回空地址")
+                            if (uri.startsWith("http")) {
+                                uri
                             } else {
-                                throw Exception(res.exceptionOrNull()?.message ?: "图片上传失败")
+                                val bytes = ImageCompressor.compress(context, uri)
+                                val reqFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
+                                val part = MultipartBody.Part.createFormData("image", "upload.jpg", reqFile)
+                                val res = repo.uploadImage(part)
+                                if (res.isSuccess) {
+                                    res.getOrNull()?.url ?: throw Exception("图片上传返回空地址")
+                                } else {
+                                    throw Exception(res.exceptionOrNull()?.message ?: "图片上传失败")
+                                }
                             }
                         }
                     }.awaitAll()
@@ -163,21 +199,27 @@ class PublishViewModel @Inject constructor(
 
             val listingType = if (s.category in listOf("second_hand", "veggies")) "GOODS" else "SERVICE"
 
-            repo.createPost(
-                CreatePostRequest(
-                    category = s.category,
-                    title = s.title.ifBlank { "闲置好物" },
-                    description = s.description,
-                    price = s.price.toDoubleOrNull(),
-                    images = uploadedUrls,
-                    publisherType = s.publisherType,
-                    merchantId = s.merchantId,
-                    listingType = listingType,
-                    attributes = attributes,
-                    locationName = s.location,
-                ),
-            ).onSuccess {
-                _state.update { PublishUiState(message = "发布成功", success = true) }
+            val req = CreatePostRequest(
+                category = s.category,
+                title = s.title.ifBlank { "闲置好物" },
+                description = s.description,
+                price = s.price.toDoubleOrNull(),
+                images = uploadedUrls,
+                publisherType = s.publisherType,
+                merchantId = s.merchantId,
+                listingType = listingType,
+                attributes = attributes,
+                locationName = s.location,
+            )
+            
+            val result = if (s.editingPostId != null) {
+                repo.updatePost(s.editingPostId, req)
+            } else {
+                repo.createPost(req)
+            }
+            
+            result.onSuccess {
+                _state.update { PublishUiState(message = if (s.editingPostId != null) "修改成功，已提交审核" else "发布成功", success = true) }
                 loadQuota()
             }.onFailure { e ->
                 _state.update { it.copy(submitting = false, message = e.message ?: "发布失败") }

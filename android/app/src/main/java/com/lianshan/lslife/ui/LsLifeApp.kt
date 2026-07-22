@@ -39,6 +39,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.lianshan.lslife.R
 import com.lianshan.lslife.feature.auth.ForgotPasswordScreen
 import com.lianshan.lslife.feature.auth.LoginScreen
@@ -54,6 +55,7 @@ import com.lianshan.lslife.feature.profile.EditProfileScreen
 import com.lianshan.lslife.feature.profile.MembershipScreen
 import com.lianshan.lslife.feature.chat.ChatSessionListScreen
 import com.lianshan.lslife.feature.chat.ChatScreen
+import com.lianshan.lslife.feature.profile.MyPostsScreen
 import com.lianshan.lslife.feature.profile.PersonalInfoScreen
 import com.lianshan.lslife.feature.profile.ProfileScreen
 import com.lianshan.lslife.feature.profile.RealNameScreen
@@ -159,7 +161,18 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
             composable(Routes.ORDERS) {
                 OrderListScreen(onTrack = { navController.navigate(Routes.orderTrack(it)) })
             }
-            composable(Routes.PUBLISH) { PublishScreen() }
+            composable(
+                route = Routes.PUBLISH,
+                arguments = listOf(navArgument("postId") { nullable = true })
+            ) { entry -> 
+                PublishScreen(postId = entry.arguments?.getString("postId")) 
+            }
+            composable(Routes.MY_POSTS) {
+                MyPostsScreen(
+                    onBack = { navController.popBackStack() },
+                    onEditPost = { postId -> navController.navigate(Routes.publish(postId)) }
+                )
+            }
             composable(Routes.CART) {
                 CartScreen(onOpenMerchant = { navController.navigate(Routes.merchant(it)) })
             }
@@ -171,6 +184,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     onOpenAddress = { navController.navigate(Routes.ADDRESS_LIST) },
                     onOpenMessage = { navController.navigate(Routes.MESSAGE_LIST) },
                     onOpenRealName = { navController.navigate(Routes.REAL_NAME_AUTH) },
+                    onOpenMyPosts = { navController.navigate(Routes.MY_POSTS) },
                     onLoggedOut = {
                         navController.navigate(Routes.LOGIN) { popUpTo(0) }
                     },

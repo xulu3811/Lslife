@@ -128,7 +128,7 @@ class CropViewModel @Inject constructor(
                 canvas.drawBitmap(androidBitmap, 0f, 0f, paint)
 
                 // 3. Compress using AvatarCompressor
-                val compressedBytes = AvatarCompressor.compressAvatar(resultBmp, 100 * 1024, 500)
+                val compressedBytes = AvatarCompressor.compressAvatar(resultBmp, 50 * 1024, 500)
                 resultBmp.recycle()
 
                 // 4. Upload
