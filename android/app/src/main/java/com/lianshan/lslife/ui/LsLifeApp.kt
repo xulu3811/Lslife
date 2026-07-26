@@ -183,7 +183,9 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                 route = Routes.PUBLISH,
                 arguments = listOf(navArgument("postId") { nullable = true })
             ) { entry -> 
-                PublishScreen(postId = entry.arguments?.getString("postId")) 
+                val rawPostId = entry.arguments?.getString("postId")
+                val validPostId = if (rawPostId == "{postId}" || rawPostId.isNullOrBlank()) null else rawPostId
+                PublishScreen(postId = validPostId) 
             }
             composable(Routes.MY_POSTS) {
                 MyPostsScreen(

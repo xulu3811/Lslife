@@ -12,6 +12,7 @@ import javax.inject.Singleton
 class LsRepository @Inject constructor(
     private val api: ApiService,
     private val merchantDao: MerchantDao,
+    private val categoryRepository: CategoryRepository,
 ) {
     // 商家 (offline-first: 成功后写入本地缓存, 失败时回退缓存)
     suspend fun merchants(category: String?, q: String?, sort: String, page: Int = 1, pageSize: Int = 20): Result<MerchantPage> {
@@ -88,10 +89,18 @@ class LsRepository @Inject constructor(
     suspend fun notifications() = safeCall { api.notifications() }
     suspend fun readAllNotifications() = safeCall { api.readAllNotifications() }
 
+    // 分类树与动态 Schema (从 CategoryRepository SSOT 获取)
+    suspend fun categoryTree(forceRefresh: Boolean = false) = categoryRepository.getCategoryTree(forceRefresh)
+    suspend fun categorySchema(id: String) = categoryRepository.getCategorySchema(id)
+
     // AI
     suspend fun aiRecommend(prompt: String) = safeCall { api.aiRecommend(AiRequest(prompt)) }
-    suspend fun aiGenerateDescription(title: String, category: String, draft: String? = null) =
-        safeCall { api.aiGenerateDescription(AiGenerateDescRequest(title, category, draft)) }
+    suspend fun aiGenerateDescription(
+        title: String? = null,
+        categoryId: String? = null,
+        draft: String? = null,
+        schema: List<DynamicField> = emptyList(),
+    ): Result<AiGenerateDescResponse> = safeCall { api.aiGenerateDescription(AiGenerateDescRequest(title, categoryId, draft, schema)) }
 
     // 上传
     suspend fun uploadImage(part: okhttp3.MultipartBody.Part) = safeCall { api.uploadImage(part) }

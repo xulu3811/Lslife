@@ -1,6 +1,17 @@
 package com.lianshan.lslife.core.model
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 
 @Serializable
 data class ApiEnvelope<T>(
@@ -158,7 +169,7 @@ data class Post(
     val images: List<String> = emptyList(),
     val status: String,
     val locationName: String? = null,
-    val attributes: Map<String, String> = emptyMap(),
+    val attributes: @Serializable(with = FlexibleJsonObjectSerializer::class) JsonObject = JsonObject(emptyMap()),
     val reviewNote: String? = null,
     val createdAt: String,
     val user: PostUser? = null,
@@ -247,6 +258,38 @@ data class ChatSession(
 )
 
 @Serializable
+data class DynamicField(
+    val key: String,
+    val label: String,
+    val fieldType: String, // SELECT | TEXT | NUMBER | DATE
+    val required: Boolean = false,
+    val placeholder: String? = null,
+    val options: List<String> = emptyList(),
+)
+
+@Serializable
+data class CategoryNode(
+    val id: String,
+    val name: String,
+    val icon: String? = null,
+    val iconUrl: String? = null,
+    val parentId: String? = null,
+    val sortOrder: Int = 0,
+    val isLeaf: Boolean = false,
+    val isActive: Boolean = true,
+    val attributeSchema: List<DynamicField> = emptyList(),
+    val children: List<CategoryNode> = emptyList(),
+)
+
+@Serializable
+data class CategorySchemaResponse(
+    val categoryId: String,
+    val name: String,
+    val isLeaf: Boolean = false,
+    val attributeSchema: List<DynamicField> = emptyList(),
+)
+
+@Serializable
 data class ChatMessage(
     val id: String,
     val sessionId: String,
@@ -255,3 +298,33 @@ data class ChatMessage(
     val content: String,
     val createdAt: String,
 )
+
+object FlexibleJsonObjectSerializer : KSerializer<JsonObject> {
+    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("FlexibleJsonObject")
+
+    override fun serialize(encoder: Encoder, value: JsonObject) {
+        JsonObject.serializer().serialize(encoder, value)
+    }
+
+    override fun deserialize(decoder: Decoder): JsonObject {
+        val input = decoder as? JsonDecoder ?: return JsonObject(emptyMap())
+        return try {
+            val element = input.decodeJsonElement()
+            when {
+                element is JsonObject -> element
+                element is JsonPrimitive && element.isString -> {
+                    val str = element.content.trim()
+                    if (str.startsWith("{") && str.endsWith("}")) {
+                        Json.parseToJsonElement(str).jsonObject
+                    } else {
+                        JsonObject(emptyMap())
+                    }
+                }
+                else -> JsonObject(emptyMap())
+            }
+        } catch (e: Exception) {
+            JsonObject(emptyMap())
+        }
+    }
+}
+

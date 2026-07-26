@@ -248,13 +248,28 @@ fun CropScreen(
         // The size of the circular crop hole
         val cropSize = if (viewportSize.width > 0) (viewportSize.width * 0.8f) else 0f
 
-        // Initial setup to fit the image in the crop circle
+        // 居中与缩放重新计算函数 (在重组初期及加载成功回调时触发)
+        fun recalculateCenterAndFit(bmp: ImageBitmap, size: IntSize) {
+            if (size.width > 0 && size.height > 0 && bmp.width > 0 && bmp.height > 0) {
+                val holeSize = size.width * 0.8f
+                val minDim = minOf(bmp.width, bmp.height).toFloat()
+                if (minDim > 0f) {
+                    scale = maxOf(holeSize / minDim, 0.1f)
+                    offset = Offset.Zero
+                    isInitialized = true
+                }
+            }
+        }
+
+        // 1. 在重组（Recomposition）初期检查并立即触发居中对齐与初始缩放计算
+        if (!isInitialized && viewportSize.width > 0 && viewportSize.height > 0) {
+            recalculateCenterAndFit(bitmap, viewportSize)
+        }
+
+        // 2. 在尺寸变更或异步加载完成回调时保障触发计算
         LaunchedEffect(bitmap, viewportSize) {
-            if (viewportSize.width > 0 && bitmap.width > 0 && !isInitialized) {
-                // Determine initial scale to just cover the crop hole
-                val minDim = minOf(bitmap.width, bitmap.height).toFloat()
-                scale = cropSize / minDim
-                isInitialized = true
+            if (!isInitialized && viewportSize.width > 0 && viewportSize.height > 0) {
+                recalculateCenterAndFit(bitmap, viewportSize)
             }
         }
 
@@ -262,7 +277,13 @@ fun CropScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .onSizeChanged { viewportSize = it }
+                .onSizeChanged { newSize ->
+                    val oldSize = viewportSize
+                    viewportSize = newSize
+                    if (oldSize == IntSize.Zero && newSize.width > 0 && !isInitialized) {
+                        recalculateCenterAndFit(bitmap, newSize)
+                    }
+                }
         ) {
             Canvas(modifier = Modifier
                 .fillMaxSize()
@@ -282,7 +303,7 @@ fun CropScreen(
                 // Draw the image with mathematically perfect transform matching CropViewModel
                 withTransform({
                     translate(canvasWidth / 2f + offset.x, canvasHeight / 2f + offset.y)
-                    scale(scale, scale)
+                    scale(scale, scale, pivot = Offset.Zero)
                     translate(-bitmap.width / 2f, -bitmap.height / 2f)
                 }) {
                     drawImage(image = bitmap)

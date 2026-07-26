@@ -9,6 +9,13 @@ interface ApiService {
     @GET("health")
     suspend fun health(): ApiEnvelope<Map<String, String>>
 
+    // 分类树与动态 Schema
+    @GET("categories/tree")
+    suspend fun getCategoryTree(): ApiEnvelope<List<CategoryNode>>
+
+    @GET("categories/{id}/schema")
+    suspend fun getCategorySchema(@Path("id") id: String): ApiEnvelope<CategorySchemaResponse>
+
     // 鉴权（手机号+密码；短信暂未开通）
     @POST("auth/register")
     suspend fun register(@Body body: RegisterRequest): ApiEnvelope<LoginResult>
@@ -143,7 +150,7 @@ interface ApiService {
     suspend fun aiRecommend(@Body body: AiRequest): ApiEnvelope<AiReply>
 
     @POST("ai/generate-description")
-    suspend fun aiGenerateDescription(@Body body: AiGenerateDescRequest): ApiEnvelope<Map<String, String>>
+    suspend fun aiGenerateDescription(@Body body: AiGenerateDescRequest): ApiEnvelope<AiGenerateDescResponse>
 
     // 上传
     @Multipart

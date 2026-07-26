@@ -14,6 +14,19 @@ interface Post {
   user: { nickname: string; phone: string };
 }
 
+const categoryNames: Record<string, string> = {
+  second_hand: '个人闲置',
+  job: '职位招聘',
+  part_time: '同城兼职',
+  house: '住房出租',
+  secondhand_house: '二手房源',
+  shop_rent: '旺铺转让',
+  housekeeping: '家政保洁',
+  maintenance: '水电维修',
+  moving: '货运搬家',
+  veggies: '农副土特产',
+};
+
 export default function ContentAudit() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +111,7 @@ export default function ContentAudit() {
                   </td>
                   <td style={{ maxWidth: 300 }}>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>
-                      <span className="badge" style={{ marginRight: 8, background: '#f3f4f6', color: '#374151' }}>{post.category}</span>
+                      <span className="badge" style={{ marginRight: 8, background: '#f3f4f6', color: '#374151' }}>{categoryNames[post.category] || post.category}</span>
                       {post.title}
                     </div>
                     <div style={{ fontSize: 12, marginTop: 4, color: 'var(--text-secondary)' }}>

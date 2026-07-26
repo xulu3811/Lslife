@@ -1,48 +1,51 @@
 package com.lianshan.lslife.feature.publish
 
-import android.net.Uri
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lianshan.lslife.core.data.CategoryRepository
 import com.lianshan.lslife.core.data.LsRepository
+import com.lianshan.lslife.core.model.CategoryNode
+import com.lianshan.lslife.core.model.DynamicField
 import com.lianshan.lslife.core.model.Quota
 import com.lianshan.lslife.core.network.CreatePostRequest
+import com.lianshan.lslife.core.network.AiGenerateDescResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
-
-import kotlinx.coroutines.Dispatchers
-import java.io.File
 
 data class PublishUiState(
     val publisherType: String = "INDIVIDUAL",
     val merchantId: String? = null,
     val listingType: String = "GOODS",
-    val category: String = "second_hand",
+    
+    // 分类树与动态 Schema
+    val categoryTree: List<CategoryNode> = emptyList(),
+    val loadingCategories: Boolean = false,
+    val categoryError: String? = null,
+    val selectedCategory: CategoryNode? = null,
+    val selectedCategoryPath: String = "请选择分类",
+    val categoryId: String = "second_hand",
+    val dynamicFields: List<DynamicField> = emptyList(),
+    val dynamicFormValues: Map<String, String> = emptyMap(),
+
     val title: String = "",
     val description: String = "",
     val price: String = "",
     val images: List<String> = emptyList(),
-    val brand: String = "未选择",
-    val parameters: String = "",
-    val purchaseDate: String = "",
-    val condition: String = "全新",
-    val shipping: String = "包邮",
     val location: String = "连山壮族瑶族自治县",
-    val attr1Value: String = "",
-    val attr2Value: String = "",
     val quota: Quota? = null,
     val submitting: Boolean = false,
+    val aiOptimizing: Boolean = false,
     val message: String? = null,
     val success: Boolean = false,
     val editingPostId: String? = null,
@@ -51,11 +54,50 @@ data class PublishUiState(
 @HiltViewModel
 class PublishViewModel @Inject constructor(
     private val repo: LsRepository,
+    private val categoryRepo: CategoryRepository,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PublishUiState())
     val state: StateFlow<PublishUiState> = _state
+
+    init {
+        observeCategories()
+    }
+
+    private fun observeCategories() {
+        viewModelScope.launch {
+            categoryRepo.getCategoryTree()
+        }
+        viewModelScope.launch {
+            categoryRepo.categoryTree.collect { tree ->
+                _state.update { it.copy(categoryTree = tree) }
+                if (tree.isNotEmpty() && _state.value.selectedCategory == null) {
+                    val found = categoryRepo.findLeafCategoryAndPath(tree, _state.value.categoryId)
+                        ?: categoryRepo.findFirstLeafAndPath(tree)
+                    if (found != null) {
+                        onSelectLeafCategory(found.first, found.second)
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            categoryRepo.loading.collect { loading ->
+                _state.update { it.copy(loadingCategories = loading) }
+            }
+        }
+        viewModelScope.launch {
+            categoryRepo.error.collect { err ->
+                _state.update { it.copy(categoryError = err) }
+            }
+        }
+    }
+
+    fun retryLoadCategories() {
+        viewModelScope.launch {
+            categoryRepo.getCategoryTree(forceRefresh = true)
+        }
+    }
 
     fun loadQuota() {
         viewModelScope.launch {
@@ -63,38 +105,65 @@ class PublishViewModel @Inject constructor(
         }
     }
 
+    fun onSelectLeafCategory(leafNode: CategoryNode, fullPath: String) {
+        _state.update {
+            it.copy(
+                selectedCategory = leafNode,
+                selectedCategoryPath = fullPath,
+                categoryId = leafNode.id,
+                dynamicFields = leafNode.attributeSchema,
+            )
+        }
+        if (leafNode.attributeSchema.isEmpty()) {
+            viewModelScope.launch {
+                categoryRepo.getCategorySchema(leafNode.id).onSuccess { res ->
+                    if (res.attributeSchema.isNotEmpty()) {
+                        _state.update { s -> s.copy(dynamicFields = res.attributeSchema) }
+                    }
+                }
+            }
+        }
+    }
+
+    fun onDynamicFieldValueChange(key: String, value: String) {
+        _state.update { s ->
+            s.copy(dynamicFormValues = s.dynamicFormValues + (key to value))
+        }
+    }
+
     fun loadPost(id: String) {
+        if (id == "{postId}" || id.isBlank()) return
         viewModelScope.launch {
             repo.post(id).onSuccess { post ->
-                val attrs = post.attributes
-                val config = publishCategoryConfigs.find { it.id == post.category } ?: publishCategoryConfigs.first()
-                
+                val attrs = post.attributes.mapValues { (_, element) ->
+                    if (element is kotlinx.serialization.json.JsonPrimitive) element.content else element.toString()
+                }
                 _state.update {
                     it.copy(
                         editingPostId = post.id,
                         publisherType = post.publisherType,
                         merchantId = post.merchantId,
                         listingType = post.listingType,
-                        category = post.category,
+                        categoryId = post.category,
                         title = post.title,
                         description = post.description,
                         price = post.price?.toString() ?: "",
                         images = post.images,
                         location = post.locationName ?: "连山壮族瑶族自治县",
-                        brand = attrs["brand"] ?: "未选择",
-                        parameters = attrs["parameters"] ?: "",
-                        purchaseDate = attrs["purchaseDate"] ?: "",
-                        condition = attrs["condition"] ?: "全新",
-                        shipping = attrs["shipping"] ?: "包邮",
-                        attr1Value = attrs[config.attr1Label ?: "attr1"] ?: "",
-                        attr2Value = attrs[config.attr2Label ?: "attr2"] ?: "",
+                        dynamicFormValues = attrs,
                     )
+                }
+                if (_state.value.categoryTree.isNotEmpty()) {
+                    val found = categoryRepo.findLeafCategoryAndPath(_state.value.categoryTree, post.category)
+                        ?: categoryRepo.findFirstLeafAndPath(_state.value.categoryTree)
+                    if (found != null) {
+                        onSelectLeafCategory(found.first, found.second)
+                    }
                 }
             }
         }
     }
 
-    fun onCategory(c: String) = _state.update { it.copy(category = c) }
     fun onTitle(v: String) = _state.update { it.copy(title = v) }
     fun onDescription(v: String) = _state.update { it.copy(description = v) }
     fun onPrice(v: String) = _state.update { it.copy(price = v.filter { c -> c.isDigit() || c == '.' }) }
@@ -103,44 +172,47 @@ class PublishViewModel @Inject constructor(
         _state.update { it.copy(images = current + uris) }
     }
     fun removeImage(uri: String) = _state.update { it.copy(images = it.images - uri) }
-    fun onBrand(b: String) = _state.update { it.copy(brand = b) }
-    fun onParameters(p: String) = _state.update { it.copy(parameters = p) }
-    fun onPurchaseDate(d: String) = _state.update { it.copy(purchaseDate = d) }
-    fun onCondition(c: String) = _state.update { it.copy(condition = c) }
-    fun onShipping(s: String) = _state.update { it.copy(shipping = s) }
     fun onLocation(l: String) = _state.update { it.copy(location = l) }
-    
-    fun onAttr1Value(a: String) = _state.update { it.copy(attr1Value = a) }
-    fun onAttr2Value(a: String) = _state.update { it.copy(attr2Value = a) }
     fun onPublisherType(type: String, merchantId: String? = null) = _state.update { 
         it.copy(publisherType = type, merchantId = merchantId) 
     }
     fun onListingType(type: String) = _state.update { it.copy(listingType = type) }
-    
+
     fun generateAiDescription() {
         val s = _state.value
-        val hint = if (s.title.isNotBlank()) s.title else s.category
+        val hint = if (s.title.isNotBlank()) s.title else s.selectedCategoryPath
         val draft = s.description
-        _state.update { it.copy(description = "正在 AI 优化中...") }
+        _state.update { it.copy(aiOptimizing = true) }
         viewModelScope.launch {
-            repo.aiGenerateDescription(hint, s.category, draft).onSuccess { res ->
-                val newTitle = res["title"] ?: ""
-                val newDesc = res["description"] ?: ""
-                val newBrand = res["brand"]?.takeIf { it.isNotBlank() } ?: s.brand
-                val newParams = res["parameters"] ?: ""
-                val newDate = res["purchaseDate"] ?: ""
+            repo.aiGenerateDescription(
+                title = hint,
+                categoryId = s.categoryId,
+                draft = draft,
+                schema = s.dynamicFields
+            ).onSuccess { res: AiGenerateDescResponse ->
+                val newTitle = res.title
+                val newDesc = res.description
+                val extractedAttrs = mutableMapOf<String, String>()
                 
-                _state.update { 
+                s.dynamicFields.forEach { field ->
+                    val element = res.attributes[field.key]
+                    val extractedVal = if (element is kotlinx.serialization.json.JsonPrimitive) element.content else element?.toString() ?: ""
+                    if (extractedVal.isNotBlank()) {
+                        extractedAttrs[field.key] = extractedVal
+                    }
+                }
+
+                _state.update {
                     it.copy(
+                        aiOptimizing = false,
                         title = newTitle.ifBlank { s.title },
                         description = newDesc.ifBlank { draft },
-                        brand = newBrand,
-                        parameters = newParams,
-                        purchaseDate = newDate
-                    ) 
+                        dynamicFormValues = s.dynamicFormValues + extractedAttrs,
+                        message = "AI 已自动优化文案并精细回填属性"
+                    )
                 }
             }.onFailure {
-                _state.update { it.copy(description = draft, message = "AI 优化失败") }
+                _state.update { it.copy(aiOptimizing = false, message = "AI 优化失败") }
             }
         }
     }
@@ -156,8 +228,6 @@ class PublishViewModel @Inject constructor(
         }
         _state.update { it.copy(submitting = true) }
         viewModelScope.launch {
-            
-            // 并发上传图片，同时使用 ImageCompressor 进行压缩
             val uploadedUrls = try {
                 coroutineScope {
                     s.images.map { uri ->
@@ -167,7 +237,7 @@ class PublishViewModel @Inject constructor(
                             } else {
                                 val bytes = ImageCompressor.compress(context, uri)
                                 val reqFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
-                                val part = MultipartBody.Part.createFormData("image", "upload.jpg", reqFile)
+                                val part = okhttp3.MultipartBody.Part.createFormData("image", "upload.jpg", reqFile)
                                 val res = repo.uploadImage(part)
                                 if (res.isSuccess) {
                                     res.getOrNull()?.url ?: throw Exception("图片上传返回空地址")
@@ -182,33 +252,19 @@ class PublishViewModel @Inject constructor(
                 _state.update { it.copy(submitting = false, message = "图片上传失败: ${e.message}") }
                 return@launch
             }
-            
-            val config = publishCategoryConfigs.find { it.id == s.category } ?: publishCategoryConfigs.first()
-            val attributes = mutableMapOf<String, String>()
-            
-            if (config.guidedFill) {
-                if (s.brand != "未选择") attributes["brand"] = s.brand
-                if (s.parameters.isNotBlank()) attributes["parameters"] = s.parameters
-                if (s.purchaseDate.isNotBlank()) attributes["purchaseDate"] = s.purchaseDate
-                if (s.condition.isNotBlank()) attributes["condition"] = s.condition
-            } else {
-                if (s.attr1Value.isNotBlank()) attributes[config.attr1Label ?: "attr1"] = s.attr1Value
-                if (s.attr2Value.isNotBlank()) attributes[config.attr2Label ?: "attr2"] = s.attr2Value
-            }
-            attributes["shipping"] = s.shipping
 
-            val listingType = if (s.category in listOf("second_hand", "veggies")) "GOODS" else "SERVICE"
+            val listingType = if (s.categoryId in listOf("second_hand", "cat_phone", "cat_laptop", "cat_dress", "cat_shoes", "cat_novel", "veggies", "cat_fruit")) "GOODS" else "SERVICE"
 
             val req = CreatePostRequest(
-                category = s.category,
-                title = s.title.ifBlank { "闲置好物" },
+                category = s.categoryId,
+                title = s.title.ifBlank { "同城优质发布" },
                 description = s.description,
                 price = s.price.toDoubleOrNull(),
                 images = uploadedUrls,
                 publisherType = s.publisherType,
                 merchantId = s.merchantId,
                 listingType = listingType,
-                attributes = attributes,
+                attributes = kotlinx.serialization.json.JsonObject(s.dynamicFormValues.mapValues { kotlinx.serialization.json.JsonPrimitive(it.value) }),
                 locationName = s.location,
             )
             
@@ -227,4 +283,3 @@ class PublishViewModel @Inject constructor(
         }
     }
 }
-

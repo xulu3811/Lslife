@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,6 +9,44 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+val versionPropsFile = file("version.properties")
+val versionProps = Properties()
+
+if (!versionPropsFile.exists()) {
+    versionProps["versionCode"] = "9"
+    versionProps["versionName"] = "1.8"
+    versionProps.store(versionPropsFile.writer(), "Auto-generated Version Properties")
+} else {
+    versionProps.load(versionPropsFile.reader())
+}
+
+val isReleaseTask = gradle.startParameter.taskNames.any { 
+    it.contains("Release", ignoreCase = true) || it.contains("assemble", ignoreCase = true) 
+}
+
+if (isReleaseTask) {
+    val curCode = (versionProps["versionCode"] as? String)?.toIntOrNull() ?: 9
+    val curName = (versionProps["versionName"] as? String) ?: "1.8"
+    val parts = curName.split(".")
+    var major = parts.getOrNull(0)?.toIntOrNull() ?: 1
+    var minor = parts.getOrNull(1)?.toIntOrNull() ?: 8
+
+    minor += 1
+    if (minor > 9) {
+        major += 1
+        minor = 0
+    }
+    val newCode = curCode + 1
+    val newName = "$major.$minor"
+
+    versionProps["versionCode"] = newCode.toString()
+    versionProps["versionName"] = newName
+    versionProps.store(versionPropsFile.writer(), "Auto-incremented Version Properties")
+}
+
+val appVersionCode = (versionProps["versionCode"] as String).toInt()
+val appVersionName = versionProps["versionName"] as String
+
 android {
     namespace = "com.lianshan.lslife"
     compileSdk = 36
@@ -15,8 +55,8 @@ android {
         applicationId = "com.lianshan.lslife"
         minSdk = 24
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.6"
+        versionCode = appVersionCode
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -83,10 +123,6 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.coil.compose)
 
-    // AMap 高德地图 SDK (封存，暂不使用)
-    // implementation("com.amap.api:3dmap:10.0.600")
-    // implementation("com.amap.api:location:6.4.5")
-
     // OSMdroid (免费开源地图替代方案)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 
@@ -96,18 +132,16 @@ dependencies {
 }
 
 afterEvaluate {
+    val verName = android.defaultConfig.versionName ?: "1.9"
+
     val copyDebugApk by tasks.registering(Copy::class) {
         mustRunAfter("assembleDebug")
         from(layout.buildDirectory.dir("outputs/apk/debug"))
         into(rootProject.file("../releases"))
         include("**/*.apk")
-        
-        val versionName = android.defaultConfig.versionName ?: "1.5"
-        val appName = "LsLife"
 
-        eachFile {
-            name = "${appName}-v${versionName}-debug.apk"
-            path = name
+        rename { _ ->
+            "LsLife-v${verName}-debug.apk"
         }
         includeEmptyDirs = false
     }
@@ -117,13 +151,9 @@ afterEvaluate {
         from(layout.buildDirectory.dir("outputs/apk/release"))
         into(rootProject.file("../releases"))
         include("**/*.apk")
-        
-        val versionName = android.defaultConfig.versionName ?: "1.5"
-        val appName = "LsLife"
 
-        eachFile {
-            name = "${appName}-v${versionName}-release.apk"
-            path = name
+        rename { _ ->
+            "LsLife-v${verName}-release.apk"
         }
         includeEmptyDirs = false
     }

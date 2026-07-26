@@ -49,7 +49,7 @@ ssh lslife@115.191.6.95 "
   pm2 restart all
   
   echo 'Deploying admin-web...'
-  echo 'Maxence2468;' | sudo -S cp -r release_tmp/admin-web-dist/* /var/www/html/admin-web/
+  echo 'Maxence2468;' | sudo -S cp -r /home/lslife/release_tmp/admin-web-dist/* /var/www/html/admin-web/
   echo 'Maxence2468;' | sudo -S chmod -R 755 /var/www/html/admin-web/
   echo 'Deployment successful.'
 "

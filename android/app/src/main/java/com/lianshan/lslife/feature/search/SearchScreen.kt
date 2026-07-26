@@ -27,12 +27,16 @@ import com.lianshan.lslife.ui.theme.Dimens
 
 private val categories = listOf(
     "all" to "全部",
+    "second_hand" to "闲置",
     "job" to "招聘",
-    "house" to "房产",
+    "part_time" to "兼职",
+    "house" to "租房",
+    "secondhand_house" to "二手房",
+    "shop_rent" to "旺铺",
     "housekeeping" to "家政",
     "maintenance" to "维修",
     "moving" to "搬家",
-    "second_hand" to "闲置",
+    "veggies" to "生鲜",
 )
 
 private val sorts = listOf(

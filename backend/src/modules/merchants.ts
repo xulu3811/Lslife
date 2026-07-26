@@ -86,7 +86,7 @@ router.post(
   '/apply',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = (req as any).user!.id;
     const { name, phone, address, description, category, latitude, longitude, logo, banner } = z
       .object({
         name: z.string().min(2),

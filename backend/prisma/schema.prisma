@@ -247,33 +247,59 @@ model Delivery {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
+// ================= 分类与动态表单 =================
+model Category {
+  id              String     @id @default(cuid())
+  name            String
+  icon            String?    // 兼容客户端旧的 icon 字段
+  iconUrl         String?    // 新增：层级目录图标 URL
+  parentId        String?    // 引用父级 ID (nullable, referencing Category.id)
+  sortOrder       Int        @default(0)
+  isLeaf          Boolean    @default(false)
+  isActive        Boolean    @default(true) // 新增：是否启用
+  attributeSchema String?    @default("[]") // JSON 字符串数组 DynamicField[]
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Category[] @relation("CategoryHierarchy")
+  posts    Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([isActive])
+}
+
 // ================= 同城发布 =================
 model Post {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   userId        String
-  publisherType String   @default("INDIVIDUAL") // INDIVIDUAL | MERCHANT
+  publisherType String    @default("INDIVIDUAL") // INDIVIDUAL | MERCHANT
   merchantId    String?
-  listingType   String   @default("GOODS") // GOODS | SERVICE
+  listingType   String    @default("GOODS") // GOODS | SERVICE
   category      String
+  categoryId    String?
   title         String
   description   String
   price         Float?
-  images        String   @default("[]") // JSON 字符串数组
+  images        String    @default("[]") // JSON 字符串数组
   latitude      Float?
   longitude     Float?
   locationName  String?
-  attributes    String   @default("{}") // JSON 动态属性
-  status        String   @default("published") // pending_review | published | rejected | removed
+  attributes    String    @default("{}") // JSON 动态属性
+  status        String    @default("published") // pending_review | published | rejected | removed
   reviewNote    String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  cartItems CartItem[]
-  orderItems OrderItem[]
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant    Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  categoryRel Category? @relation(fields: [categoryId], references: [id])
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
 
   @@index([userId])
   @@index([category])
+  @@index([categoryId])
 }
 
 // ================= 会员订阅 =================

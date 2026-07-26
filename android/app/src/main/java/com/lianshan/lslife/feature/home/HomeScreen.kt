@@ -49,6 +49,7 @@ import com.lianshan.lslife.ui.components.RecommendCard
 import com.lianshan.lslife.ui.components.SectionHeader
 import com.lianshan.lslife.ui.components.WarmSearchField
 import com.lianshan.lslife.ui.components.SkeletonCard
+import com.lianshan.lslife.ui.components.CategoryIconView
 import com.lianshan.lslife.ui.theme.Dimens
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
@@ -60,18 +61,19 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 private data class CategoryItem(
     val id: String,
     val name: String,
-    val icon: String
+    val icon: String,
+    val iconUrl: String? = null
 )
 
-private val categories = listOf(
-    CategoryItem("all", "全部", "✨"),
-    CategoryItem("job", "招聘", "💼"),
-    CategoryItem("house", "房租租售", "🏠"),
-    CategoryItem("housekeeping", "家政保洁", "🧹"),
-    CategoryItem("maintenance", "水电维修", "🔧"),
-    CategoryItem("moving", "货运搬家", "🚚"),
-    CategoryItem("veggies", "水果蔬菜", "🍎"),
-    CategoryItem("second_hand", "个人闲置", "🛍️"),
+private val defaultCategories = listOf(
+    CategoryItem("cat_idle", "个人闲置", "shopping-bag", "/assets/icons/3d_flat_secondhand.png"),
+    CategoryItem("cat_house", "房租租售", "home", "/assets/icons/3d_flat_housing.png"),
+    CategoryItem("cat_service", "家政保洁", "cleaning-services", "/assets/icons/3d_flat_cleaning.png"),
+    CategoryItem("cat_maintenance", "水电维修", "build", "/assets/icons/3d_flat_repair.png"),
+    CategoryItem("cat_veggies", "水果蔬菜", "shopping-basket", "/assets/icons/3d_flat_produce.png"),
+    CategoryItem("cat_job", "招聘求职", "work", "/assets/icons/3d_flat_jobs.png"),
+    CategoryItem("cat_car_rental", "租车服务", "local-shipping", "/assets/icons/3d_flat_car_rental.png"),
+    CategoryItem("cat_part_time", "兼职零工", "schedule", "/assets/icons/3d_flat_parttime.png"),
 )
 
 private val sorts = listOf(
@@ -91,6 +93,21 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+
+    val displayCategories = androidx.compose.runtime.remember(state.categoryTree) {
+        if (state.categoryTree.isEmpty()) {
+            defaultCategories
+        } else {
+            state.categoryTree.map { node ->
+                CategoryItem(
+                    id = node.id,
+                    name = node.name,
+                    icon = node.icon ?: "📁",
+                    iconUrl = node.iconUrl
+                )
+            }
+        }
+    }
 
     // Infinite scroll
     LaunchedEffect(listState, state.loading, state.loadingMore, state.hasMore) {
@@ -187,7 +204,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(Dimens.sm), // Reduced from md
                 modifier = Modifier.padding(vertical = Dimens.sm)
             ) {
-                categories.chunked(4).forEach { categoryRow ->
+                displayCategories.chunked(4).forEach { categoryRow ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -202,14 +219,19 @@ fun HomeScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp) // Reduced from 48.dp
+                                        .size(40.dp)
                                         .background(
                                             color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                                             shape = MaterialTheme.shapes.medium
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(text = item.icon, fontSize = 22.sp) // Reduced from 28.sp
+                                    CategoryIconView(
+                                        iconUrl = item.iconUrl,
+                                        iconName = item.icon,
+                                        size = 24.dp,
+                                        tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                                 Spacer(Modifier.height(4.dp))
                                 Text(
@@ -219,6 +241,9 @@ fun HomeScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                             }
+                        }
+                        repeat(4 - categoryRow.size) {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }

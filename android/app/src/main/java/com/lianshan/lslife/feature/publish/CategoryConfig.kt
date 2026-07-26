@@ -76,6 +76,30 @@ val publishCategoryConfigs = listOf(
         attr1Label = "分类",
         attr1Options = listOf("新鲜水果", "蔬菜", "农副产品"),
     ),
+    CategoryConfig(
+        id = "part_time",
+        name = "同城兼职",
+        attr1Label = "岗位",
+        attr1Options = listOf("小时工/钟点工", "周末兼职", "晚间兼职", "寒暑假工", "发传单/促销"),
+        attr2Label = "结算",
+        attr2Options = listOf("日结", "周结", "完工结", "月结"),
+    ),
+    CategoryConfig(
+        id = "secondhand_house",
+        name = "二手房源",
+        attr1Label = "类型",
+        attr1Options = listOf("住宅小区", "自建房/独立栋", "临街商住两用", "公寓/复式"),
+        attr2Label = "户型",
+        attr2Options = listOf("2室1厅", "3室2厅", "4室2厅及以上", "独栋楼房"),
+    ),
+    CategoryConfig(
+        id = "shop_rent",
+        name = "旺铺转让",
+        attr1Label = "方式",
+        attr1Options = listOf("整租转让", "分租合租", "写字楼/办公", "仓库厂房"),
+        attr2Label = "地段",
+        attr2Options = listOf("县城中心商业街", "广场商圈", "小区临街商铺", "吉潭镇/其他乡镇"),
+    ),
 )
 
 fun getCategoryConfig(categoryId: String): CategoryConfig {

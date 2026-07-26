@@ -114,7 +114,7 @@ router.get(
 
     return ok(
       res,
-      posts.map((p) => ({ ...p, images: JSON.parse(p.images) })),
+      posts.map((p) => ({ ...p, images: JSON.parse(p.images), attributes: JSON.parse(p.attributes) })),
     );
   }),
 );

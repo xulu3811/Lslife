@@ -11,13 +11,32 @@ const router = Router();
 const MONTHLY_LIMIT: Record<string, number> = { free: 3, vip: 20, premium: 50 };
 
 const ALLOWED_CATEGORIES = [
+  'cat_idle',
   'second_hand',
-  'job',
+  'cat_idle_clothing',
+  'cat_dress',
+  'cat_shoes',
+  'cat_house',
   'house',
+  'secondhand_house',
+  'shop_rent',
+  'cat_service',
   'housekeeping',
-  'maintenance',
   'moving',
+  'cat_maintenance',
+  'maintenance',
+  'cat_veggies',
   'veggies',
+  'cat_job',
+  'job',
+  'cat_car_rental',
+  'car_rental',
+  'cat_part_time',
+  'part_time',
+  'cat_phone',
+  'cat_laptop',
+  'cat_novel',
+  'cat_fruit',
 ] as const;
 
 function deriveTitle(title: string | null | undefined, description: string): string {
@@ -38,7 +57,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = z
       .object({
-        category: z.enum(ALLOWED_CATEGORIES),
+        category: z.string().min(1).max(50),
         title: z.string().max(60).nullable().optional(),
         description: z.string().min(1).max(2000),
         price: z.number().nonnegative().optional().nullable(),
@@ -119,6 +138,7 @@ router.post(
       {
         ...post,
         images: JSON.parse(post.images) as string[],
+        attributes: JSON.parse(post.attributes) as Record<string, string>,
       },
       message,
     );
@@ -146,7 +166,36 @@ router.get(
       .parse(req.query);
 
     const where: Record<string, unknown> = { status: 'published' };
-    if (category && category !== 'all') where.category = category;
+    if (category && category !== 'all') {
+      const catObj = await prisma.category.findUnique({
+        where: { id: category },
+        include: { children: true },
+      });
+      if (catObj && catObj.children.length > 0) {
+        const targetIds = [category, ...catObj.children.map((c) => c.id)];
+        for (const child of catObj.children) {
+          const grandChildren = await prisma.category.findMany({ where: { parentId: child.id } });
+          targetIds.push(...grandChildren.map((gc) => gc.id));
+        }
+        where.category = { in: Array.from(new Set(targetIds)) };
+      } else {
+        const parentChildMap: Record<string, string[]> = {
+          cat_idle: ['cat_idle', 'second_hand', 'cat_idle_clothing', 'cat_dress', 'cat_shoes', 'cat_phone', 'cat_laptop', 'cat_novel'],
+          cat_house: ['cat_house', 'house', 'secondhand_house', 'shop_rent'],
+          cat_service: ['cat_service', 'housekeeping', 'moving'],
+          cat_maintenance: ['cat_maintenance', 'maintenance'],
+          cat_veggies: ['cat_veggies', 'veggies', 'cat_fruit'],
+          cat_job: ['cat_job', 'job'],
+          cat_car_rental: ['cat_car_rental', 'car_rental'],
+          cat_part_time: ['cat_part_time', 'part_time'],
+        };
+        if (parentChildMap[category]) {
+          where.category = { in: parentChildMap[category] };
+        } else {
+          where.category = category;
+        }
+      }
+    }
     if (publisherType) where.publisherType = publisherType;
     if (listingType) where.listingType = listingType;
     if (mine) {
@@ -253,7 +302,7 @@ router.put(
 
     const body = z
       .object({
-        category: z.enum(ALLOWED_CATEGORIES),
+        category: z.string().min(1).max(50),
         title: z.string().max(60).nullable().optional(),
         description: z.string().min(1).max(2000),
         price: z.number().nonnegative().optional().nullable(),
@@ -294,7 +343,11 @@ router.put(
 
     return ok(
       res,
-      { ...updatedPost, images: JSON.parse(updatedPost.images) as string[] },
+      {
+        ...updatedPost,
+        images: JSON.parse(updatedPost.images) as string[],
+        attributes: JSON.parse(updatedPost.attributes) as Record<string, string>,
+      },
       '修改成功，已重新提交审核',
     );
   }),
@@ -314,7 +367,15 @@ router.put(
       data: { status },
     });
 
-    return ok(res, updatedPost, status === 'removed' ? '已成功下架' : '已重新提交审核');
+    return ok(
+      res,
+      {
+        ...updatedPost,
+        images: JSON.parse(updatedPost.images) as string[],
+        attributes: JSON.parse(updatedPost.attributes) as Record<string, string>,
+      },
+      status === 'removed' ? '已成功下架' : '已重新提交审核',
+    );
   }),
 );
 

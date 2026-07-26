@@ -1,11 +1,11 @@
 package com.lianshan.lslife.feature.publish
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,13 +34,15 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-
-import kotlinx.coroutines.launch
+import com.lianshan.lslife.core.model.CategoryNode
+import com.lianshan.lslife.core.model.DynamicField
+import androidx.compose.ui.text.style.TextOverflow
+import com.lianshan.lslife.ui.components.CategoryIconView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// Constants are now imported from CategoryConfig.kt
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublishScreen(
     postId: String? = null,
@@ -52,6 +55,8 @@ fun PublishScreen(
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
+    var showCategoryBottomSheet by remember { mutableStateOf(false) }
+
     val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(9)) { uris ->
         if (uris.isNotEmpty()) {
             scope.launch(Dispatchers.IO) {
@@ -82,7 +87,7 @@ fun PublishScreen(
 
     LaunchedEffect(Unit) {
         viewModel.loadQuota()
-        if (postId != null) {
+        if (!postId.isNullOrBlank() && postId != "{postId}") {
             viewModel.loadPost(postId)
         }
     }
@@ -95,7 +100,7 @@ fun PublishScreen(
     
     LaunchedEffect(state.success) {
         if (state.success) {
-            onClose() // Auto close on success
+            onClose()
         }
     }
 
@@ -124,21 +129,21 @@ fun PublishScreen(
                         contentDescription = "Close",
                         modifier = Modifier.clickable { onClose() }
                     )
+                    Spacer(Modifier.width(12.dp))
                     Text("发布信息", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("存草稿", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.clickable { })
-                    Spacer(modifier = Modifier.width(16.dp))
                     Button(
                         onClick = { viewModel.submit() },
                         enabled = !state.submitting,
                         colors = ButtonDefaults.buttonColors(containerColor = scheme.primary),
-                        modifier = Modifier.height(32.dp)
+                        modifier = Modifier.height(36.dp)
                     ) {
                         if (state.submitting) {
-                            CircularProgressIndicator(color = scheme.onPrimary, modifier = Modifier.size(20.dp))
+                            CircularProgressIndicator(color = scheme.onPrimary, modifier = Modifier.size(18.dp))
                         } else {
-                            Text(if (postId != null) "确认修改" else "确认发布", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            val isEditMode = !postId.isNullOrBlank() && postId != "{postId}"
+                            Text(if (isEditMode) "确认修改" else "确认发布", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -151,29 +156,39 @@ fun PublishScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // Card 1: Category Picker
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(if (postId != null) "修改发布" else "免费发布", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    if (postId == null) {
-                        Surface(
-                            color = scheme.primaryContainer,
-                            shape = CircleShape,
-                            modifier = Modifier.clickable { /* TODO 切换为商家发布 */ }
-                        ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showCategoryBottomSheet = true }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Folder, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("所属分类", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "切换商家身份",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = scheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                text = state.selectedCategoryPath,
+                                fontSize = 14.sp,
+                                color = if (state.selectedCategory != null) scheme.primary else Color.Gray,
+                                fontWeight = if (state.selectedCategory != null) FontWeight.Bold else FontWeight.Normal
                             )
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.LightGray)
                         }
                     }
                 }
 
-                // Card 1: Images and Description
+                // Card 2: Images, Title and Description
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color.White,
@@ -227,7 +242,7 @@ fun PublishScreen(
                                     ) {
                                         Icon(Icons.Filled.Add, contentDescription = "Add", tint = Color.Gray)
                                         Spacer(Modifier.height(4.dp))
-                                        Text("添加优质\n首图更吸引人~", fontSize = 10.sp, color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                        Text("添加图片", fontSize = 11.sp, color = Color.Gray)
                                     }
                                 }
                             }
@@ -246,7 +261,7 @@ fun PublishScreen(
                                 .padding(bottom = 12.dp),
                             decorationBox = { innerTextField ->
                                 if (state.title.isEmpty()) {
-                                    Text("填写商品名称会有更多赞哦~", color = Color.LightGray, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                    Text("填写吸引人的标题...", color = Color.LightGray, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                                 }
                                 innerTextField()
                             }
@@ -259,159 +274,71 @@ fun PublishScreen(
                         BasicTextField(
                             value = state.description,
                             onValueChange = viewModel::onDescription,
-                            textStyle = TextStyle(fontSize = 16.sp, color = scheme.onSurface),
+                            textStyle = TextStyle(fontSize = 15.sp, color = scheme.onSurface),
                             cursorBrush = SolidColor(scheme.primary),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 120.dp),
+                                .heightIn(min = 100.dp),
                             decorationBox = { innerTextField ->
                                 if (state.description.isEmpty()) {
-                                    Text("描述一下宝贝的品牌型号、货品来源...", color = Color.LightGray, fontSize = 16.sp)
+                                    Text("描述一下宝贝或服务的细节、成色、转手原因...", color = Color.LightGray, fontSize = 15.sp)
                                 }
                                 innerTextField()
                             }
                         )
 
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(12.dp))
 
                         // AI Helper Button
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clickable { viewModel.generateAiDescription() }
+                                .clickable(enabled = !state.aiOptimizing) { viewModel.generateAiDescription() }
                                 .background(Color(0xFFF4F0FF), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Icon(Icons.Filled.AutoAwesome, contentDescription = "AI", tint = Color(0xFF673AB7), modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("AI帮你写 >", fontSize = 12.sp, color = Color(0xFF673AB7), fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-
-                // Card 2: Selectors
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("分类/品牌/成色", fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
-                        
-                        val config = publishCategoryConfigs.find { it.id == state.category } ?: publishCategoryConfigs.first()
-                        
-                        // Category
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
-                            Text("分类", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(publishCategoryConfigs) { category ->
-                                    PublishPill(
-                                        label = category.name,
-                                        selected = state.category == category.id,
-                                        onClick = { viewModel.onCategory(category.id) }
-                                    )
-                                }
-                            }
-                        }
-
-                        if (config.guidedFill) {
-                            // Brand
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
-                                Text("品牌", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(secondHandBrandSuggestions) { brand ->
-                                        PublishPill(
-                                            label = brand,
-                                            selected = state.brand == brand,
-                                            onClick = { viewModel.onBrand(brand) }
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Condition
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("成色", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(secondHandConditionOptions) { condition ->
-                                        PublishPill(
-                                            label = condition,
-                                            selected = state.condition == condition,
-                                            onClick = { viewModel.onCondition(condition) }
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Parameters
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
-                                Text("参数", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
-                                BasicTextField(
-                                    value = state.parameters,
-                                    onValueChange = viewModel::onParameters,
-                                    textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(Color(0xFFF7F7F7), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                    decorationBox = { inner ->
-                                        if (state.parameters.isEmpty()) Text("如：256G (AI 可自动提取)", color = Color.LightGray, fontSize = 13.sp)
-                                        inner()
-                                    }
-                                )
-                            }
-
-                            // Purchase Date
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 12.dp)) {
-                                Text("购买日", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
-                                BasicTextField(
-                                    value = state.purchaseDate,
-                                    onValueChange = viewModel::onPurchaseDate,
-                                    textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(Color(0xFFF7F7F7), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                    decorationBox = { inner ->
-                                        if (state.purchaseDate.isEmpty()) Text("如：2023.5 (AI 可提取)", color = Color.LightGray, fontSize = 13.sp)
-                                        inner()
-                                    }
-                                )
-                            }
-                        } else {
-                            if (config.attr1Label != null) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
-                                    Text(config.attr1Label, fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        items(config.attr1Options) { opt ->
-                                            PublishPill(
-                                                label = opt,
-                                                selected = state.attr1Value == opt,
-                                                onClick = { viewModel.onAttr1Value(opt) }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            if (config.attr2Label != null) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
-                                    Text(config.attr2Label, fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(40.dp))
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        items(config.attr2Options) { opt ->
-                                            PublishPill(
-                                                label = opt,
-                                                selected = state.attr2Value == opt,
-                                                onClick = { viewModel.onAttr2Value(opt) }
-                                            )
-                                        }
-                                    }
-                                }
+                            if (state.aiOptimizing) {
+                                CircularProgressIndicator(color = Color(0xFF673AB7), modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("DeepSeek 实体提取中...", fontSize = 12.sp, color = Color(0xFF673AB7), fontWeight = FontWeight.Bold)
+                            } else {
+                                Icon(Icons.Filled.AutoAwesome, contentDescription = "AI", tint = Color(0xFF673AB7), modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("AI 智能补全与属性提取 >", fontSize = 12.sp, color = Color(0xFF673AB7), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
 
-                // Card 3: Form Rows
+                // Card 3: Dynamic Form Engine (Rendered from state.dynamicFields)
+                if (state.dynamicFields.isNotEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Text(
+                                text = "规格属性 (${state.selectedCategory?.name ?: "已选类目"})",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = scheme.onSurface
+                            )
+
+                            state.dynamicFields.forEach { field ->
+                                DynamicFieldRenderer(
+                                    field = field,
+                                    currentValue = state.dynamicFormValues[field.key] ?: "",
+                                    onValueChange = { newValue ->
+                                        viewModel.onDynamicFieldValueChange(field.key, newValue)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Card 4: Price & Location
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color.White,
@@ -426,7 +353,7 @@ fun PublishScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("价格", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("价格/期望", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 BasicTextField(
                                     value = state.price,
@@ -443,26 +370,6 @@ fun PublishScreen(
                                         }
                                     }
                                 )
-                                Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.LightGray)
-                            }
-                        }
-                        HorizontalDivider(color = Color(0xFFF5F5F5))
-
-                        // Shipping
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { }
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("发货方式", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(state.shipping, fontSize = 14.sp, color = Color.Gray)
-                                Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.LightGray)
                             }
                         }
                         HorizontalDivider(color = Color(0xFFF5F5F5))
@@ -471,47 +378,322 @@ fun PublishScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { }
                                 .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("所在位置", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(state.location, fontSize = 14.sp, color = Color.Gray)
-                                Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.LightGray)
+                            Text("发布位置", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Text(state.location, fontSize = 14.sp, color = Color.Gray)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+    }
+
+    // Category Multi-level Cascading Picker (ModalBottomSheet)
+    if (showCategoryBottomSheet) {
+        CategoryTreeBottomSheet(
+            categoryTree = state.categoryTree,
+            isLoading = state.loadingCategories,
+            error = state.categoryError,
+            onRetry = { viewModel.retryLoadCategories() },
+            onDismiss = { showCategoryBottomSheet = false },
+            onSelectLeaf = { node, path ->
+                viewModel.onSelectLeafCategory(node, path)
+                showCategoryBottomSheet = false
+            }
+        )
+    }
+}
+
+/** 动态表单引擎单字段渲染组件 */
+@Composable
+private fun DynamicFieldRenderer(
+    field: DynamicField,
+    currentValue: String,
+    onValueChange: (String) -> Unit
+) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 6.dp)) {
+            Text(field.label, fontSize = 13.sp, color = Color.Gray, modifier = Modifier.width(70.dp))
+            
+            when (field.fieldType) {
+                "SELECT" -> {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(field.options) { option ->
+                            val isSelected = currentValue == option
+                            Surface(
+                                modifier = Modifier.clickable { onValueChange(option) },
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) Color(0xFFE53935) else Color(0xFFF5F5F5),
+                                contentColor = if (isSelected) Color.White else Color.DarkGray
+                            ) {
+                                Text(
+                                    text = option,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
                             }
                         }
                     }
                 }
-                
-                Spacer(Modifier.height(32.dp))
+                else -> { // TEXT / NUMBER / DATE
+                    BasicTextField(
+                        value = currentValue,
+                        onValueChange = onValueChange,
+                        textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF7F7F7), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        decorationBox = { inner ->
+                            if (currentValue.isEmpty()) {
+                                Text(
+                                    text = field.placeholder ?: "请输入${field.label}",
+                                    color = Color.LightGray,
+                                    fontSize = 13.sp
+                                )
+                            }
+                            inner()
+                        }
+                    )
+                }
             }
         }
     }
 }
 
+/** 多级分类级联选择 BottomSheet */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PublishPill(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+private fun CategoryTreeBottomSheet(
+    categoryTree: List<CategoryNode>,
+    isLoading: Boolean,
+    error: String?,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+    onSelectLeaf: (CategoryNode, String) -> Unit
 ) {
-    val bg = if (selected) Color(0xFFFFD900) else Color(0xFFF5F5F5)
-    val fg = if (selected) Color.Black else Color.DarkGray
-    Surface(
-        modifier = modifier.clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        color = bg,
-        contentColor = fg
+    val publishableTree = remember(categoryTree) {
+        categoryTree.filter { it.id != "all" }
+    }
+
+    var selectedLevel1 by remember { mutableStateOf<CategoryNode?>(publishableTree.firstOrNull()) }
+
+    LaunchedEffect(publishableTree) {
+        if (publishableTree.isNotEmpty() && (selectedLevel1 == null || publishableTree.none { it.id == selectedLevel1?.id })) {
+            selectedLevel1 = publishableTree.firstOrNull()
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Color.White
     ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(480.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "选择发布分类",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.Gray)
+                }
+            }
+
+            when {
+                isLoading && publishableTree.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.height(12.dp))
+                            Text("正在同步全城分类目录...", fontSize = 14.sp, color = Color.Gray)
+                        }
+                    }
+                }
+                error != null && publishableTree.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(error, fontSize = 14.sp, color = Color.Red)
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = onRetry) {
+                                Text("重新加载")
+                            }
+                        }
+                    }
+                }
+                publishableTree.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("暂无可用分类", fontSize = 14.sp, color = Color.Gray)
+                    }
+                }
+                else -> {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        // Column 1: Level 1 Categories
+                        LazyColumn(
+                            modifier = Modifier
+                                .width(130.dp)
+                                .fillMaxHeight()
+                                .background(Color(0xFFF7F8FA), RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
+                        ) {
+                            items(publishableTree, key = { it.id }) { node ->
+                                val isSelected = selectedLevel1?.id == node.id
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { selectedLevel1 = node }
+                                        .background(if (isSelected) Color.White else Color.Transparent)
+                                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CategoryIconView(
+                                        iconUrl = node.iconUrl,
+                                        iconName = node.icon,
+                                        size = 20.dp,
+                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.DarkGray,
+                                        modifier = Modifier.padding(end = 8.dp)
+                                    )
+                                    Text(
+                                        text = node.name,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+
+                        // Column 2: Level 2 & Leaf Categories
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val l2Nodes = selectedLevel1?.children.orEmpty()
+                            items(l2Nodes, key = { it.id }) { l2 ->
+                                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                    Text(
+                                        text = l2.name,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp)
+                                    )
+
+                                    if (l2.isLeaf) {
+                                        Card(
+                                            onClick = {
+                                                val path = "${selectedLevel1?.name ?: ""} > ${l2.name}"
+                                                onSelectLeaf(l2, path)
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(min = 48.dp)
+                                                .padding(vertical = 4.dp),
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
+                                            border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFE5E7EB))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    CategoryIconView(
+                                                        iconUrl = l2.iconUrl,
+                                                        iconName = l2.icon,
+                                                        size = 18.dp,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.padding(end = 8.dp)
+                                                    )
+                                                    Text(l2.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1F2937))
+                                                }
+                                                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                    } else {
+                                        l2.children.forEach { leaf ->
+                                            Card(
+                                                onClick = {
+                                                    val path = "${selectedLevel1?.name ?: ""} > ${l2.name} > ${leaf.name}"
+                                                    onSelectLeaf(leaf, path)
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .heightIn(min = 48.dp)
+                                                    .padding(vertical = 4.dp),
+                                                shape = RoundedCornerShape(12.dp),
+                                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
+                                                border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFE5E7EB))
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        CategoryIconView(
+                                                            iconUrl = leaf.iconUrl,
+                                                            iconName = leaf.icon,
+                                                            size = 18.dp,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.padding(end = 8.dp)
+                                                        )
+                                                        Text(leaf.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1F2937))
+                                                    }
+                                                    Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
+

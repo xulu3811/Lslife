@@ -192,8 +192,9 @@ fun PostDetailScreen(
                             Surface(color = scheme.surface, modifier = Modifier.fillMaxWidth().padding(bottom = Dimens.sm)) {
                                 Column(modifier = Modifier.padding(Dimens.lg)) {
                                     Text("商品参数", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = Dimens.sm))
-                                    post.attributes.forEach { (key, value) ->
-                                        if (value.isNotBlank()) {
+                                    post.attributes.forEach { (key, element) ->
+                                        val valueStr = if (element is kotlinx.serialization.json.JsonPrimitive) element.content else element.toString()
+                                        if (valueStr.isNotBlank()) {
                                             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                                                 Text(
                                                     text = when(key) {
@@ -209,7 +210,7 @@ fun PostDetailScreen(
                                                     style = MaterialTheme.typography.bodyMedium
                                                 )
                                                 Text(
-                                                    text = value,
+                                                    text = valueStr,
                                                     modifier = Modifier.weight(1f),
                                                     color = scheme.onSurface,
                                                     style = MaterialTheme.typography.bodyMedium

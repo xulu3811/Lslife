@@ -2,7 +2,9 @@ package com.lianshan.lslife.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lianshan.lslife.core.data.CategoryRepository
 import com.lianshan.lslife.core.data.LsRepository
+import com.lianshan.lslife.core.model.CategoryNode
 import com.lianshan.lslife.core.model.Merchant
 import com.lianshan.lslife.core.model.Post
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,12 +18,13 @@ import javax.inject.Inject
 
 /** 同城信息类目（走 /posts），其余走商家 */
 val UGC_CATEGORIES = setOf(
-    "second_hand", "job", "house", "housekeeping", "maintenance", "moving", "veggies",
+    "second_hand", "job", "part_time", "house", "secondhand_house", "shop_rent", "housekeeping", "maintenance", "moving", "veggies",
 )
 
 data class HomeUiState(
     val loading: Boolean = true,
     val error: String? = null,
+    val categoryTree: List<CategoryNode> = emptyList(),
     val merchants: List<Merchant> = emptyList(),
     val posts: List<Post> = emptyList(),
     val recommended: List<Merchant> = emptyList(),
@@ -38,6 +41,7 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repo: LsRepository,
+    private val categoryRepo: CategoryRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -46,7 +50,19 @@ class HomeViewModel @Inject constructor(
     private var searchJob: Job? = null
 
     init {
+        observeCategoryTree()
         load()
+    }
+
+    private fun observeCategoryTree() {
+        viewModelScope.launch {
+            categoryRepo.getCategoryTree()
+        }
+        viewModelScope.launch {
+            categoryRepo.categoryTree.collect { tree ->
+                _state.update { it.copy(categoryTree = tree) }
+            }
+        }
     }
 
     fun onQueryChange(v: String) {
@@ -59,7 +75,9 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onCategory(c: String) {
-        _state.update { it.copy(category = c, isUgcMode = c in UGC_CATEGORIES) }
+        val newCat = if (_state.value.category == c && c != "all") "all" else c
+        val ugc = newCat != "all" && newCat.isNotEmpty()
+        _state.update { it.copy(category = newCat, isUgcMode = ugc) }
         load()
     }
 
@@ -82,7 +100,7 @@ class HomeViewModel @Inject constructor(
 
     fun load(showFullLoading: Boolean = true, page: Int = 1) {
         val s = _state.value
-        val ugc = s.category in UGC_CATEGORIES
+        val ugc = s.category != "all" && s.category.isNotEmpty()
         viewModelScope.launch {
             if (showFullLoading) _state.update { it.copy(loading = true, error = null, isUgcMode = ugc) }
             

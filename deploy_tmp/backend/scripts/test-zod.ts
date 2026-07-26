@@ -3,11 +3,15 @@ import { z } from 'zod';
 const ALLOWED_CATEGORIES = [
   'second_hand',
   'job',
+  'part_time',
   'house',
+  'secondhand_house',
+  'shop_rent',
   'housekeeping',
   'maintenance',
   'moving',
   'veggies',
+  'car_rental',
 ] as const;
 
 const schema = z.object({

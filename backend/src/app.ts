@@ -21,9 +21,14 @@ import adminRoutes from './modules/admin.js';
 import uploadRoutes from './modules/upload.js';
 import chatRoutes from './modules/chat.js';
 
+import categoryRoutes from './routes/category.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, '../public/uploads');
+const assetsDir = path.resolve(__dirname, '../public/assets');
+const publicDir = path.resolve(__dirname, '../public');
 fs.mkdirSync(uploadsDir, { recursive: true });
+fs.mkdirSync(assetsDir, { recursive: true });
 
 export function createApp() {
   const app = express();
@@ -33,6 +38,11 @@ export function createApp() {
   app.use(express.json({ limit: '10mb' }));
 
   app.use('/uploads', express.static(uploadsDir));
+  app.use('/assets', express.static(assetsDir));
+  app.use('/public', express.static(publicDir));
+  app.use('/api/uploads', express.static(uploadsDir));
+  app.use('/api/assets', express.static(assetsDir));
+  app.use('/api/public', express.static(publicDir));
 
   app.get('/api/health', (_req, res) => ok(res, { status: 'up', time: new Date().toISOString() }));
 
@@ -43,6 +53,7 @@ export function createApp() {
       status: 'up',
       docs: {
         health: 'GET /api/health',
+        categories: 'GET /api/categories/tree · GET /api/categories/:id/schema',
         merchants: 'GET /api/merchants',
         auth: 'POST /api/auth/register · POST /api/auth/login（手机号+密码）',
         posts: 'GET/POST /api/posts',
@@ -53,6 +64,7 @@ export function createApp() {
   );
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/categories', categoryRoutes);
   app.use('/api/merchants', merchantRoutes);
   app.use('/api/cart', cartRoutes);
   app.use('/api/orders', orderRoutes);

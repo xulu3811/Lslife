@@ -1,6 +1,8 @@
 package com.lianshan.lslife.core.network
 
+import com.lianshan.lslife.core.model.FlexibleJsonObjectSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class LoginRequest(val phone: String, val password: String)
@@ -62,7 +64,7 @@ data class CreatePostRequest(
     val publisherType: String = "INDIVIDUAL",
     val merchantId: String? = null,
     val listingType: String = "GOODS",
-    val attributes: Map<String, String> = emptyMap(),
+    val attributes: @Serializable(with = FlexibleJsonObjectSerializer::class) JsonObject = JsonObject(emptyMap()),
     val locationName: String? = null,
 )
 
@@ -75,9 +77,16 @@ data class AiRequest(val prompt: String)
 @Serializable
 data class AiGenerateDescRequest(
     val title: String? = null,
-    val category: String? = null,
-    /** 用户已填写的原文，AI 在此基础上润色，不整段替换清空 */
+    val categoryId: String? = null,
     val draft: String? = null,
+    val schema: List<com.lianshan.lslife.core.model.DynamicField> = emptyList(),
+)
+
+@Serializable
+data class AiGenerateDescResponse(
+    val title: String,
+    val description: String,
+    val attributes: @Serializable(with = FlexibleJsonObjectSerializer::class) JsonObject = JsonObject(emptyMap()),
 )
 
 @Serializable
