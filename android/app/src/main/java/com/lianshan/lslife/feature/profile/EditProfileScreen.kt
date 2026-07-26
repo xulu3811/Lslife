@@ -88,6 +88,10 @@ class EditProfileViewModel @Inject constructor(
     private val _state = MutableStateFlow(EditProfileUiState())
     val state: StateFlow<EditProfileUiState> = _state
 
+    init {
+        load()
+    }
+
     fun load() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true) }
@@ -153,9 +157,11 @@ fun EditProfileScreen(
                 try {
                     val inputStream = context.contentResolver.openInputStream(uri)
                     if (inputStream != null) {
-                        val cacheFile = java.io.File(context.cacheDir, "avatar_temp.jpg")
-                        cacheFile.outputStream().use { output ->
-                            inputStream.copyTo(output)
+                        inputStream.use { input ->
+                            val cacheFile = java.io.File(context.cacheDir, "avatar_temp.jpg")
+                            cacheFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
                         }
                         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                             onNavigateToCrop()
@@ -168,7 +174,6 @@ fun EditProfileScreen(
         }
     }
 
-    LaunchedEffect(Unit) { viewModel.load() }
     LaunchedEffect(state.saved) { if (state.saved) onBack() }
     LaunchedEffect(state.message) {
         state.message?.let {

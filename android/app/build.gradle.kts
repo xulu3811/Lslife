@@ -15,8 +15,8 @@ android {
         applicationId = "com.lianshan.lslife"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 7
+        versionName = "1.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -83,19 +83,26 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.coil.compose)
 
+    // AMap 高德地图 SDK (封存，暂不使用)
+    // implementation("com.amap.api:3dmap:10.0.600")
+    // implementation("com.amap.api:location:6.4.5")
+
+    // OSMdroid (免费开源地图替代方案)
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
 }
 
 afterEvaluate {
-    // Create specific copy tasks for debug and release
     val copyDebugApk by tasks.registering(Copy::class) {
+        mustRunAfter("assembleDebug")
         from(layout.buildDirectory.dir("outputs/apk/debug"))
         into(rootProject.file("../releases"))
         include("**/*.apk")
         
-        val versionName = android.defaultConfig.versionName ?: "1.0.0"
+        val versionName = android.defaultConfig.versionName ?: "1.5"
         val appName = "LsLife"
 
         eachFile {
@@ -106,11 +113,12 @@ afterEvaluate {
     }
 
     val copyReleaseApk by tasks.registering(Copy::class) {
+        mustRunAfter("assembleRelease")
         from(layout.buildDirectory.dir("outputs/apk/release"))
         into(rootProject.file("../releases"))
         include("**/*.apk")
         
-        val versionName = android.defaultConfig.versionName ?: "1.0.0"
+        val versionName = android.defaultConfig.versionName ?: "1.5"
         val appName = "LsLife"
 
         eachFile {

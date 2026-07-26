@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import com.lianshan.lslife.core.model.NotificationMode
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,7 +24,7 @@ class TokenStore @Inject constructor(
 ) {
     private val tokenKey = stringPreferencesKey("token")
     private val themeModeKey = stringPreferencesKey("theme_mode")
-    private val notificationsEnabledKey = booleanPreferencesKey("notifications_enabled")
+    private val notificationModeKey = stringPreferencesKey("notification_mode")
 
     var cachedToken: String? = null
         private set
@@ -41,8 +42,8 @@ class TokenStore @Inject constructor(
     val themeModeFlow: Flow<ThemeMode> = context.dataStore.data.map {
         ThemeMode.fromStorage(it[themeModeKey])
     }
-    val notificationsEnabledFlow: Flow<Boolean> = context.dataStore.data.map {
-        it[notificationsEnabledKey] ?: true
+    val notificationModeFlow: Flow<NotificationMode> = context.dataStore.data.map {
+        NotificationMode.fromStorage(it[notificationModeKey])
     }
 
     suspend fun current(): String? = tokenFlow.first()
@@ -59,7 +60,7 @@ class TokenStore @Inject constructor(
         context.dataStore.edit { it[themeModeKey] = mode.storageValue }
     }
 
-    suspend fun setNotificationsEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[notificationsEnabledKey] = enabled }
+    suspend fun setNotificationMode(mode: NotificationMode) {
+        context.dataStore.edit { it[notificationModeKey] = mode.storageValue }
     }
 }

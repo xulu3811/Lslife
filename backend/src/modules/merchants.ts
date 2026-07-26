@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { ok, ApiError } from '../lib/http.js';
 import { asyncHandler } from '../middleware/error.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -78,6 +79,49 @@ router.get(
     if (!merchant) throw new ApiError(404, '商家不存在');
     return ok(res, { ...serialize(merchant), items: merchant.products });
   }),
+);
+
+/** 商家入驻申请 */
+router.post(
+  '/apply',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.id;
+    const { name, phone, address, description, category, latitude, longitude, logo, banner } = z
+      .object({
+        name: z.string().min(2),
+        phone: z.string().min(11),
+        address: z.string(),
+        description: z.string(),
+        category: z.string().optional(),
+        latitude: z.number(),
+        longitude: z.number(),
+        logo: z.string(),
+        banner: z.string(),
+      })
+      .parse(req.body);
+
+    const config = await prisma.systemConfig.findUnique({ where: { key: 'merchant_require_approval' } });
+    const requireApproval = config?.value === 'true';
+
+    const merchant = await prisma.merchant.create({
+      data: {
+        ownerId: userId,
+        name,
+        phone,
+        address,
+        description,
+        category,
+        latitude,
+        longitude,
+        logo,
+        banner,
+        status: requireApproval ? 'pending' : 'active',
+      },
+    });
+
+    return ok(res, merchant, requireApproval ? '申请已提交，请等待管理员审核' : '店铺创建成功');
+  })
 );
 
 export default router;

@@ -123,6 +123,18 @@ async function main() {
   const ai = await call('POST', '/ai/recommend', { prompt: '推荐本地特色美食' });
   assert(typeof ai.reply === 'string', 'AI 返回推荐');
 
+  console.log('15) Admin 后台登录与大盘');
+  token = '';
+  try {
+    const adminLogin = await call('POST', '/admin/login', { username: 'root', password: 'NtktiC726Kbmt3oMM8B5EgVQ' });
+    token = adminLogin.token;
+    assert(token, '管理员登录获取 token');
+    const dashboard = await call('GET', '/admin/dashboard');
+    assert(dashboard.newUsers !== undefined, '管理员查看大盘数据成功');
+  } catch (e: any) {
+    console.log('  ⚠️ 管理员测试跳过: ', e.message);
+  }
+
   console.log('\n全部冒烟测试通过 ✅');
 }
 

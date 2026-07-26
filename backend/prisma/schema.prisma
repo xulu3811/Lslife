@@ -36,6 +36,7 @@ model User {
   notifications Notification[]
   subscriptions Subscription[]
   transactions  WalletTransaction[]
+  ownedMerchants Merchant[]     @relation("MerchantOwner")
 }
 
 model VerificationCode {
@@ -88,14 +89,16 @@ model Merchant {
   description  String
   address      String
   phone        String
-  status       String   @default("active") // active | offline
+  status       String   @default("active") // active | offline | pending
   walletBalance Float   @default(0) // 商户可提现余额
+  ownerId      String?  // 店铺归属用户
   createdAt    DateTime @default(now())
 
   products     Product[]
   orders       Order[]
   posts        Post[]
   transactions WalletTransaction[]
+  owner        User?    @relation("MerchantOwner", fields: [ownerId], references: [id])
 }
 
 model Product {
@@ -344,4 +347,11 @@ model AdminUser {
   lastIp    String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+// ================= 系统配置 =================
+model SystemConfig {
+  key       String   @id // e.g., "merchant_require_approval"
+  value     String   // e.g., "true" or "false"
+  updatedAt DateTime @updatedAt
 }

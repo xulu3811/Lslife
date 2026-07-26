@@ -101,7 +101,7 @@ fun PostDetailScreen(
                         ) {
                             Icon(Icons.Filled.ShoppingCartCheckout, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("立即购买", fontWeight = FontWeight.Bold)
+                            Text("加入购物车", fontWeight = FontWeight.Bold)
                         }
                     }
                 }

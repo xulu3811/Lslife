@@ -17,6 +17,8 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -85,6 +87,7 @@ private val tabs = listOf(
 fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val isLoggedIn by sessionViewModel.isLoggedIn.collectAsStateWithLifecycle()
+    val unreadCount by sessionViewModel.unreadCount.collectAsStateWithLifecycle()
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -112,10 +115,23 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                                     }
                                 },
                                 icon = {
-                                    Icon(
-                                        if (selected) tab.selectedIcon else tab.unselectedIcon,
-                                        contentDescription = stringResource(tab.labelRes),
-                                    )
+                                    if (tab.route == Routes.MESSAGE_LIST && unreadCount > 0) {
+                                        BadgedBox(
+                                            badge = {
+                                                Badge { Text(unreadCount.toString()) }
+                                            }
+                                        ) {
+                                            Icon(
+                                                if (selected) tab.selectedIcon else tab.unselectedIcon,
+                                                contentDescription = stringResource(tab.labelRes),
+                                            )
+                                        }
+                                    } else {
+                                        Icon(
+                                            if (selected) tab.selectedIcon else tab.unselectedIcon,
+                                            contentDescription = stringResource(tab.labelRes),
+                                        )
+                                    }
                                 },
                                 label = { Text(stringResource(tab.labelRes)) },
                                 colors = NavigationBarItemDefaults.colors(
@@ -181,8 +197,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     postId = postId,
                     onBack = { navController.popBackStack() },
                     onChatClick = { targetId, targetName ->
-                        // Pass mock session id or placeholder
-                        navController.navigate(Routes.CHAT.replace("{sessionId}", "new").replace("{targetUserId}", targetId).replace("{targetName}", targetName))
+                        navController.navigate(Routes.chat("new", targetId, targetName))
                     },
                     onBuyClick = { id ->
                         // Direct purchase can be simulated or a toast shown. Let's redirect to cart for now.
@@ -283,6 +298,9 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     merchantId = entry.arguments?.getString("merchantId").orEmpty(),
                     onBack = { navController.popBackStack() },
                     onCheckedOut = { orderId -> navController.navigate(Routes.orderTrack(orderId)) },
+                    onChatClick = { targetId, targetName ->
+                        navController.navigate(Routes.chat("new", targetId, targetName))
+                    }
                 )
             }
             composable(Routes.ORDER_TRACK) { entry ->

@@ -67,6 +67,37 @@ router.get(
   }),
 );
 
+// ================== 系统设置 ==================
+router.get(
+  '/settings',
+  asyncHandler(async (_req, res) => {
+    const configs = await prisma.systemConfig.findMany();
+    const settings = configs.reduce((acc, curr) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {} as Record<string, string>);
+    return ok(res, settings);
+  })
+);
+
+router.put(
+  '/settings',
+  asyncHandler(async (req, res) => {
+    const { key, value } = z.object({
+      key: z.string(),
+      value: z.string()
+    }).parse(req.body);
+
+    const config = await prisma.systemConfig.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value }
+    });
+
+    return ok(res, config, '设置已更新');
+  })
+);
+
 router.get(
   '/posts',
   asyncHandler(async (req, res) => {
@@ -448,7 +479,7 @@ router.post(
   '/merchants/:id/status',
   asyncHandler(async (req, res) => {
     const id = req.params.id;
-    const { status } = z.object({ status: z.enum(['active', 'offline']) }).parse(req.body);
+    const { status } = z.object({ status: z.enum(['active', 'offline', 'pending']) }).parse(req.body);
 
     const merchant = await prisma.merchant.update({
       where: { id },

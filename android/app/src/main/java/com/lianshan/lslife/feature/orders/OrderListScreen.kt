@@ -121,7 +121,7 @@ private fun OrderRow(order: Order, onClick: () -> Unit) {
             ) {
                 NetworkImage(order.merchantLogo, order.merchantName, Modifier.size(44.dp))
                 Text(
-                    order.merchantName,
+                    order.merchantName ?: "平台服务",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),

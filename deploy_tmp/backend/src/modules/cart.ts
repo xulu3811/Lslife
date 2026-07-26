@@ -19,14 +19,24 @@ router.get(
         post: { include: { user: true } },
       },
     });
-    return ok(res, items.map((c) => ({
-      id: c.id,
-      quantity: c.quantity,
-      merchantId: c.merchantId,
-      sellerId: c.sellerId,
-      product: c.product,
-      post: c.post,
-    })));
+    return ok(res, items.map((c) => {
+      let parsedPost = c.post;
+      if (parsedPost) {
+        let parsedImages = [];
+        try { parsedImages = typeof parsedPost.images === 'string' ? JSON.parse(parsedPost.images) : parsedPost.images; } catch (e) {}
+        let parsedAttrs = {};
+        try { parsedAttrs = typeof parsedPost.attributes === 'string' ? JSON.parse(parsedPost.attributes) : parsedPost.attributes; } catch (e) {}
+        parsedPost = { ...parsedPost, images: parsedImages, attributes: parsedAttrs } as any;
+      }
+      return {
+        id: c.id,
+        quantity: c.quantity,
+        merchantId: c.merchantId,
+        sellerId: c.sellerId,
+        product: c.product,
+        post: parsedPost,
+      };
+    }));
   }),
 );
 

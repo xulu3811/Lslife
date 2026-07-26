@@ -41,6 +41,7 @@ fun MerchantDetailScreen(
     merchantId: String,
     onBack: () -> Unit,
     onCheckedOut: (String) -> Unit,
+    onChatClick: (String, String) -> Unit,
     viewModel: MerchantDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -99,7 +100,22 @@ fun MerchantDetailScreen(
                                         modifier = Modifier.padding(Dimens.lg),
                                         verticalArrangement = Arrangement.spacedBy(Dimens.sm),
                                     ) {
-                                        Text(m.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(m.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                            if (m.ownerId != null) {
+                                                OutlinedButton(
+                                                    onClick = { onChatClick(m.ownerId, m.name) },
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                                                    modifier = Modifier.height(32.dp)
+                                                ) {
+                                                    Text("联系商家", style = MaterialTheme.typography.labelMedium)
+                                                }
+                                            }
+                                        }
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(Dimens.sm),

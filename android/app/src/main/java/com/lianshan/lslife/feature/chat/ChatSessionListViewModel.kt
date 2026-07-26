@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import javax.inject.Inject
 
 data class ChatSessionListUiState(
@@ -26,6 +27,12 @@ class ChatSessionListViewModel @Inject constructor(
 
     init {
         loadSessions()
+        
+        viewModelScope.launch {
+            chatRepository.incomingMessages().collectLatest {
+                loadSessions()
+            }
+        }
     }
 
     fun loadSessions() {

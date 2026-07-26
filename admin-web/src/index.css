@@ -1,16 +1,17 @@
 :root {
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --bg-color: #0f172a;
-  --surface-color: rgba(30, 41, 59, 0.7);
-  --surface-border: rgba(255, 255, 255, 0.1);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
+  --primary: #E53935; /* Bright Red */
+  --primary-hover: #D32F2F;
+  --bg-color: #FDFDFD; /* Milky White */
+  --surface-color: rgba(255, 255, 255, 0.85);
+  --surface-border: rgba(229, 57, 53, 0.1);
+  --text-primary: #1F2937;
+  --text-secondary: #4B5563;
   --danger: #ef4444;
-  --success: #22c55e;
+  --success: #10B981;
   --radius-lg: 16px;
   --radius-md: 12px;
-  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --shadow-glass: 0 8px 32px 0 rgba(229, 57, 53, 0.08);
+  --shadow-3d: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 body {
@@ -19,8 +20,8 @@ body {
   background-color: var(--bg-color);
   color: var(--text-primary);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(239, 68, 68, 0.1) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(229, 57, 53, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(229, 57, 53, 0.03) 0px, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
 }
@@ -81,7 +82,47 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  background: linear-gradient(135deg, #E53935, #ff7e67);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Layout Utilities */
+.flex { display: flex; }
+.flex-col { flexDirection: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; }
+.gap-4 { gap: 16px; }
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.p-4 { padding: 16px; }
+.p-6 { padding: 24px; }
+.w-full { width: 100%; }
+
+/* Table Styles */
+.glass-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.glass-table th, .glass-table td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--surface-border);
+}
+.glass-table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.glass-table tr:hover {
+  background: rgba(229, 57, 53, 0.02);
+}
+.badge {
+  padding: 4px 8px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-active { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+.badge-pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.badge-offline { background: rgba(239, 68, 68, 0.1); color: var(--danger); }

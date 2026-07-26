@@ -44,6 +44,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import kotlin.math.max
+import coil.imageLoader
 
 data class CropUiState(
     val loading: Boolean = false,
@@ -72,57 +73,32 @@ class CropViewModel @Inject constructor(
                     throw Exception("文件不存在或保存失败")
                 }
 
-                // 1. Check original size
-                val options = BitmapFactory.Options()
-                options.inJustDecodeBounds = true
-                BitmapFactory.decodeFile(file.absolutePath, options)
+                // Use Coil to load the image robustly, handling Exif, orientation, and hardware bitmap issues
+                val request = coil.request.ImageRequest.Builder(context)
+                    .data(file)
+                    .allowHardware(false) // Force software bitmap so we can draw it later in cropAndUpload
+                    .size(2048) // Limit size to avoid OOM
+                    .build()
                 
-                // 2. Calculate inSampleSize to avoid OOM
-                var scale = 1
-                while (options.outWidth / scale > 2048 || options.outHeight / scale > 2048) {
-                    scale *= 2
-                }
-                
-                // 3. Decode actual bitmap
-                options.inJustDecodeBounds = false
-                options.inSampleSize = scale
-                options.inPreferredConfig = Bitmap.Config.ARGB_8888
-                var bitmap = BitmapFactory.decodeFile(file.absolutePath, options)
-                
-                if (bitmap != null) {
-                    // 4. Handle Exif rotation
-                    val exif = android.media.ExifInterface(file.absolutePath)
-                    val orientation = exif.getAttributeInt(
-                        android.media.ExifInterface.TAG_ORIENTATION,
-                        android.media.ExifInterface.ORIENTATION_NORMAL
-                    )
-                    
-                    val matrix = android.graphics.Matrix()
-                    when (orientation) {
-                        android.media.ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
-                        android.media.ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
-                        android.media.ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-                    }
-                    
-                    if (!matrix.isIdentity) {
-                        val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-                        if (rotatedBitmap != bitmap) {
-                            bitmap.recycle()
-                            bitmap = rotatedBitmap
+                val result = context.imageLoader.execute(request)
+                if (result is coil.request.SuccessResult) {
+                    val drawable = result.drawable
+                    if (drawable is android.graphics.drawable.BitmapDrawable) {
+                        val bitmap = drawable.bitmap
+                        val imageBitmap = bitmap.asImageBitmap()
+                        _state.update { 
+                            it.copy(
+                                loading = false, 
+                                bitmap = imageBitmap,
+                                originalWidth = bitmap.width,
+                                originalHeight = bitmap.height
+                            ) 
                         }
-                    }
-
-                    val imageBitmap = bitmap.asImageBitmap()
-                    _state.update { 
-                        it.copy(
-                            loading = false, 
-                            bitmap = imageBitmap,
-                            originalWidth = bitmap.width,
-                            originalHeight = bitmap.height
-                        ) 
+                    } else {
+                        throw Exception("图片格式不受支持")
                     }
                 } else {
-                    throw Exception("图片格式不支持或无法解码")
+                    throw Exception("图片加载失败")
                 }
             } catch (e: Throwable) {
                 e.printStackTrace()
@@ -145,6 +121,7 @@ class CropViewModel @Inject constructor(
                 val resultSize = 500
                 val resultBmp = Bitmap.createBitmap(resultSize, resultSize, Bitmap.Config.ARGB_8888)
                 val canvas = android.graphics.Canvas(resultBmp)
+                canvas.drawColor(android.graphics.Color.WHITE)
                 
                 val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
                 
@@ -163,10 +140,12 @@ class CropViewModel @Inject constructor(
                 canvas.translate(offset.x, offset.y)
                 canvas.scale(scale, scale)
                 
-                // Draw the original image centered
+                // Draw the original image centered without density scaling
                 canvas.translate(-androidBitmap.width / 2f, -androidBitmap.height / 2f)
                 
-                canvas.drawBitmap(androidBitmap, 0f, 0f, paint)
+                val srcRect = android.graphics.Rect(0, 0, androidBitmap.width, androidBitmap.height)
+                val dstRect = android.graphics.RectF(0f, 0f, androidBitmap.width.toFloat(), androidBitmap.height.toFloat())
+                canvas.drawBitmap(androidBitmap, srcRect, dstRect, paint)
 
                 // 3. Compress using AvatarCompressor
                 val compressedBytes = AvatarCompressor.compressAvatar(resultBmp, 50 * 1024, 500)
@@ -261,19 +240,21 @@ fun CropScreen(
             return@Scaffold
         }
 
-        var scale by remember { mutableFloatStateOf(1f) }
+        var scale by remember { mutableFloatStateOf(0f) }
         var offset by remember { mutableStateOf(Offset.Zero) }
         var viewportSize by remember { mutableStateOf(IntSize.Zero) }
+        var isInitialized by remember { mutableStateOf(false) }
 
         // The size of the circular crop hole
         val cropSize = if (viewportSize.width > 0) (viewportSize.width * 0.8f) else 0f
 
         // Initial setup to fit the image in the crop circle
         LaunchedEffect(bitmap, viewportSize) {
-            if (viewportSize.width > 0 && bitmap.width > 0 && scale == 1f) {
+            if (viewportSize.width > 0 && bitmap.width > 0 && !isInitialized) {
                 // Determine initial scale to just cover the crop hole
                 val minDim = minOf(bitmap.width, bitmap.height).toFloat()
                 scale = cropSize / minDim
+                isInitialized = true
             }
         }
 
@@ -287,18 +268,22 @@ fun CropScreen(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(0.1f, 5f)
-                        offset += pan
+                        if (isInitialized) {
+                            scale = (scale * zoom).coerceIn(0.1f, 10f)
+                            offset += pan
+                        }
                     }
                 }) {
+                if (!isInitialized) return@Canvas
+
                 val canvasWidth = size.width
                 val canvasHeight = size.height
 
-                // Draw the image
+                // Draw the image with mathematically perfect transform matching CropViewModel
                 withTransform({
-                    this.translate(left = canvasWidth / 2f + offset.x, top = canvasHeight / 2f + offset.y)
-                    this.scale(scaleX = scale, scaleY = scale)
-                    this.translate(left = -bitmap.width / 2f, top = -bitmap.height / 2f)
+                    translate(canvasWidth / 2f + offset.x, canvasHeight / 2f + offset.y)
+                    scale(scale, scale)
+                    translate(-bitmap.width / 2f, -bitmap.height / 2f)
                 }) {
                     drawImage(image = bitmap)
                 }

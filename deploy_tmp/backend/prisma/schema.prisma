@@ -36,6 +36,7 @@ model User {
   notifications Notification[]
   subscriptions Subscription[]
   transactions  WalletTransaction[]
+  ownedMerchants Merchant[]     @relation("MerchantOwner")
 }
 
 model VerificationCode {
@@ -90,12 +91,14 @@ model Merchant {
   phone        String
   status       String   @default("active") // active | offline
   walletBalance Float   @default(0) // 商户可提现余额
+  ownerId      String?  // 店铺归属用户
   createdAt    DateTime @default(now())
 
   products     Product[]
   orders       Order[]
   posts        Post[]
   transactions WalletTransaction[]
+  owner        User?    @relation("MerchantOwner", fields: [ownerId], references: [id])
 }
 
 model Product {

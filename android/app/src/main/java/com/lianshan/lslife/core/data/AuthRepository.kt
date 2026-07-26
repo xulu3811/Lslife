@@ -21,6 +21,10 @@ class AuthRepository @Inject constructor(
 ) {
     val isLoggedIn: Flow<Boolean> = tokenStore.tokenFlow.map { it != null }
 
+    private var _cachedUser: User? = null
+
+    fun cachedMe(): User? = _cachedUser
+
     suspend fun register(phone: String, email: String, password: String, nickname: String? = null): Result<LoginResult> =
         safeCall { api.register(RegisterRequest(phone, email, password, nickname)) }
             .onSuccess { tokenStore.save(it.token) }
@@ -35,7 +39,7 @@ class AuthRepository @Inject constructor(
         safeCall { api.login(LoginRequest(phone, password)) }
             .onSuccess { tokenStore.save(it.token) }
 
-    suspend fun me(): Result<User> = safeCall { api.me() }
+    suspend fun me(): Result<User> = safeCall { api.me() }.onSuccess { _cachedUser = it }
 
     suspend fun realName(name: String, idCard: String): Result<User> =
         safeCall { api.realName(RealNameRequest(name, idCard)) }
@@ -43,5 +47,8 @@ class AuthRepository @Inject constructor(
     suspend fun updateProfile(nickname: String?, avatar: String?): Result<User> =
         safeCall { api.updateProfile(com.lianshan.lslife.core.model.ProfileUpdateRequest(nickname, avatar)) }
 
-    suspend fun logout() = tokenStore.clear()
+    suspend fun logout() {
+        _cachedUser = null
+        tokenStore.clear()
+    }
 }

@@ -24,6 +24,15 @@ import com.lianshan.lslife.core.model.ChatMessage
 import com.lianshan.lslife.ui.components.LoadingBox
 import com.lianshan.lslife.ui.theme.PrimaryRed
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.activity.result.PickVisualMediaRequest
+import coil.compose.AsyncImage
+import androidx.compose.material.icons.filled.Add
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +46,29 @@ fun ChatScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var text by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(uri) ?: return@launch
+                    val fileName = "chat_temp_${java.util.UUID.randomUUID()}.jpg"
+                    val cacheFile = java.io.File(context.cacheDir, fileName)
+                    cacheFile.outputStream().use { output ->
+                        inputStream.copyTo(output)
+                    }
+                    val absolutePath = cacheFile.absolutePath
+                    withContext(Dispatchers.Main) {
+                        viewModel.sendImage(absolutePath)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
 
     LaunchedEffect(sessionId, targetUserId) {
         viewModel.initSession(sessionId, targetUserId)
@@ -45,11 +76,12 @@ fun ChatScreen(
 
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
-            listState.animateScrollToItem(state.messages.size - 1)
+            listState.animateScrollToItem(0)
         }
     }
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text(targetName) },
@@ -76,6 +108,15 @@ fun ChatScreen(
                         .navigationBarsPadding(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(
+                        onClick = {
+                            pickMedia.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "发送图片", tint = Color.Gray)
+                    }
                     OutlinedTextField(
                         value = text,
                         onValueChange = { text = it },
@@ -125,9 +166,10 @@ fun ChatScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f)),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Bottom),
+            reverseLayout = true
         ) {
-            items(state.messages) { message ->
+            items(state.messages.reversed()) { message ->
                 val isMe = message.senderId == state.currentUserId
                 ChatBubble(message = message, isMe = isMe)
             }
@@ -155,11 +197,22 @@ fun ChatBubble(message: ChatMessage, isMe: Boolean) {
                 )
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
-            Text(
-                text = message.content,
-                color = if (isMe) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge
-            )
+            if (message.type == "image") {
+                AsyncImage(
+                    model = message.content,
+                    contentDescription = "图片",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .widthIn(max = 200.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+            } else {
+                Text(
+                    text = message.content,
+                    color = if (isMe) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
         }
     }
 }

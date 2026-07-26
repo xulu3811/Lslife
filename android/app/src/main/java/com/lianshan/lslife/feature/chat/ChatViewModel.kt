@@ -8,6 +8,15 @@ import com.lianshan.lslife.core.model.ChatMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import com.lianshan.lslife.feature.publish.ImageCompressor
+import com.lianshan.lslife.core.data.LsRepository
 import javax.inject.Inject
 
 data class ChatUiState(
@@ -20,7 +29,9 @@ data class ChatUiState(
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val lsRepository: LsRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val _state = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = _state
@@ -37,6 +48,9 @@ class ChatViewModel @Inject constructor(
 
         viewModelScope.launch {
             chatRepository.incomingMessages().collect { msg ->
+                if (currentSessionId == "new" && (msg.senderId == targetUserId || msg.senderId == state.value.currentUserId)) {
+                    currentSessionId = msg.sessionId
+                }
                 if (msg.sessionId == currentSessionId || currentSessionId.isEmpty()) {
                     _state.update {
                         val newMessages = (it.messages + msg).distinctBy { m -> m.id }
@@ -67,9 +81,31 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun sendMessage(content: String) {
+    fun sendMessage(content: String, type: String = "text") {
         if (content.isBlank() || targetUserId.isEmpty()) return
-        chatRepository.sendMessage(targetUserId, content)
-        // Optimistic UI update could be done here if needed
+        chatRepository.sendMessage(targetUserId, content, type)
+    }
+
+    fun sendImage(uri: String) {
+        if (targetUserId.isEmpty()) return
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true) }
+            try {
+                val bytes = ImageCompressor.compress(context, uri)
+                val reqFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
+                val part = MultipartBody.Part.createFormData("image", "chat_image.jpg", reqFile)
+                val res = lsRepository.uploadImage(part)
+                if (res.isSuccess) {
+                    val url = res.getOrNull()?.url ?: throw Exception("返回的图片地址为空")
+                    sendMessage(url, "image")
+                } else {
+                    _state.update { it.copy(error = res.exceptionOrNull()?.message ?: "图片上传失败") }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "图片上传异常: ${e.message}") }
+            } finally {
+                _state.update { it.copy(loading = false) }
+            }
+        }
     }
 }

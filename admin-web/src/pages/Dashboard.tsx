@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Users, ShoppingBag, Activity, AlertTriangle } from 'lucide-react';
-import api from '../utils/axios';
+import api from '../utils/api';
 import '../index.css';
 
 import { Link } from 'react-router-dom';
@@ -49,7 +49,7 @@ export default function Dashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
-        <StatCard title="今日新增用户" value={stats.newUsers.toString()} trend={12.5} icon={Users} color="59, 130, 246" linkTo="/users" />
+        <StatCard title="今日新增用户" value={stats.newUsers.toString()} trend={12.5} icon={Users} color="229, 57, 53" linkTo="/users" />
         <StatCard title="活跃订单数" value={stats.activeOrders.toString()} trend={8.2} icon={ShoppingBag} color="167, 139, 250" linkTo="/orders" />
         <StatCard title="平台流水 (元)" value={`￥${stats.revenue}`} trend={-2.4} icon={Activity} color="34, 197, 94" />
         <StatCard title="待审核内容" value={stats.pendingReviews.toString()} trend={100} icon={AlertTriangle} color="239, 68, 68" linkTo="/content" />

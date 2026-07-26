@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.lianshan.lslife.core.data.TokenStore
 import com.lianshan.lslife.core.database.MerchantDao
 import com.lianshan.lslife.core.model.ThemeMode
+import com.lianshan.lslife.core.model.NotificationMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,7 @@ import javax.inject.Inject
 
 data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val notificationsEnabled: Boolean = true,
+    val notificationMode: NotificationMode = NotificationMode.RINGTONE,
     val clearingCache: Boolean = false,
     val message: String? = null,
 )
@@ -32,14 +33,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 tokenStore.themeModeFlow,
-                tokenStore.notificationsEnabledFlow,
-            ) { themeMode, notificationsEnabled ->
-                themeMode to notificationsEnabled
-            }.collect { (themeMode, notificationsEnabled) ->
+                tokenStore.notificationModeFlow,
+            ) { themeMode, notificationMode ->
+                themeMode to notificationMode
+            }.collect { (themeMode, notificationMode) ->
                 _state.update {
                     it.copy(
                         themeMode = themeMode,
-                        notificationsEnabled = notificationsEnabled,
+                        notificationMode = notificationMode,
                     )
                 }
             }
@@ -50,11 +51,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { tokenStore.setThemeMode(mode) }
     }
 
-    fun setNotificationsEnabled(enabled: Boolean) {
+    fun setNotificationMode(mode: NotificationMode) {
         viewModelScope.launch {
-            tokenStore.setNotificationsEnabled(enabled)
+            tokenStore.setNotificationMode(mode)
             _state.update {
-                it.copy(message = if (enabled) "消息通知已开启" else "消息通知已关闭")
+                it.copy(message = "消息通知模式已设为 ${mode.label}")
             }
         }
     }

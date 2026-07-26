@@ -60,7 +60,7 @@ export default function AdminLayout() {
                   alignItems: 'center',
                   gap: '12px',
                   padding: '12px 16px',
-                  background: isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                  background: isActive ? 'rgba(229, 57, 53, 0.15)' : 'transparent',
                   color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
                   border: 'none',
                   borderRadius: 'var(--radius-md)',

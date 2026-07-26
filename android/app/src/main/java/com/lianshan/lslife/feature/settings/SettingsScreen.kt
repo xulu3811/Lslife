@@ -50,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lianshan.lslife.BuildConfig
 import com.lianshan.lslife.core.model.ThemeMode
+import com.lianshan.lslife.core.model.NotificationMode
 import com.lianshan.lslife.ui.components.SoftCard
 import com.lianshan.lslife.ui.theme.Dimens
 
@@ -138,13 +139,32 @@ fun SettingsScreen(
                 modifier = Modifier.padding(start = Dimens.xs),
             )
             SoftCard {
-                SettingsSwitchRow(
-                    icon = Icons.Filled.Notifications,
-                    title = "消息通知",
-                    subtitle = "接收订单、配送和社区消息",
-                    checked = state.notificationsEnabled,
-                    onCheckedChange = viewModel::setNotificationsEnabled,
-                )
+                Column {
+                    SettingsHeader(
+                        icon = Icons.Filled.Notifications,
+                        title = "消息通知模式",
+                        subtitle = "选择接收消息的提醒方式",
+                    )
+                    NotificationMode.entries.forEach { mode ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setNotificationMode(mode) }
+                                .padding(horizontal = Dimens.md, vertical = Dimens.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                mode.label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            RadioButton(
+                                selected = state.notificationMode == mode,
+                                onClick = { viewModel.setNotificationMode(mode) },
+                            )
+                        }
+                    }
+                }
                 SettingsActionRow(
                     icon = Icons.Filled.CleaningServices,
                     title = "清理缓存",

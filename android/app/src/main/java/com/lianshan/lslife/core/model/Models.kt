@@ -57,6 +57,7 @@ data class Merchant(
     val description: String,
     val address: String,
     val phone: String,
+    val ownerId: String? = null,
     val items: List<Product> = emptyList(),
 )
 

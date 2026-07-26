@@ -55,7 +55,7 @@ class MerchantDetailViewModel @Inject constructor(
         }
         // 同步到服务端购物车
         val qty = _state.value.quantities[productId] ?: 0
-        viewModelScope.launch { repo.upsertCart(productId, qty) }
+        viewModelScope.launch { repo.upsertCart(productId = productId, quantity = qty) }
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
@@ -78,7 +78,7 @@ class MerchantDetailViewModel @Inject constructor(
                 return@launch
             }
 
-            val items = s.quantities.map { OrderItemRequest(it.key, it.value) }
+            val items = s.quantities.map { OrderItemRequest(productId = it.key, quantity = it.value) }
             val orderResult = repo.createOrder(
                 CreateOrderRequest(
                     merchantId = m.id,

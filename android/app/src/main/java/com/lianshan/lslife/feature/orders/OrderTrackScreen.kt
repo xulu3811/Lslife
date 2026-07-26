@@ -112,7 +112,12 @@ fun OrderTrackScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = scheme.onSurfaceVariant,
                                 )
-                                RouteMap(progress = delivery.progress / 100f)
+                                com.lianshan.lslife.feature.delivery.OsmMapComposable(
+                                    modifier = Modifier.fillMaxWidth().height(200.dp).padding(top = Dimens.md),
+                                    riderLat = delivery.rider.lat.toFloat(),
+                                    riderLng = delivery.rider.lng.toFloat(),
+                                    progress = delivery.progress / 100f
+                                )
                             }
                         }
                     }
