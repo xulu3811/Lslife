@@ -111,7 +111,7 @@ async function main() {
   const mine = await call('GET', '/posts?mine=true');
   assert(mine.list.some((p: any) => p.id === post.id), '我的发布可见');
   const quota = await call('GET', '/posts/quota');
-  assert(quota.used === 1 && quota.limit === 3, `免费额度 ${quota.used}/${quota.limit}`);
+  assert(quota.used === 1 && quota.limit === 10, `免费额度 ${quota.used}/${quota.limit}`);
 
   console.log('13) 会员订阅提升额度');
   const sub = await call('POST', '/membership/subscribe', { tier: 'vip' });

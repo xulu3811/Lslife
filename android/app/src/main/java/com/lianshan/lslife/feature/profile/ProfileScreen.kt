@@ -94,6 +94,8 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
+            com.lianshan.lslife.ui.components.VendorBatteryOptimizationBanner()
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -8,7 +8,8 @@ import { moderateContent } from '../services/moderation.js';
 
 const router = Router();
 
-const MONTHLY_LIMIT: Record<string, number> = { free: 3, vip: 20, premium: 50 };
+const UNLIMITED_PHONES = ['19926387658', '13828577665'];
+const MONTHLY_LIMIT: Record<string, number> = { free: 10, vip: 20, premium: 50 };
 
 const ALLOWED_CATEGORIES = [
   'cat_idle',
@@ -95,8 +96,9 @@ router.post(
     const count = await prisma.post.count({
       where: { userId: user.id, createdAt: { gte: monthStart }, status: { not: 'rejected' } },
     });
-    const limit = MONTHLY_LIMIT[user.membershipTier] ?? 3;
-    if (count >= limit) {
+    const isUnlimited = user.phone && UNLIMITED_PHONES.includes(user.phone);
+    const limit = isUnlimited ? 999999 : (MONTHLY_LIMIT[user.membershipTier] ?? 10);
+    if (!isUnlimited && count >= limit) {
       throw new ApiError(403, `本月发布额度已用尽 (${count}/${limit}), 升级会员可提升额度`);
     }
 
@@ -150,7 +152,7 @@ router.get(
   '/',
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const { category, publisherType, listingType, mine, page, pageSize, q, minPrice, maxPrice, sortBy } = z
+    const { category, publisherType, listingType, mine, page, pageSize, q, minPrice, maxPrice, sortBy, attrFilter } = z
       .object({
         category: z.string().optional(),
         publisherType: z.enum(['INDIVIDUAL', 'MERCHANT']).optional(),
@@ -162,6 +164,7 @@ router.get(
         minPrice: z.coerce.number().nonnegative().optional(),
         maxPrice: z.coerce.number().nonnegative().optional(),
         sortBy: z.enum(['latest', 'price_asc', 'price_desc']).default('latest'),
+        attrFilter: z.string().optional(),
       })
       .parse(req.query);
 
@@ -218,6 +221,36 @@ router.get(
       };
     }
 
+    if (attrFilter) {
+      try {
+        const parsed = JSON.parse(attrFilter) as Record<string, string>;
+        const andConditions: Record<string, unknown>[] = [];
+        for (const [k, v] of Object.entries(parsed)) {
+          if (v && v.trim() !== '') {
+            const exactNoSpace = `"${k}":"${v}"`;
+            const exactWithSpace = `"${k}": "${v}"`;
+            andConditions.push({
+              OR: [
+                { attributes: { contains: exactNoSpace } },
+                { attributes: { contains: exactWithSpace } }
+              ]
+            });
+          }
+        }
+        if (andConditions.length > 0) {
+          if (Array.isArray(where.AND)) {
+            (where.AND as unknown[]).push(...andConditions);
+          } else if (where.AND) {
+            where.AND = [where.AND, ...andConditions];
+          } else {
+            where.AND = andConditions;
+          }
+        }
+      } catch (e) {
+        // 忽略 JSON 解析错误
+      }
+    }
+
     let orderBy: any = { createdAt: 'desc' };
     if (sortBy === 'price_asc') {
       orderBy = { price: 'asc' };
@@ -264,8 +297,9 @@ router.get(
     const used = await prisma.post.count({
       where: { userId: user.id, createdAt: { gte: monthStart }, status: { not: 'rejected' } },
     });
-    const limit = MONTHLY_LIMIT[user.membershipTier] ?? 3;
-    return ok(res, { used, limit, tier: user.membershipTier, remaining: Math.max(0, limit - used) });
+    const isUnlimited = user.phone && UNLIMITED_PHONES.includes(user.phone);
+    const limit = isUnlimited ? 999999 : (MONTHLY_LIMIT[user.membershipTier] ?? 10);
+    return ok(res, { used, limit, tier: user.membershipTier, remaining: isUnlimited ? 999999 : Math.max(0, limit - used) });
   }),
 );
 

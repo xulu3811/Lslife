@@ -296,7 +296,11 @@ data class ChatMessage(
     val senderId: String,
     val type: String = "text",
     val content: String,
+    val isRecalled: Boolean = false,
+    val isEncrypted: Boolean = false,
+    val evidenceHash: String? = null,
     val createdAt: String,
+    @kotlinx.serialization.Transient val isOfflineSync: Boolean = false,
 )
 
 object FlexibleJsonObjectSerializer : KSerializer<JsonObject> {

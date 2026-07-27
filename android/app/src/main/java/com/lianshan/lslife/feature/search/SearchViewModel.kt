@@ -1,5 +1,7 @@
 package com.lianshan.lslife.feature.search
 
+import android.app.Application
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lianshan.lslife.core.data.LsRepository
@@ -19,6 +21,10 @@ data class SearchUiState(
     val minPrice: Double? = null,
     val maxPrice: Double? = null,
     val sortBy: String = "latest", // latest, price_asc, price_desc
+    val attributesFilter: Map<String, String> = emptyMap(),
+    val searchHistory: List<String> = emptyList(),
+    val hotSearches: List<String> = listOf("iPhone 15", "日常保洁", "两室一厅", "寒暑假工", "小面包车", "旺铺转让", "全新手机", "送货搬家"),
+    val showFilterBottomSheet: Boolean = false,
     val loading: Boolean = false,
     val refreshing: Boolean = false,
     val loadingMore: Boolean = false,
@@ -30,16 +36,57 @@ data class SearchUiState(
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val repo: LsRepository
+    private val repo: LsRepository,
+    private val app: Application
 ) : ViewModel() {
     private val _state = MutableStateFlow(SearchUiState())
     val state: StateFlow<SearchUiState> = _state
 
     private var searchJob: Job? = null
+    private val prefs by lazy { app.getSharedPreferences("lslife_search_history", Context.MODE_PRIVATE) }
+
+    init {
+        loadHistory()
+    }
+
+    private fun loadHistory() {
+        val historyStr = prefs.getString("history_list", "") ?: ""
+        val list = if (historyStr.isBlank()) emptyList() else historyStr.split("||")
+        _state.update { it.copy(searchHistory = list) }
+    }
+
+    fun saveHistory(keyword: String) {
+        val k = keyword.trim()
+        if (k.isBlank()) return
+        val current = _state.value.searchHistory.toMutableList()
+        current.remove(k)
+        current.add(0, k)
+        val trimmed = current.take(10)
+        prefs.edit().putString("history_list", trimmed.joinToString("||")).apply()
+        _state.update { it.copy(searchHistory = trimmed) }
+    }
+
+    fun removeHistory(keyword: String) {
+        val current = _state.value.searchHistory.filter { it != keyword }
+        prefs.edit().putString("history_list", current.joinToString("||")).apply()
+        _state.update { it.copy(searchHistory = current) }
+    }
+
+    fun clearHistory() {
+        prefs.edit().remove("history_list").apply()
+        _state.update { it.copy(searchHistory = emptyList()) }
+    }
 
     fun updateKeyword(k: String) {
         _state.update { it.copy(keyword = k) }
         debouncedSearch()
+    }
+
+    fun searchNow(k: String) {
+        _state.update { it.copy(keyword = k) }
+        saveHistory(k)
+        searchJob?.cancel()
+        load(page = 1, showFullLoading = true)
     }
 
     fun updateCategory(c: String?) {
@@ -57,10 +104,46 @@ class SearchViewModel @Inject constructor(
         load(page = 1)
     }
 
+    fun updateAttributeFilter(key: String, value: String) {
+        val current = _state.value.attributesFilter.toMutableMap()
+        if (current[key] == value) {
+            current.remove(key)
+        } else {
+            current[key] = value
+        }
+        _state.update { it.copy(attributesFilter = current) }
+        load(page = 1)
+    }
+
+    fun clearAttributesFilter() {
+        _state.update { it.copy(attributesFilter = emptyMap(), minPrice = null, maxPrice = null) }
+        load(page = 1)
+    }
+
+    fun resetAllFilters() {
+        _state.update { 
+            it.copy(
+                category = null,
+                minPrice = null,
+                maxPrice = null,
+                sortBy = "latest",
+                attributesFilter = emptyMap()
+            )
+        }
+        load(page = 1)
+    }
+
+    fun setShowFilterBottomSheet(show: Boolean) {
+        _state.update { it.copy(showFilterBottomSheet = show) }
+    }
+
     private fun debouncedSearch() {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(500)
+            if (_state.value.keyword.isNotBlank()) {
+                saveHistory(_state.value.keyword)
+            }
             load(page = 1, showFullLoading = false)
         }
     }
@@ -94,6 +177,7 @@ class SearchViewModel @Inject constructor(
                 minPrice = s.minPrice,
                 maxPrice = s.maxPrice,
                 sortBy = s.sortBy,
+                attrFilter = s.attributesFilter.takeIf { it.isNotEmpty() },
                 page = page,
                 pageSize = 20
             ).onSuccess { resPage ->

@@ -31,7 +31,7 @@ data class HomeUiState(
     val query: String = "",
     val category: String = "all",
     val sort: String = "default",
-    val isUgcMode: Boolean = false,
+    val isUgcMode: Boolean = true,
     val page: Int = 1,
     val hasMore: Boolean = true,
     val loadingMore: Boolean = false,
@@ -76,8 +76,7 @@ class HomeViewModel @Inject constructor(
 
     fun onCategory(c: String) {
         val newCat = if (_state.value.category == c && c != "all") "all" else c
-        val ugc = newCat != "all" && newCat.isNotEmpty()
-        _state.update { it.copy(category = newCat, isUgcMode = ugc) }
+        _state.update { it.copy(category = newCat, isUgcMode = true) }
         load()
     }
 
@@ -100,64 +99,35 @@ class HomeViewModel @Inject constructor(
 
     fun load(showFullLoading: Boolean = true, page: Int = 1) {
         val s = _state.value
-        val ugc = s.category != "all" && s.category.isNotEmpty()
         viewModelScope.launch {
-            if (showFullLoading) _state.update { it.copy(loading = true, error = null, isUgcMode = ugc) }
+            if (showFullLoading) _state.update { it.copy(loading = true, error = null, isUgcMode = true) }
             
-            // If loading page 1, we should clear the lists (if full loading) or just overwrite later
             if (page == 1 && showFullLoading) {
                 _state.update { it.copy(merchants = emptyList(), posts = emptyList()) }
             }
 
-            if (ugc) {
-                repo.posts(category = s.category, mine = false, page = page, pageSize = 20)
-                    .onSuccess { resPage ->
-                        val list = if (s.query.isBlank()) resPage.list
-                        else resPage.list.filter {
-                            it.title.contains(s.query, true) || it.description.contains(s.query, true)
-                        }
-                        _state.update {
-                            val newPosts = if (page == 1) list else it.posts + list
-                            val hasMore = resPage.page * resPage.pageSize < resPage.total
-                            it.copy(
-                                loading = false, loadingMore = false, refreshing = false,
-                                posts = newPosts, merchants = emptyList(), error = null, isUgcMode = true,
-                                page = page, hasMore = hasMore
-                            )
-                        }
-                    }
-                    .onFailure { e ->
-                        _state.update { it.copy(loading = false, loadingMore = false, refreshing = false, error = e.message ?: "加载失败", isUgcMode = true) }
-                    }
-                return@launch
-            }
+            val catParam = if (s.category == "all" || s.category.isBlank()) null else s.category
+            val sortParam = if (s.sort == "default") null else s.sort
+            val queryParam = s.query.takeIf { it.isNotBlank() }
 
-            if (page == 1 && s.category in listOf("all", null) && s.query.isBlank()) {
-                val cached = repo.getCachedMerchants()
-                if (cached.isNotEmpty() && s.merchants.isEmpty()) {
-                    _state.update { it.copy(merchants = cached, posts = emptyList(), error = null, isUgcMode = false) }
-                }
-            }
-
-            repo.merchants(s.category, s.query, s.sort, page = page, pageSize = 20)
+            repo.posts(category = catParam, mine = false, q = queryParam, sortBy = sortParam, page = page, pageSize = 20)
                 .onSuccess { resPage ->
+                    val list = if (s.query.isBlank()) resPage.list
+                    else resPage.list.filter {
+                        it.title.contains(s.query, true) || it.description.contains(s.query, true)
+                    }
                     _state.update {
-                        val newMerchants = if (page == 1) resPage.list else it.merchants + resPage.list
+                        val newPosts = if (page == 1) list else it.posts + list
                         val hasMore = resPage.page * resPage.pageSize < resPage.total
                         it.copy(
                             loading = false, loadingMore = false, refreshing = false,
-                            merchants = newMerchants, posts = emptyList(), error = null, isUgcMode = false,
+                            posts = newPosts, merchants = emptyList(), error = null, isUgcMode = true,
                             page = page, hasMore = hasMore
                         )
                     }
                 }
                 .onFailure { e ->
-                    _state.update { 
-                        it.copy(
-                            loading = false, loadingMore = false, refreshing = false,
-                            error = if (it.merchants.isEmpty()) (e.message ?: "加载失败") else null
-                        ) 
-                    }
+                    _state.update { it.copy(loading = false, loadingMore = false, refreshing = false, error = e.message ?: "加载失败", isUgcMode = true) }
                 }
             
             if (page == 1) {

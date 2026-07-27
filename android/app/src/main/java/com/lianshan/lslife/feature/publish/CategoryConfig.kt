@@ -44,7 +44,7 @@ val publishCategoryConfigs = listOf(
     ),
     CategoryConfig(
         id = "house",
-        name = "房租租售",
+        name = "房屋租售",
         attr1Label = "方式",
         attr1Options = listOf("整租", "合租", "出售"),
         attr2Label = "户型",

@@ -13,11 +13,15 @@ import com.lianshan.lslife.core.data.ChatRepository
 import com.lianshan.lslife.core.data.TokenStore
 import com.lianshan.lslife.core.model.NotificationMode
 import com.lianshan.lslife.core.model.ThemeMode
+import com.lianshan.lslife.core.service.LsLifeImService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -30,6 +34,13 @@ class SessionViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+    private val _navigateToChatFlow = MutableSharedFlow<Triple<String, String, String>>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val navigateToChatFlow = _navigateToChatFlow.asSharedFlow()
+
+    fun triggerNavigateToChat(sessionId: String, targetUserId: String, targetName: String) {
+        _navigateToChatFlow.tryEmit(Triple(sessionId, targetUserId, targetName))
+    }
+
     val isLoggedIn = authRepository.isLoggedIn.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
@@ -43,12 +54,17 @@ class SessionViewModel @Inject constructor(
     )
 
     val unreadCount: StateFlow<Int> = chatRepository.unreadCount
+    private var lastAlertTime = 0L
+    private val alertDebounceMs = 1500L
 
     init {
         viewModelScope.launch {
             authRepository.isLoggedIn.collect { loggedIn ->
                 if (loggedIn == true) {
                     refreshUnreadCount()
+                    LsLifeImService.start(context)
+                } else {
+                    LsLifeImService.stop(context)
                 }
             }
         }
@@ -56,10 +72,13 @@ class SessionViewModel @Inject constructor(
         viewModelScope.launch {
             chatRepository.incomingMessages().collect { msg ->
                 val myId = authRepository.cachedMe()?.id
-                if (msg.senderId != myId) {
-                    chatRepository.incrementUnread()
-                    val mode = tokenStore.notificationModeFlow.stateIn(viewModelScope, SharingStarted.Eagerly, NotificationMode.RINGTONE).value
-                    playNotificationAlert(mode)
+                if (msg.senderId != myId && !msg.isRecalled && !msg.isOfflineSync) {
+                    val now = System.currentTimeMillis()
+                    if (now - lastAlertTime > alertDebounceMs) {
+                        lastAlertTime = now
+                        val mode = tokenStore.notificationModeFlow.stateIn(viewModelScope, SharingStarted.Eagerly, NotificationMode.RINGTONE).value
+                        playNotificationAlert(mode)
+                    }
                 }
             }
         }

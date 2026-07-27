@@ -67,7 +67,7 @@ private data class CategoryItem(
 
 private val defaultCategories = listOf(
     CategoryItem("cat_idle", "个人闲置", "shopping-bag", "/assets/icons/3d_flat_secondhand.png"),
-    CategoryItem("cat_house", "房租租售", "home", "/assets/icons/3d_flat_housing.png"),
+    CategoryItem("cat_house", "房屋租售", "home", "/assets/icons/3d_flat_housing.png"),
     CategoryItem("cat_service", "家政保洁", "cleaning-services", "/assets/icons/3d_flat_cleaning.png"),
     CategoryItem("cat_maintenance", "水电维修", "build", "/assets/icons/3d_flat_repair.png"),
     CategoryItem("cat_veggies", "水果蔬菜", "shopping-basket", "/assets/icons/3d_flat_produce.png"),
@@ -330,7 +330,7 @@ fun HomeScreen(
                     if (state.isUgcMode) {
                         item {
                             Text(
-                                "同城信息",
+                                if (state.category == "all" || state.category.isEmpty()) "最新同城动态" else "同城信息",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onBackground,
@@ -343,8 +343,8 @@ fun HomeScreen(
                         if (state.posts.isEmpty()) {
                             item {
                                 com.lianshan.lslife.ui.components.EmptyState(
-                                    title = "还没有发布内容",
-                                    subtitle = "去「发布」发一条闲置吧",
+                                    title = if (state.category == "all" || state.category.isEmpty()) "暂无同城推荐内容" else "还没有发布内容",
+                                    subtitle = if (state.category == "all" || state.category.isEmpty()) "快去「发布」发一条闲置或同城动态吧！" else "去「发布」发一条同城动态吧",
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(Dimens.xxl * 6),

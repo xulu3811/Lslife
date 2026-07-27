@@ -63,10 +63,10 @@ const categoryTreeSeed = [
       },
     ],
   },
-  // 2. 房租租售
+  // 2. 房屋租售
   {
     id: 'cat_house',
-    name: '房租租售',
+    name: '房屋租售',
     icon: 'home',
     iconUrl: '/assets/icons/3d_flat_housing.png',
     sortOrder: 2,
@@ -317,51 +317,55 @@ async function main() {
   await seedCategories(categoryTreeSeed);
   console.log('分类树导入完成！');
 
-  console.log('开始导入商家与商品数据...');
-  for (const m of merchantsData) {
-    const merchant = await prisma.merchant.upsert({
-      where: { externalId: m.id },
-      update: {},
-      create: {
-        externalId: m.id,
-        name: m.name,
-        rating: m.rating,
-        distance: m.distance,
-        sales: m.sales,
-        avgPrice: m.avgPrice,
-        tags: JSON.stringify(m.tags),
-        deliveryFee: m.deliveryFee,
-        deliveryTime: m.deliveryTime,
-        logo: m.logo,
-        banner: m.banner,
-        isFood: m.isFood,
-        category: m.category,
-        latitude: m.latitude,
-        longitude: m.longitude,
-        description: m.description,
-        address: m.address,
-        phone: m.phone,
-      },
-    });
-
-    for (const item of m.items) {
-      await prisma.product.upsert({
-        where: { externalId: item.id },
+  if (process.env.SEED_MOCK === 'true') {
+    console.log('开始导入商家与商品数据...');
+    for (const m of merchantsData) {
+      const merchant = await prisma.merchant.upsert({
+        where: { externalId: m.id },
         update: {},
         create: {
-          externalId: item.id,
-          merchantId: merchant.id,
-          name: item.name,
-          price: item.price,
-          originalPrice: item.originalPrice,
-          desc: item.desc,
-          sales: item.sales,
-          image: item.image,
-          category: item.category,
-          rating: item.rating,
+          externalId: m.id,
+          name: m.name,
+          rating: m.rating,
+          distance: m.distance,
+          sales: m.sales,
+          avgPrice: m.avgPrice,
+          tags: JSON.stringify(m.tags),
+          deliveryFee: m.deliveryFee,
+          deliveryTime: m.deliveryTime,
+          logo: m.logo,
+          banner: m.banner,
+          isFood: m.isFood,
+          category: m.category,
+          latitude: m.latitude,
+          longitude: m.longitude,
+          description: m.description,
+          address: m.address,
+          phone: m.phone,
         },
       });
+
+      for (const item of m.items) {
+        await prisma.product.upsert({
+          where: { externalId: item.id },
+          update: {},
+          create: {
+            externalId: item.id,
+            merchantId: merchant.id,
+            name: item.name,
+            price: item.price,
+            originalPrice: item.originalPrice,
+            desc: item.desc,
+            sales: item.sales,
+            image: item.image,
+            category: item.category,
+            rating: item.rating,
+          },
+        });
+      }
     }
+  } else {
+    console.log('跳过模拟商家与商品数据导入 (如需导入模拟数据请设置 SEED_MOCK=true)');
   }
 
   const categoryCount = await prisma.category.count();

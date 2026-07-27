@@ -3,6 +3,8 @@ import { prisma } from '../lib/prisma.js';
 import { ok, ApiError } from '../lib/http.js';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
+import { decryptChatMessage } from '../lib/crypto.js';
+import { pushToUser } from '../realtime/hub.js';
 
 const router = Router();
 
@@ -44,7 +46,7 @@ router.get(
   })
 );
 
-// 获取某个会话的消息记录
+// 获取某个会话的消息记录 (自动在线解密还原明文)
 router.get(
   '/sessions/:id/messages',
   requireAuth,
@@ -74,7 +76,65 @@ router.get(
       take: 50
     });
 
-    return ok(res, messages);
+    // 对加密存证进行实时应用层解密渲染
+    const decryptedMessages = messages.map(m => ({
+      ...m,
+      content: (m.isEncrypted && !m.isRecalled) ? decryptChatMessage(m.content) : m.content
+    }));
+
+    return ok(res, decryptedMessages);
+  })
+);
+
+// RESTful 消息撤回接口 (1分钟时间窗口双重保障)
+router.post(
+  '/sessions/:id/messages/:msgId/recall',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.userId!;
+    const { id, msgId } = req.params;
+
+    const session = await prisma.chatSession.findUnique({ where: { id } });
+    if (!session) throw new ApiError(404, 'Session not found');
+
+    const msg = await prisma.chatMessage.findUnique({ where: { id: msgId } });
+    if (!msg || msg.sessionId !== id) throw new ApiError(404, 'Message not found');
+    if (msg.senderId !== userId) throw new ApiError(403, '只能撤回自己发送的消息');
+
+    // 校验 60 秒时间窗口
+    const elapsedMs = Date.now() - new Date(msg.createdAt).getTime();
+    if (elapsedMs > 60_000) {
+      throw new ApiError(400, '发送超过1分钟，无法撤回');
+    }
+
+    const recallText = '对方撤回了一条消息';
+    await prisma.chatMessage.update({
+      where: { id: msgId },
+      data: {
+        isRecalled: true,
+        type: 'recalled',
+        content: recallText,
+        isEncrypted: false
+      }
+    });
+
+    // 更新会话摘要
+    await prisma.chatSession.update({
+      where: { id },
+      data: { lastMessage: recallText }
+    });
+
+    // 通过实时通道全网广播撤回通知
+    const recallPayload = {
+      event: 'message_recalled',
+      messageId: msgId,
+      sessionId: id,
+      senderId: userId
+    };
+    pushToUser(session.user1Id, recallPayload);
+    pushToUser(session.user2Id, recallPayload);
+
+    return ok(res, { success: true, messageId: msgId });
   })
 );
 

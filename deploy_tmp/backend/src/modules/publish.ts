@@ -8,7 +8,8 @@ import { moderateContent } from '../services/moderation.js';
 
 const router = Router();
 
-const MONTHLY_LIMIT: Record<string, number> = { free: 3, vip: 20, premium: 50 };
+const UNLIMITED_PHONES = ['19926387658', '13828577665'];
+const MONTHLY_LIMIT: Record<string, number> = { free: 10, vip: 20, premium: 50 };
 
 const ALLOWED_CATEGORIES = [
   'cat_idle',
@@ -95,8 +96,9 @@ router.post(
     const count = await prisma.post.count({
       where: { userId: user.id, createdAt: { gte: monthStart }, status: { not: 'rejected' } },
     });
-    const limit = MONTHLY_LIMIT[user.membershipTier] ?? 3;
-    if (count >= limit) {
+    const isUnlimited = user.phone && UNLIMITED_PHONES.includes(user.phone);
+    const limit = isUnlimited ? 999999 : (MONTHLY_LIMIT[user.membershipTier] ?? 10);
+    if (!isUnlimited && count >= limit) {
       throw new ApiError(403, `本月发布额度已用尽 (${count}/${limit}), 升级会员可提升额度`);
     }
 
@@ -264,8 +266,9 @@ router.get(
     const used = await prisma.post.count({
       where: { userId: user.id, createdAt: { gte: monthStart }, status: { not: 'rejected' } },
     });
-    const limit = MONTHLY_LIMIT[user.membershipTier] ?? 3;
-    return ok(res, { used, limit, tier: user.membershipTier, remaining: Math.max(0, limit - used) });
+    const isUnlimited = user.phone && UNLIMITED_PHONES.includes(user.phone);
+    const limit = isUnlimited ? 999999 : (MONTHLY_LIMIT[user.membershipTier] ?? 10);
+    return ok(res, { used, limit, tier: user.membershipTier, remaining: isUnlimited ? 999999 : Math.max(0, limit - used) });
   }),
 );
 

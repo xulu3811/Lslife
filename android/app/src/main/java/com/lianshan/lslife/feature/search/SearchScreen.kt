@@ -1,5 +1,8 @@
 package com.lianshan.lslife.feature.search
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,9 +11,13 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,12 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lianshan.lslife.ui.components.EmptyState
 import com.lianshan.lslife.ui.components.PostListCard
-import com.lianshan.lslife.ui.theme.Dimens
+import com.lianshan.lslife.ui.components.SkeletonCard
 
 private val categories = listOf(
     "all" to "全部",
@@ -45,7 +53,7 @@ private val sorts = listOf(
     "price_desc" to "价格最高",
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
@@ -66,21 +74,35 @@ fun SearchScreen(
             }
     }
 
+    if (state.showFilterBottomSheet) {
+        AdvancedFilterBottomSheet(
+            category = state.category,
+            minPrice = state.minPrice,
+            maxPrice = state.maxPrice,
+            attributesFilter = state.attributesFilter,
+            onPriceChange = viewModel::updatePrice,
+            onAttributeToggle = viewModel::updateAttributeFilter,
+            onReset = viewModel::clearAttributesFilter,
+            onDismiss = { viewModel.setShowFilterBottomSheet(false) },
+            onConfirm = { viewModel.setShowFilterBottomSheet(false) }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Search Header
+        // Search & Filter Header Bar
         Surface(
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 2.dp,
+            shadowElevation = 4.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 48.dp, bottom = 8.dp, start = 16.dp, end = 16.dp)
+                    .padding(top = 44.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -93,52 +115,96 @@ fun SearchScreen(
                     OutlinedTextField(
                         value = state.keyword,
                         onValueChange = viewModel::updateKeyword,
-                        placeholder = { Text("搜索本地闲置、服务...") },
-                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                        placeholder = { Text("搜索本地好物、岗位、商铺...") },
+                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         trailingIcon = {
                             if (state.keyword.isNotEmpty()) {
                                 IconButton(onClick = { viewModel.updateKeyword("") }) {
-                                    Icon(Icons.Filled.Clear, contentDescription = "清空")
+                                    Icon(Icons.Filled.Clear, contentDescription = "清空", tint = MaterialTheme.colorScheme.outline)
                                 }
                             }
                         },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { viewModel.searchNow(state.keyword) }),
                         modifier = Modifier.weight(1f).height(50.dp),
                         shape = RoundedCornerShape(25.dp),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Filters
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                // 4-Pillar Filter Bar & Category Pills
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    item {
-                        FilterChip(
-                            selected = state.category == null,
-                            onClick = { viewModel.updateCategory(null) },
-                            label = { Text("全部分类") }
-                        )
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        item {
+                            FilterChip(
+                                selected = state.category == null,
+                                onClick = { viewModel.updateCategory(null) },
+                                label = { Text("全部") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                        items(categories.drop(1)) { (id, name) ->
+                            FilterChip(
+                                selected = state.category == id,
+                                onClick = { viewModel.updateCategory(id) },
+                                label = { Text(name) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
                     }
-                    items(categories.drop(1)) { (id, name) ->
-                        FilterChip(
-                            selected = state.category == id,
-                            onClick = { viewModel.updateCategory(id) },
-                            label = { Text(name) }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // 高级筛选按钮 (直接开启 BottomSheet)
+                    val activeFiltersCount = state.attributesFilter.size + (if (state.minPrice != null || state.maxPrice != null) 1 else 0)
+                    ElevatedFilterChip(
+                        selected = activeFiltersCount > 0,
+                        onClick = { viewModel.setShowFilterBottomSheet(true) },
+                        label = { 
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("筛选")
+                                if (activeFiltersCount > 0) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                        Text(activeFiltersCount.toString(), color = MaterialTheme.colorScheme.onPrimary)
+                                    }
+                                }
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Filled.FilterList, contentDescription = "筛选", modifier = Modifier.size(16.dp))
+                        },
+                        colors = FilterChipDefaults.elevatedFilterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
                         )
-                    }
+                    )
                 }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // 排序与快捷价格
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -153,40 +219,144 @@ fun SearchScreen(
                             )
                         )
                     }
+
+                    item {
+                        val priceLabel = when {
+                            state.minPrice != null && state.maxPrice != null -> "￥${state.minPrice!!.toInt()}-${state.maxPrice!!.toInt()}"
+                            state.minPrice != null -> "￥${state.minPrice!!.toInt()}以上"
+                            state.maxPrice != null -> "￥${state.maxPrice!!.toInt()}以内"
+                            else -> "价格不限"
+                        }
+                        FilterChip(
+                            selected = state.minPrice != null || state.maxPrice != null,
+                            onClick = { viewModel.setShowFilterBottomSheet(true) },
+                            label = { Text(priceLabel) }
+                        )
+                    }
                 }
             }
         }
 
-        // Results
-        if (state.loading && state.posts.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (!state.loading && state.posts.isEmpty()) {
-            EmptyState(
-                title = "没有找到相关内容",
-                subtitle = "换个关键词或分类试试看",
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            LazyColumn(
-                state = listState,
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
+        // Body Content: Zero State vs Skeleton vs Results
+        val isZeroState = state.keyword.isEmpty() && state.category == null && 
+                state.attributesFilter.isEmpty() && state.minPrice == null && 
+                state.maxPrice == null && state.posts.isEmpty() && !state.loading
+
+        AnimatedVisibility(
+            visible = isZeroState,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
             ) {
-                items(state.posts, key = { it.id }) { post ->
-                    PostListCard(post)
+                // 搜索历史
+                if (state.searchHistory.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "最近搜索",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        IconButton(onClick = viewModel::clearHistory, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Filled.Delete, contentDescription = "清空历史", tint = MaterialTheme.colorScheme.outline)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        state.searchHistory.forEach { kw ->
+                            AssistChip(
+                                onClick = { viewModel.searchNow(kw) },
+                                label = { Text(kw) },
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-                if (state.loadingMore) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+
+                // 同城热搜榜
+                Text(
+                    text = "🔥 同城热搜榜",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    state.hotSearches.forEachIndexed { idx, kw ->
+                        ElevatedAssistChip(
+                            onClick = { viewModel.searchNow(kw) },
+                            label = { 
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "${idx + 1}.", 
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (idx < 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(kw)
+                                }
+                            },
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        if (!isZeroState) {
+            if (state.loading && state.posts.isEmpty()) {
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(4) {
+                        SkeletonCard()
+                    }
+                }
+            } else if (!state.loading && state.posts.isEmpty()) {
+                EmptyState(
+                    title = "未找到符合条件的同城信息",
+                    subtitle = "换个同城热搜词或尝试调整高级筛选规配",
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(state.posts, key = { it.id }) { post ->
+                        PostListCard(post)
+                    }
+                    if (state.loadingMore) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
                         }
                     }
                 }

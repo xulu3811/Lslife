@@ -46,28 +46,32 @@ fun ChatSessionListScreen(
             )
         }
     ) { padding ->
-        if (state.loading) {
-            LoadingBox(Modifier.padding(padding).fillMaxSize())
-            return@Scaffold
-        }
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            com.lianshan.lslife.ui.components.VendorBatteryOptimizationBanner()
 
-        if (state.sessions.isEmpty()) {
-            Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("暂无消息", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (state.loading) {
+                LoadingBox(Modifier.weight(1f).fillMaxWidth())
+                return@Column
             }
-            return@Scaffold
-        }
 
-        LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 8.dp)
-        ) {
-            items(state.sessions) { session ->
-                ChatSessionItem(session = session, onClick = {
-                    val targetId = session.targetUser?.id ?: ""
-                    val targetName = session.targetUser?.nickname ?: "未知用户"
-                    onNavigateToChat(session.id, targetId, targetName)
-                })
+            if (state.sessions.isEmpty()) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text("暂无消息", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                return@Column
+            }
+
+            LazyColumn(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(vertical = 8.dp)
+            ) {
+                items(state.sessions) { session ->
+                    ChatSessionItem(session = session, onClick = {
+                        val targetId = session.targetUser?.id ?: ""
+                        val targetName = session.targetUser?.nickname ?: "未知用户"
+                        onNavigateToChat(session.id, targetId, targetName)
+                    })
+                }
             }
         }
     }

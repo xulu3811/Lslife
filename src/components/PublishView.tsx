@@ -51,7 +51,7 @@ export default function PublishView({
   
   const categories = [
     { id: 'job', name: '招聘', icon: Briefcase, color: 'from-red-400 to-red-500' },
-    { id: 'house', name: '房租租售', icon: Home, color: 'from-emerald-400 to-emerald-500' },
+    { id: 'house', name: '房屋租售', icon: Home, color: 'from-emerald-400 to-emerald-500' },
     { id: 'housekeeping', name: '家政保洁', icon: Sparkles, color: 'from-purple-400 to-purple-500' },
     { id: 'maintenance', name: '水电维修', icon: Zap, color: 'from-cyan-400 to-cyan-500' },
     { id: 'moving', name: '货运搬家', icon: Truck, color: 'from-amber-400 to-amber-500' },
@@ -59,7 +59,7 @@ export default function PublishView({
     { id: 'secondhand', name: '个人闲置', icon: Recycle, color: 'from-orange-400 to-orange-500' },
   ];
 
-  const limits = { free: 3, vip: 20, premium: 50 };
+  const limits = { free: 10, vip: 20, premium: 50 };
   
   const handleCategorySelect = (cat: any) => {
     if (publishedCount >= limits[membershipTier]) {

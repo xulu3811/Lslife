@@ -427,7 +427,7 @@ export default function App() {
                     <div className="w-8 h-8 rounded-[10px] bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-100 dark:border-emerald-900/30">
                       <Home size={16} strokeWidth={2} />
                     </div>
-                    <span className="text-[10px] font-extrabold text-gray-700 dark:text-gray-300 truncate w-full">房租租售</span>
+                    <span className="text-[10px] font-extrabold text-gray-700 dark:text-gray-300 truncate w-full">房屋租售</span>
                   </button>
 
                   <button onClick={() => setSelectedCategory('housekeeping')} className="flex flex-col items-center gap-1 shrink-0 w-[54px] transition cursor-pointer hover:opacity-80">

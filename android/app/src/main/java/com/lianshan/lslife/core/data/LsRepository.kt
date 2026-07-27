@@ -4,6 +4,8 @@ import com.lianshan.lslife.core.database.MerchantDao
 import com.lianshan.lslife.core.database.MerchantEntity
 import com.lianshan.lslife.core.model.*
 import com.lianshan.lslife.core.network.*
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -70,10 +72,16 @@ class LsRepository @Inject constructor(
         minPrice: Double? = null,
         maxPrice: Double? = null,
         sortBy: String? = null,
+        attrFilter: Map<String, String>? = null,
         page: Int = 1,
         pageSize: Int = 20
     ) = safeCall { 
-        api.posts(category, mine, q, minPrice, maxPrice, sortBy, page, pageSize) 
+        val attrJson = attrFilter?.takeIf { it.isNotEmpty() }?.let { map ->
+            buildJsonObject {
+                map.forEach { (k, v) -> put(k, v) }
+            }.toString()
+        }
+        api.posts(category, mine, q, minPrice, maxPrice, sortBy, attrJson, page, pageSize) 
     }
     suspend fun quota() = safeCall { api.quota() }
     suspend fun post(id: String) = safeCall { api.post(id) }

@@ -46,7 +46,7 @@ const icons = [
   },
   {
     name: '3d_flat_housing.png',
-    title: '房租租售',
+    title: '房屋租售',
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
       <defs>
         <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">

@@ -15,7 +15,7 @@ import javax.inject.Singleton
 
 /**
  * WebSocket 实时通道客户端。
- * 订阅订单状态与骑手位置的服务端推送 (backend/src/realtime/hub.ts)。
+ * 订阅订单状态、聊天消息推送及弱网重连补完 (backend/src/realtime/hub.ts)。
  */
 @Singleton
 class RealtimeClient @Inject constructor(
@@ -31,12 +31,23 @@ class RealtimeClient @Inject constructor(
             .build()
 
         val listener = object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                _activeWebSocket = webSocket
+                webSocket.send("""{"action":"sync_offline","sessionId":"all"}""")
+            }
+
             override fun onMessage(webSocket: WebSocket, text: String) {
                 trySend(text)
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                _activeWebSocket = null
                 close(t)
+            }
+
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                _activeWebSocket = null
+                close()
             }
         }
 
@@ -51,6 +62,21 @@ class RealtimeClient @Inject constructor(
 
     fun sendChatMessage(toUserId: String, content: String, type: String = "text") {
         val payload = """{"action":"chat","toUserId":"$toUserId","content":"$content","type":"$type"}"""
+        _activeWebSocket?.send(payload)
+    }
+
+    fun sendRecallMessage(messageId: String) {
+        val payload = """{"action":"recall","messageId":"$messageId"}"""
+        _activeWebSocket?.send(payload)
+    }
+
+    fun sendOfflineSync(sessionId: String) {
+        val payload = """{"action":"sync_offline","sessionId":"$sessionId"}"""
+        _activeWebSocket?.send(payload)
+    }
+
+    fun sendReadAck(sessionId: String) {
+        val payload = """{"action":"read_ack","sessionId":"$sessionId"}"""
         _activeWebSocket?.send(payload)
     }
 

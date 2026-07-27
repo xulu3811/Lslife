@@ -27,6 +27,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,6 +89,12 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val isLoggedIn by sessionViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val unreadCount by sessionViewModel.unreadCount.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        sessionViewModel.navigateToChatFlow.collect { (sessionId, targetUserId, targetName) ->
+            navController.navigate(Routes.chat(sessionId, targetUserId, targetName))
+        }
+    }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route

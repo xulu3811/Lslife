@@ -77,7 +77,7 @@ export default function SubscriptionModal({ isOpen, onClose, currentTier, onUpgr
           <div className="overflow-y-auto p-4 pb-4">
             <div className="text-center mb-6">
               <p className="text-[13px] text-gray-500 dark:text-gray-400">
-                普通用户每月仅可发布 3 条信息，升级会员解锁更多发布额度和专属特权
+                普通用户每月仅可发布 10 条信息，升级会员解锁更多发布额度和专属特权
               </p>
             </div>
 

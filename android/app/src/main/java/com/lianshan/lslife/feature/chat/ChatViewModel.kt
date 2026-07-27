@@ -48,13 +48,23 @@ class ChatViewModel @Inject constructor(
 
         viewModelScope.launch {
             chatRepository.incomingMessages().collect { msg ->
-                if (currentSessionId == "new" && (msg.senderId == targetUserId || msg.senderId == state.value.currentUserId)) {
-                    currentSessionId = msg.sessionId
-                }
-                if (msg.sessionId == currentSessionId || currentSessionId.isEmpty()) {
+                if (msg.type == "recalled" || msg.isRecalled) {
+                    val recallText = if (msg.senderId == state.value.currentUserId) "您撤回了一条消息" else "对方撤回了一条消息"
                     _state.update {
-                        val newMessages = (it.messages + msg).distinctBy { m -> m.id }
-                        it.copy(messages = newMessages)
+                        val newMsgs = it.messages.map { m ->
+                            if (m.id == msg.id) m.copy(type = "recalled", content = recallText, isRecalled = true) else m
+                        }
+                        it.copy(messages = newMsgs)
+                    }
+                } else {
+                    if (currentSessionId == "new" && (msg.senderId == targetUserId || msg.senderId == state.value.currentUserId)) {
+                        currentSessionId = msg.sessionId
+                    }
+                    if (msg.sessionId == currentSessionId || currentSessionId.isEmpty()) {
+                        _state.update {
+                            val newMessages = (it.messages + msg).distinctBy { m -> m.id }
+                            it.copy(messages = newMessages)
+                        }
                     }
                 }
             }
@@ -66,6 +76,10 @@ class ChatViewModel @Inject constructor(
         targetUserId = toUserId
         if (sessionId.isNotEmpty()) {
             loadHistory(sessionId)
+            chatRepository.syncOffline(sessionId)
+            viewModelScope.launch {
+                chatRepository.clearUnreadCount(sessionId)
+            }
         }
     }
 
@@ -84,6 +98,24 @@ class ChatViewModel @Inject constructor(
     fun sendMessage(content: String, type: String = "text") {
         if (content.isBlank() || targetUserId.isEmpty()) return
         chatRepository.sendMessage(targetUserId, content, type)
+    }
+
+    fun recallMessage(messageId: String) {
+        if (currentSessionId.isEmpty()) return
+        viewModelScope.launch {
+            // Optimistic UI update
+            _state.update {
+                val newMsgs = it.messages.map { m ->
+                    if (m.id == messageId) m.copy(type = "recalled", content = "您撤回了一条消息", isRecalled = true) else m
+                }
+                it.copy(messages = newMsgs)
+            }
+            val res = chatRepository.recallMessage(currentSessionId, messageId)
+            if (res.isFailure) {
+                _state.update { it.copy(error = res.exceptionOrNull()?.message ?: "消息撤回失败（可能已超过1分钟）") }
+                loadHistory(currentSessionId)
+            }
+        }
     }
 
     fun sendImage(uri: String) {

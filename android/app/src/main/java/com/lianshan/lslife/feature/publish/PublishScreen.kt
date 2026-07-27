@@ -149,6 +149,33 @@ fun PublishScreen(
                 }
             }
 
+            // Quota Banner
+            state.quota?.let { q ->
+                val isUnlimited = q.limit >= 999999
+                val limitText = if (isUnlimited) "不设限制" else "${q.limit}条"
+                val isFull = !isUnlimited && q.used >= q.limit
+                Surface(
+                    color = if (isFull) Color(0xFFFFF0F0) else Color(0xFFFFF8E1),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = if (isFull) "⚠️ 本月发布名额已满 (${q.used}/$limitText)，请升级会员或下月再发" 
+                                   else "💡 本月发布名额：已发布 ${q.used} / 总量 $limitText",
+                            fontSize = 13.sp,
+                            color = if (isFull) Color(0xFFD32F2F) else Color(0xFFF57F17),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()

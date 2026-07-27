@@ -350,12 +350,15 @@ model ChatSession {
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
-  sessionId String
-  senderId  String
-  type      String   @default("text") // text | image
-  content   String
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  sessionId    String
+  senderId     String
+  type         String   @default("text") // text | image | recalled | system
+  content      String
+  isRecalled   Boolean  @default(false)
+  isEncrypted  Boolean  @default(true)
+  evidenceHash String?  // SHA-256 密码学防篡改存证链哈希
+  createdAt    DateTime @default(now())
 
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 

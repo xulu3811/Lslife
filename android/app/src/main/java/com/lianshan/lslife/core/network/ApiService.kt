@@ -112,6 +112,7 @@ interface ApiService {
         @Query("minPrice") minPrice: Double? = null,
         @Query("maxPrice") maxPrice: Double? = null,
         @Query("sortBy") sortBy: String? = null,
+        @Query("attrFilter") attrFilter: String? = null,
         @Query("page") page: Int = 1,
         @Query("pageSize") pageSize: Int = 20,
     ): ApiEnvelope<PostPage>
@@ -163,4 +164,7 @@ interface ApiService {
 
     @GET("chat/sessions/{id}/messages")
     suspend fun chatMessages(@Path("id") id: String): ApiEnvelope<List<ChatMessage>>
+
+    @POST("chat/sessions/{id}/messages/{msgId}/recall")
+    suspend fun recallMessage(@Path("id") sessionId: String, @Path("msgId") msgId: String): ApiEnvelope<kotlinx.serialization.json.JsonObject>
 }

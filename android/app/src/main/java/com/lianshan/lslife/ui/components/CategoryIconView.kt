@@ -111,7 +111,7 @@ private fun resolveVectorIcon(name: String?): ImageVector {
         key.contains("timer") || key.contains("time") || key.contains("part_time") || key.contains("clock") || key.contains("schedule") || key.contains("兼职") -> Icons.Filled.Schedule
         key.contains("apartment") || key.contains("building") || key.contains("secondhand_house") || key.contains("resale") || key.contains("二手房") -> Icons.Filled.Apartment
         key.contains("store") || key.contains("shop") || key.contains("shop_rent") || key.contains("commercial") || key.contains("旺铺") -> Icons.Filled.Storefront
-        key.contains("home") || key.contains("house") || key.contains("housing") || key.contains("房租") || key.contains("租售") -> Icons.Filled.Home
+        key.contains("home") || key.contains("house") || key.contains("housing") || key.contains("房屋") || key.contains("租售") -> Icons.Filled.Home
         key.contains("wrench") || key.contains("service") || key.contains("repair") || key.contains("maintenance") || key.contains("维修") || key.contains("水电") -> Icons.Filled.Build
         key.contains("housekeeping") || key.contains("clean") || key.contains("家政") || key.contains("保洁") -> Icons.Filled.CleaningServices
         key.contains("moving") || key.contains("shipping") || key.contains("truck") || key.contains("car") || key.contains("car_rental") || key.contains("租车") || key.contains("顺风车") -> Icons.Filled.LocalShipping

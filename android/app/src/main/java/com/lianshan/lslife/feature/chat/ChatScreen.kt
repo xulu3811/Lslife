@@ -1,38 +1,42 @@
 package com.lianshan.lslife.feature.chat
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.CircleShape
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lianshan.lslife.core.model.ChatMessage
 import com.lianshan.lslife.ui.components.LoadingBox
 import com.lianshan.lslife.ui.theme.PrimaryRed
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.activity.result.PickVisualMediaRequest
-import coil.compose.AsyncImage
-import androidx.compose.material.icons.filled.Add
+import androidx.activity.result.contract.ActivityResultContracts
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +52,7 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
+    var selectedMsgForRecall by remember { mutableStateOf<ChatMessage?>(null) }
 
     val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -78,6 +83,29 @@ fun ChatScreen(
         if (state.messages.isNotEmpty()) {
             listState.animateScrollToItem(0)
         }
+    }
+
+    if (selectedMsgForRecall != null) {
+        AlertDialog(
+            onDismissRequest = { selectedMsgForRecall = null },
+            title = { Text("消息操作") },
+            text = { Text("是否撤回这条消息？（仅支持撤回1分钟内发送的消息）") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        selectedMsgForRecall?.let { viewModel.recallMessage(it.id) }
+                        selectedMsgForRecall = null
+                    }
+                ) {
+                    Text("撤回", color = PrimaryRed)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedMsgForRecall = null }) {
+                    Text("取消", color = Color.Gray)
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -171,14 +199,59 @@ fun ChatScreen(
         ) {
             items(state.messages.reversed()) { message ->
                 val isMe = message.senderId == state.currentUserId
-                ChatBubble(message = message, isMe = isMe)
+                if (message.type == "recalled" || message.isRecalled) {
+                    RecalledMessagePill(text = message.content)
+                } else {
+                    ChatBubble(
+                        message = message,
+                        isMe = isMe,
+                        onLongPress = {
+                            if (isMe && isWithinOneMinute(message.createdAt)) {
+                                selectedMsgForRecall = message
+                            }
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun ChatBubble(message: ChatMessage, isMe: Boolean) {
+fun RecalledMessagePill(text: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            color = Color.Gray.copy(alpha = 0.15f),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = text,
+                color = Color.Gray,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ChatBubble(
+    message: ChatMessage,
+    isMe: Boolean,
+    onLongPress: () -> Unit
+) {
+    val shape = RoundedCornerShape(
+        topStart = 16.dp,
+        topEnd = 16.dp,
+        bottomStart = if (isMe) 16.dp else 4.dp,
+        bottomEnd = if (isMe) 4.dp else 16.dp
+    )
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
@@ -186,19 +259,16 @@ fun ChatBubble(message: ChatMessage, isMe: Boolean) {
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .background(
-                    color = if (isMe) PrimaryRed else MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = if (isMe) 16.dp else 4.dp,
-                        bottomEnd = if (isMe) 4.dp else 16.dp
-                    )
+                .clip(shape)
+                .background(color = if (isMe) PrimaryRed else MaterialTheme.colorScheme.surfaceVariant)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongPress
                 )
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             if (message.type == "image") {
-                AsyncImage(
+                coil.compose.AsyncImage(
                     model = message.content,
                     contentDescription = "图片",
                     contentScale = ContentScale.Crop,
@@ -213,6 +283,28 @@ fun ChatBubble(message: ChatMessage, isMe: Boolean) {
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
+        }
+    }
+}
+
+private fun isWithinOneMinute(createdAtStr: String): Boolean {
+    return try {
+        val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+        val date = format.parse(createdAtStr) ?: return true
+        val elapsed = System.currentTimeMillis() - date.time
+        elapsed in 0..60_000
+    } catch (e: Exception) {
+        try {
+            val format2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            val date = format2.parse(createdAtStr) ?: return true
+            val elapsed = System.currentTimeMillis() - date.time
+            elapsed in 0..60_000
+        } catch (e2: Exception) {
+            true // 默认允许尝试撤回，由服务端最终校验
         }
     }
 }
