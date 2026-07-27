@@ -354,30 +354,30 @@ fun MerchantListCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Row(
-            modifier = Modifier.padding(Dimens.md),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.md)
+            modifier = Modifier.padding(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Left Image
             NetworkImage(
                 url = merchant.logo,
                 contentDescription = merchant.name,
-                modifier = Modifier.size(110.dp).clip(MaterialTheme.shapes.medium),
+                modifier = Modifier.size(88.dp).clip(RoundedCornerShape(8.dp)),
             )
             
             // Right Content
             Column(
-                modifier = Modifier.weight(1f).height(110.dp),
+                modifier = Modifier.weight(1f).height(88.dp),
             ) {
                 // Title
                 Text(
                     text = merchant.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -406,7 +406,7 @@ fun MerchantListCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(4.dp))
                 
                 // Tags
                 Row(

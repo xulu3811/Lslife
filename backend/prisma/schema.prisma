@@ -257,6 +257,7 @@ model Category {
   sortOrder       Int        @default(0)
   isLeaf          Boolean    @default(false)
   isActive        Boolean    @default(true) // 新增：是否启用
+  isHot           Boolean    @default(false) // 新增：是否为热门推荐
   attributeSchema String?    @default("[]") // JSON 字符串数组 DynamicField[]
 
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
@@ -268,6 +269,7 @@ model Category {
 
   @@index([parentId])
   @@index([isActive])
+  @@index([isHot])
 }
 
 // ================= 同城发布 =================

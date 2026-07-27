@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, MessageSquareWarning, Receipt, Settings, LogOut, ShieldCheck, UserCheck, Store, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Users, MessageSquareWarning, Receipt, Settings, LogOut, UserCheck, Store, ShoppingBag } from 'lucide-react';
 import '../index.css';
 
 const SIDEBAR_WIDTH = 260;
@@ -41,7 +41,7 @@ export default function AdminLayout() {
         }}
       >
         <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid var(--surface-border)' }}>
-          <ShieldCheck size={32} color="var(--primary)" />
+          <img src="/favicon.png" alt="LsLife Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
           <div>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>LsLife Admin</h2>
             <span style={{ fontSize: '12px', color: 'var(--success)' }}>● 安全防御运行中</span>

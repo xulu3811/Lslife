@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, User, KeyRound } from 'lucide-react';
+import { Lock, User, KeyRound } from 'lucide-react';
 import api from '../utils/axios';
 import '../index.css';
 
@@ -39,12 +39,9 @@ export default function Login() {
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ 
             display: 'inline-flex', 
-            padding: '16px', 
-            background: 'rgba(59, 130, 246, 0.1)', 
-            borderRadius: '50%',
             marginBottom: '16px'
           }}>
-            <Shield size={48} color="#3b82f6" />
+            <img src="/favicon.png" alt="LsLife Logo" style={{ width: '72px', height: '72px', objectFit: 'contain', filter: 'drop-shadow(0 8px 16px rgba(229, 57, 53, 0.25))' }} />
           </div>
           <h1 className="text-gradient" style={{ margin: '0 0 8px 0', fontSize: '28px' }}>
             LsLife Admin

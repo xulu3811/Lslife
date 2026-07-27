@@ -277,6 +277,7 @@ data class CategoryNode(
     val sortOrder: Int = 0,
     val isLeaf: Boolean = false,
     val isActive: Boolean = true,
+    val isHot: Boolean = false,
     val attributeSchema: List<DynamicField> = emptyList(),
     val children: List<CategoryNode> = emptyList(),
 )

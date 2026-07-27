@@ -134,6 +134,7 @@ fun ForgotPasswordScreen(
     }
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         snackbarHost = { SnackbarHost(snackbar) },
         containerColor = scheme.background,
     ) { padding ->

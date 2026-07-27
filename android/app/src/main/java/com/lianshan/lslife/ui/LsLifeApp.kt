@@ -2,6 +2,7 @@ package com.lianshan.lslife.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -107,6 +108,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
             if (showBottomBar) {
                 Box {
                     NavigationBar(
+                        modifier = Modifier.height(64.dp),
                         containerColor = MaterialTheme.colorScheme.surface,
                         tonalElevation = 2.dp,
                     ) {
@@ -131,16 +133,24 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                                             Icon(
                                                 if (selected) tab.selectedIcon else tab.unselectedIcon,
                                                 contentDescription = stringResource(tab.labelRes),
+                                                modifier = Modifier.size(20.dp),
                                             )
                                         }
                                     } else {
                                         Icon(
                                             if (selected) tab.selectedIcon else tab.unselectedIcon,
                                             contentDescription = stringResource(tab.labelRes),
+                                            modifier = Modifier.size(20.dp),
                                         )
                                     }
                                 },
-                                label = { Text(stringResource(tab.labelRes)) },
+                                label = {
+                                    Text(
+                                        text = stringResource(tab.labelRes),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Medium,
+                                    )
+                                },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = MaterialTheme.colorScheme.primary,
                                     selectedTextColor = MaterialTheme.colorScheme.primary,

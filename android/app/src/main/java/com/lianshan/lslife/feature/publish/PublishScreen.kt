@@ -12,13 +12,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -105,6 +109,7 @@ fun PublishScreen(
     }
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         containerColor = Color(0xFFF7F8FA),
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
@@ -178,7 +183,8 @@ fun PublishScreen(
 
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -386,6 +392,7 @@ fun PublishScreen(
                                     value = state.price,
                                     onValueChange = viewModel::onPrice,
                                     textStyle = TextStyle(fontSize = 16.sp, color = Color.Red, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.End),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     decorationBox = { inner ->
                                         Row {
                                             Text("¥", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -415,7 +422,7 @@ fun PublishScreen(
                     }
                 }
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(80.dp))
             }
         }
     }
@@ -473,6 +480,7 @@ private fun DynamicFieldRenderer(
                         value = currentValue,
                         onValueChange = onValueChange,
                         textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
+                        keyboardOptions = if (field.fieldType == "NUMBER") KeyboardOptions(keyboardType = KeyboardType.Decimal) else KeyboardOptions.Default,
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color(0xFFF7F7F7), RoundedCornerShape(8.dp))
@@ -510,6 +518,40 @@ private fun CategoryTreeBottomSheet(
     }
 
     var selectedLevel1 by remember { mutableStateOf<CategoryNode?>(publishableTree.firstOrNull()) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val allLeavesWithPaths = remember(publishableTree) {
+        val list = mutableListOf<Pair<CategoryNode, String>>()
+        fun traverse(node: CategoryNode, currentPath: String) {
+            if (node.isLeaf) {
+                list.add(node to currentPath)
+            } else {
+                node.children.forEach { child ->
+                    traverse(child, if (currentPath.isEmpty()) child.name else "$currentPath > ${child.name}")
+                }
+            }
+        }
+        publishableTree.forEach { root ->
+            if (root.isLeaf) {
+                list.add(root to root.name)
+            } else {
+                root.children.forEach { l2 ->
+                    traverse(l2, "${root.name} > ${l2.name}")
+                }
+            }
+        }
+        list
+    }
+
+    val searchResults = remember(allLeavesWithPaths, searchQuery) {
+        if (searchQuery.isBlank()) emptyList()
+        else {
+            val q = searchQuery.trim().lowercase()
+            allLeavesWithPaths.filter { (node, path) ->
+                node.name.lowercase().contains(q) || path.lowercase().contains(q)
+            }
+        }
+    }
 
     LaunchedEffect(publishableTree) {
         if (publishableTree.isNotEmpty() && (selectedLevel1 == null || publishableTree.none { it.id == selectedLevel1?.id })) {
@@ -525,13 +567,13 @@ private fun CategoryTreeBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(480.dp)
+                .height(520.dp)
                 .padding(horizontal = 16.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -544,6 +586,32 @@ private fun CategoryTreeBottomSheet(
                     Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.Gray)
                 }
             }
+
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                placeholder = { Text("搜索分类，例: 手机 / 租房 / 兼职", fontSize = 13.sp, color = Color.Gray) },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = Color.Gray, modifier = Modifier.size(18.dp)) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(18.dp)) {
+                            Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = Color.Gray)
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(20.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = Color(0xFFE5E7EB),
+                    focusedContainerColor = Color(0xFFF9FAFB),
+                    unfocusedContainerColor = Color(0xFFF9FAFB)
+                ),
+                textStyle = TextStyle(fontSize = 14.sp)
+            )
 
             when {
                 isLoading && publishableTree.isEmpty() -> {
@@ -586,6 +654,32 @@ private fun CategoryTreeBottomSheet(
                         Text("暂无可用分类", fontSize = 14.sp, color = Color.Gray)
                     }
                 }
+                searchQuery.isNotBlank() -> {
+                    if (searchResults.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("未找到与 \"$searchQuery\" 相关的分类", fontSize = 14.sp, color = Color.Gray)
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            item(key = "search_header") {
+                                CategorySectionHeader(title = "🔍 搜索结果 (${searchResults.size})", isHot = false)
+                            }
+                            items(searchResults, key = { "search_" + it.first.id }) { (leaf, path) ->
+                                CategoryListRow(leafNode = leaf, path = path, isHot = false, onSelectLeaf = onSelectLeaf)
+                            }
+                        }
+                    }
+                }
                 else -> {
                     Row(modifier = Modifier.fillMaxSize()) {
                         // Column 1: Level 1 Categories
@@ -624,102 +718,146 @@ private fun CategoryTreeBottomSheet(
                             }
                         }
 
-                        // Column 2: Level 2 & Leaf Categories
+                        // Column 2: Level 2 & Leaf Categories (电商级分组瀑布流与网格导航)
+                        val l2Nodes = selectedLevel1?.children.orEmpty()
+                        val hotLeaves = remember(l2Nodes) {
+                            val list = mutableListOf<Pair<CategoryNode, String>>()
+                            l2Nodes.forEach { l2 ->
+                                if (l2.isLeaf) {
+                                    if (l2.isHot) list.add(l2 to "${selectedLevel1?.name ?: ""} > ${l2.name}")
+                                } else {
+                                    l2.children.forEach { leaf ->
+                                        if (leaf.isHot) list.add(leaf to "${selectedLevel1?.name ?: ""} > ${l2.name} > ${leaf.name}")
+                                    }
+                                }
+                            }
+                            list
+                        }
+                        val directLeaves = remember(l2Nodes) { l2Nodes.filter { it.isLeaf } }
+                        val subGroups = remember(l2Nodes) { l2Nodes.filter { !it.isLeaf } }
+
                         LazyColumn(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+                                .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            val l2Nodes = selectedLevel1?.children.orEmpty()
-                            items(l2Nodes, key = { it.id }) { l2 ->
-                                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                    Text(
-                                        text = l2.name,
-                                        fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp)
-                                    )
-
-                                    if (l2.isLeaf) {
-                                        Card(
-                                            onClick = {
-                                                val path = "${selectedLevel1?.name ?: ""} > ${l2.name}"
-                                                onSelectLeaf(l2, path)
-                                            },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .heightIn(min = 48.dp)
-                                                .padding(vertical = 4.dp),
-                                            shape = RoundedCornerShape(12.dp),
-                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
-                                            border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFE5E7EB))
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    CategoryIconView(
-                                                        iconUrl = l2.iconUrl,
-                                                        iconName = l2.icon,
-                                                        size = 18.dp,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.padding(end = 8.dp)
-                                                    )
-                                                    Text(l2.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1F2937))
-                                                }
-                                                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
-                                            }
-                                        }
-                                    } else {
-                                        l2.children.forEach { leaf ->
-                                            Card(
-                                                onClick = {
-                                                    val path = "${selectedLevel1?.name ?: ""} > ${l2.name} > ${leaf.name}"
-                                                    onSelectLeaf(leaf, path)
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .heightIn(min = 48.dp)
-                                                    .padding(vertical = 4.dp),
-                                                shape = RoundedCornerShape(12.dp),
-                                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
-                                                border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFE5E7EB))
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                                        CategoryIconView(
-                                                            iconUrl = leaf.iconUrl,
-                                                            iconName = leaf.icon,
-                                                            size = 18.dp,
-                                                            tint = MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier.padding(end = 8.dp)
-                                                        )
-                                                        Text(leaf.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1F2937))
-                                                    }
-                                                    Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
-                                                }
-                                            }
-                                        }
-                                    }
+                            // 1. 热门推荐专区 (顶部优先展示高频分类)
+                            if (hotLeaves.isNotEmpty()) {
+                                item(key = "hot_section_header") {
+                                    CategorySectionHeader(title = "🔥 热门推荐", isHot = true)
                                 }
+                                items(hotLeaves, key = { "hot_" + it.first.id }) { (leaf, path) ->
+                                    CategoryListRow(leafNode = leaf, path = path, isHot = true, onSelectLeaf = onSelectLeaf)
+                                }
+                                item(key = "hot_spacer") { Spacer(modifier = Modifier.height(12.dp)) }
+                            }
+
+                            // 2. 直接叶子分类专区
+                            if (directLeaves.isNotEmpty()) {
+                                item(key = "direct_leaves_header") {
+                                    CategorySectionHeader(title = if (subGroups.isEmpty()) "全部分类" else "通用分类", isHot = false)
+                                }
+                                val directPairs = directLeaves.map { it to "${selectedLevel1?.name ?: ""} > ${it.name}" }
+                                items(directPairs, key = { "direct_" + it.first.id }) { (leaf, path) ->
+                                    CategoryListRow(leafNode = leaf, path = path, isHot = false, onSelectLeaf = onSelectLeaf)
+                                }
+                                item(key = "direct_spacer") { Spacer(modifier = Modifier.height(12.dp)) }
+                            }
+
+                            // 3. 分组瀑布流网格 (二级大类 Header + 三级叶子网格卡片)
+                            subGroups.forEach { group ->
+                                item(key = "group_header_${group.id}") {
+                                    CategorySectionHeader(title = group.name, isHot = false)
+                                }
+                                val leafPairs = group.children.map { leaf -> leaf to "${selectedLevel1?.name ?: ""} > ${group.name} > ${leaf.name}" }
+                                items(leafPairs, key = { "group_${group.id}_" + it.first.id }) { (leaf, path) ->
+                                    CategoryListRow(leafNode = leaf, path = path, isHot = false, onSelectLeaf = onSelectLeaf)
+                                }
+                                item(key = "group_spacer_${group.id}") { Spacer(modifier = Modifier.height(12.dp)) }
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CategorySectionHeader(title: String, isHot: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .background(if (isHot) Color(0xFFFFF7ED) else Color(0xFFF3F4F6), RoundedCornerShape(6.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 3.dp, height = 14.dp)
+                .background(if (isHot) Color(0xFFFF5722) else MaterialTheme.colorScheme.primary, RoundedCornerShape(1.5.dp))
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isHot) Color(0xFFC2410C) else Color(0xFF374151)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoryListRow(
+    leafNode: CategoryNode,
+    path: String,
+    isHot: Boolean,
+    onSelectLeaf: (CategoryNode, String) -> Unit
+) {
+    Card(
+        onClick = { onSelectLeaf(leafNode, path) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = if (isHot) Color(0xFFFFF7ED) else Color(0xFFF9FAFB)),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, if (isHot) Color(0xFFFFCC80) else Color(0xFFE5E7EB)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                CategoryIconView(
+                    iconUrl = leafNode.iconUrl,
+                    iconName = leafNode.icon,
+                    size = 20.dp,
+                    tint = if (isHot) Color(0xFFFF5722) else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(end = 10.dp)
+                )
+                Text(
+                    text = leafNode.name,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isHot) Color(0xFFC2410C) else Color(0xFF1F2937),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = "Select",
+                tint = Color(0xFF9CA3AF),
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

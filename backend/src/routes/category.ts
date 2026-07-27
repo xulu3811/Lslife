@@ -14,6 +14,7 @@ interface CategoryNodeResponse {
   sortOrder: number;
   isLeaf: boolean;
   isActive: boolean;
+  isHot: boolean;
   attributeSchema: any[];
   children: CategoryNodeResponse[];
 }
@@ -45,16 +46,18 @@ router.get(
           } catch {
             schema = [];
           }
-          const iconValue = (c as any).iconUrl ?? c.icon ?? null;
+          const iconUrlValue = c.iconUrl ?? null;
+          const iconValue = c.icon ?? null;
           return {
             id: c.id,
             name: c.name,
             icon: iconValue,
-            iconUrl: iconValue,
+            iconUrl: iconUrlValue,
             parentId: c.parentId,
             sortOrder: c.sortOrder,
             isLeaf: c.isLeaf,
             isActive: (c as any).isActive !== undefined ? (c as any).isActive : true,
+            isHot: (c as any).isHot ?? false,
             attributeSchema: schema,
             children: buildTree(c.id),
           };
@@ -63,6 +66,48 @@ router.get(
 
     const tree = buildTree(null);
     return ok(res, tree);
+  }),
+);
+
+/** 获取热门推荐分类列表 (用于首页或发布快捷选区) */
+router.get(
+  '/hot',
+  asyncHandler(async (_req, res) => {
+    const hotCategories = await prisma.category.findMany({
+      where: {
+        isHot: true,
+        OR: [
+          { isActive: true },
+          { isActive: { equals: undefined } }
+        ]
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    const result = hotCategories.map((c) => {
+      let schema: any[] = [];
+      try {
+        if (c.attributeSchema) {
+          schema = typeof c.attributeSchema === 'string' ? JSON.parse(c.attributeSchema) : c.attributeSchema;
+        }
+      } catch {
+        schema = [];
+      }
+      return {
+        id: c.id,
+        name: c.name,
+        icon: c.icon ?? null,
+        iconUrl: c.iconUrl ?? null,
+        parentId: c.parentId,
+        sortOrder: c.sortOrder,
+        isLeaf: c.isLeaf,
+        isActive: (c as any).isActive !== undefined ? (c as any).isActive : true,
+        isHot: (c as any).isHot ?? false,
+        attributeSchema: schema,
+      };
+    });
+
+    return ok(res, result);
   }),
 );
 

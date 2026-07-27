@@ -78,9 +78,9 @@ private val defaultCategories = listOf(
 
 private val sorts = listOf(
     "default" to "推荐",
-    "distance" to "距离",
-    "rating" to "评分",
-    "sales" to "销量",
+    "latest" to "最新",
+    "price_asc" to "价格最低",
+    "price_desc" to "价格最高",
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -331,8 +331,8 @@ fun HomeScreen(
                         item {
                             Text(
                                 if (state.category == "all" || state.category.isEmpty()) "最新同城动态" else "同城信息",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground,
                             )
                             Spacer(modifier = Modifier.height(Dimens.sm))

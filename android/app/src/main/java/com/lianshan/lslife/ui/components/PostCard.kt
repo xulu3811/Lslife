@@ -37,36 +37,36 @@ fun PostListCard(post: Post, onClick: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         color = scheme.surface,
         tonalElevation = 1.dp,
     ) {
-        Row(modifier = Modifier.padding(12.dp)) {
+        Row(modifier = Modifier.padding(10.dp)) {
             val cover = post.images.firstOrNull()
             if (cover != null) {
                 AsyncImage(
                     model = cover,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(110.dp)
+                        .size(88.dp)
                         .clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop,
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
             } else {
                 Box(
                     modifier = Modifier
-                        .size(110.dp)
+                        .size(88.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(scheme.surfaceVariant.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Filled.Image, contentDescription = null, tint = scheme.onSurfaceVariant) 
                 }
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
             }
-            Column(modifier = Modifier.weight(1f).height(110.dp)) {
-                Text(post.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Column(modifier = Modifier.weight(1f).height(88.dp)) {
+                Text(post.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(modifier = Modifier.weight(1f))
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -87,10 +87,10 @@ fun PostListCard(post: Post, onClick: () -> Unit = {}) {
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.Bottom) {
                     if (post.price != null && post.price > 0) {
-                        Text("¥", style = MaterialTheme.typography.labelMedium, color = scheme.error, fontWeight = FontWeight.Bold)
-                        Text("${post.price}", style = MaterialTheme.typography.titleLarge, color = scheme.error, fontWeight = FontWeight.ExtraBold)
+                        Text("¥", style = MaterialTheme.typography.labelSmall, color = scheme.error, fontWeight = FontWeight.Bold)
+                        Text("${post.price}", style = MaterialTheme.typography.titleMedium, color = scheme.error, fontWeight = FontWeight.Bold)
                     } else {
-                        Text("面议", style = MaterialTheme.typography.titleMedium, color = scheme.error, fontWeight = FontWeight.Bold)
+                        Text("面议", style = MaterialTheme.typography.titleSmall, color = scheme.error, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -188,6 +189,7 @@ private fun AddressListPage(
     onDelete: (Address) -> Unit,
 ) {
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text("收货地址") },
@@ -276,6 +278,7 @@ private fun AddressEditPage(
     var isDefault by remember { mutableStateOf(initial?.isDefault ?: false) }
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text(if (initial == null) "新增收货地址" else "编辑收货地址") },

@@ -222,6 +222,10 @@ class PublishViewModel @Inject constructor(
 
     fun submit() {
         val s = _state.value
+        if (s.selectedCategory == null || !s.selectedCategory.isLeaf) {
+            _state.update { it.copy(message = "请选择具体的最底层叶子类目后发布") }
+            return
+        }
         if (s.title.isBlank() || s.description.isBlank()) {
             _state.update { it.copy(message = "请填写标题和描述") }
             return
@@ -253,7 +257,25 @@ class PublishViewModel @Inject constructor(
                 return@launch
             }
 
-            val listingType = if (s.categoryId in listOf("second_hand", "cat_phone", "cat_laptop", "cat_dress", "cat_shoes", "cat_novel", "veggies", "cat_fruit")) "GOODS" else "SERVICE"
+            val isGoodsCategory = s.categoryId == "second_hand" ||
+                s.categoryId.startsWith("cat_3c") ||
+                s.categoryId.startsWith("cat_cloth") ||
+                s.categoryId.startsWith("cat_dress") ||
+                s.categoryId.startsWith("cat_shoes") ||
+                s.categoryId.startsWith("cat_menswear") ||
+                s.categoryId.startsWith("cat_bag") ||
+                s.categoryId.startsWith("cat_luxury") ||
+                s.categoryId.startsWith("cat_home") ||
+                s.categoryId.startsWith("cat_beauty") ||
+                s.categoryId.startsWith("cat_baby") ||
+                s.categoryId.startsWith("cat_sports") ||
+                s.categoryId.startsWith("cat_hobby") ||
+                s.categoryId.startsWith("cat_ticket") ||
+                s.categoryId.startsWith("cat_other") ||
+                s.categoryId == "veggies" ||
+                s.categoryId == "veggies_fruit" ||
+                s.listingType == "GOODS"
+            val listingType = if (isGoodsCategory) "GOODS" else "SERVICE"
 
             val req = CreatePostRequest(
                 category = s.categoryId,
