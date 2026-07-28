@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Receipt, Search, RefreshCw, Send, CheckCircle, XCircle } from 'lucide-react';
-import api from '../utils/api';
+import api from '../utils/axios';
 
 interface OrderItem {
   id: string;
@@ -29,8 +29,8 @@ export function OrderManagement() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/orders', { params: { search, status } });
-      setOrders(res.data.data.list);
+      const res = await api.get('/admin/orders', { params: { search, status } });
+      setOrders(res.data.data?.list || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -45,7 +45,7 @@ export function OrderManagement() {
   const handleAction = async (id: string, action: 'refund' | 'assign_rider' | 'complete', confirmMsg: string) => {
     if (!window.confirm(confirmMsg)) return;
     try {
-      await api.post(`/orders/${id}/action`, { action });
+      await api.post(`/admin/orders/${id}/action`, { action });
       fetchOrders();
       alert('操作成功');
     } catch (e: any) {
@@ -55,44 +55,47 @@ export function OrderManagement() {
 
   const getStatusBadge = (status: string) => {
     switch(status) {
-      case 'pending': return <span className="badge badge-pending">待支付</span>;
-      case 'paid': return <span className="badge" style={{ background: '#e0f2fe', color: '#0284c7' }}>已支付</span>;
-      case 'preparing': return <span className="badge" style={{ background: '#fef3c7', color: '#d97706' }}>备餐中</span>;
-      case 'delivering': return <span className="badge" style={{ background: '#e0e7ff', color: '#4f46e5' }}>配送中</span>;
-      case 'delivered': return <span className="badge badge-active">已送达</span>;
-      case 'cancelled': return <span className="badge badge-offline">已取消</span>;
-      default: return <span className="badge">{status}</span>;
+      case 'pending': return <span className="badge badge-warning">待支付</span>;
+      case 'paid': return <span className="badge badge-info">已支付</span>;
+      case 'preparing': return <span className="badge badge-warning">备餐中</span>;
+      case 'delivering': return <span className="badge badge-info">配送中</span>;
+      case 'delivered': return <span className="badge badge-success">已送达</span>;
+      case 'cancelled': return <span className="badge badge-danger">已取消</span>;
+      default: return <span className="badge badge-neutral">{status}</span>;
     }
   };
 
   return (
-    <div style={{ padding: 16 }}>
-      <div className="flex justify-between items-center mb-4">
-        <h1 style={{ display: 'flex', alignItems: 'center', margin: 0 }}>
-          <Receipt style={{ marginRight: 8 }} /> 资金与订单管理
+    <div className="flex-col gap-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold flex items-center gap-3">
+          <Receipt size={28} className="text-primary" /> 
+          资金与订单管理
         </h1>
-        <button className="glass-button" onClick={fetchOrders}>
-          <RefreshCw size={18} /> 刷新
+        <button className="glass-button secondary" onClick={fetchOrders}>
+          <RefreshCw size={18} className="text-primary" /> 刷新流水
         </button>
       </div>
 
-      <div className="glass-panel p-4 mb-4 flex gap-4">
-        <div style={{ flex: 1, position: 'relative' }}>
-          <Search style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-secondary)' }} size={20} />
+      <div className="glass-panel p-6 flex flex-wrap gap-4 items-center mb-6">
+        <div className="flex-1 relative">
+          <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+            <Search size={18} />
+          </div>
           <input
             type="text"
             placeholder="搜索订单号/商家名/手机号..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="glass-input"
-            style={{ paddingLeft: 40 }}
+            style={{ paddingLeft: '40px' }}
           />
         </div>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           className="glass-input"
-          style={{ width: 200 }}
+          style={{ width: '200px' }}
         >
           <option value="">全部状态</option>
           <option value="pending">待支付</option>
@@ -103,9 +106,9 @@ export function OrderManagement() {
         </select>
       </div>
 
-      <div className="glass-panel">
+      <div className="glass-panel glass-table-container">
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center' }}>加载中...</div>
+          <div className="p-8 text-center text-muted">加载中...</div>
         ) : (
           <table className="glass-table">
             <thead>
@@ -115,57 +118,57 @@ export function OrderManagement() {
                 <th>商品详情</th>
                 <th>总金额</th>
                 <th>状态</th>
-                <th style={{ textAlign: 'right' }}>操作干预</th>
+                <th className="text-right">操作干预</th>
               </tr>
             </thead>
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id}>
                   <td>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{order.orderNo}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    <div className="font-semibold text-sm mb-1">{order.orderNo}</div>
+                    <div className="text-xs text-secondary">
                       {new Date(order.createdAt).toLocaleString()}
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontSize: 14 }}>买家: {order.user?.nickname} ({order.user?.phone})</div>
-                    <div style={{ fontSize: 14 }}>卖家: {order.merchantName || '个人卖家'}</div>
+                    <div className="text-sm mb-1">买家: <span className="font-medium text-primary">{order.user?.nickname}</span> ({order.user?.phone})</div>
+                    <div className="text-sm">卖家: <span className="font-medium text-secondary">{order.merchantName || '个人卖家'}</span></div>
                   </td>
                   <td>
-                    <div style={{ fontSize: 12 }}>
-                      {order.items.slice(0, 2).map((item, idx) => (
-                        <div key={idx}>{item.name} x{item.quantity}</div>
+                    <div className="flex-col gap-1 text-xs text-secondary">
+                      {order.items?.slice(0, 2).map((item, idx) => (
+                        <div key={idx}>{item.name} <span className="font-semibold text-primary">x{item.quantity}</span></div>
                       ))}
-                      {order.items.length > 2 && <div>...等{order.items.length}件商品</div>}
+                      {order.items?.length > 2 && <div className="text-muted">...等{order.items.length}件商品</div>}
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600, color: 'var(--primary)' }}>¥{order.totalAmount.toFixed(2)}</div>
+                    <div className="font-bold text-danger text-lg">¥{order.totalAmount.toFixed(2)}</div>
                   </td>
                   <td>
                     {getStatusBadge(order.status)}
                   </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="flex gap-2" style={{ justifyContent: 'flex-end', flexWrap: 'wrap', maxWidth: 200, float: 'right' }}>
+                  <td className="text-right">
+                    <div className="flex flex-wrap gap-2 justify-end">
                       
                       {/* Can assign rider if paid/preparing */}
                       {['paid', 'preparing'].includes(order.status) && (
-                        <button className="glass-button" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => handleAction(order.id, 'assign_rider', '确认指派虚拟骑手配送？')}>
-                          <Send size={14} /> 指派骑手
+                        <button className="glass-button secondary p-2 px-3 text-sm" onClick={() => handleAction(order.id, 'assign_rider', '确认指派虚拟骑手配送？')}>
+                          <Send size={16} className="text-info" /> 指派骑手
                         </button>
                       )}
                       
                       {/* Can complete if delivering */}
                       {['delivering'].includes(order.status) && (
-                        <button className="glass-button" style={{ padding: '4px 8px', fontSize: 12, background: 'var(--success)' }} onClick={() => handleAction(order.id, 'complete', '确认强制完成订单并进行资金结算？')}>
-                          <CheckCircle size={14} /> 强制完成
+                        <button className="glass-button success p-2 px-3 text-sm" onClick={() => handleAction(order.id, 'complete', '确认强制完成订单并进行资金结算？')}>
+                          <CheckCircle size={16} /> 强制完成
                         </button>
                       )}
 
                       {/* Can refund if not delivered/cancelled */}
                       {!['delivered', 'cancelled'].includes(order.status) && (
-                        <button className="glass-button danger" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => handleAction(order.id, 'refund', '确认强制取消并退款？')}>
-                          <XCircle size={14} /> 强制退款
+                        <button className="glass-button danger p-2 px-3 text-sm" onClick={() => handleAction(order.id, 'refund', '确认强制取消并退款？')}>
+                          <XCircle size={16} /> 强制退款
                         </button>
                       )}
 
@@ -175,7 +178,7 @@ export function OrderManagement() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>暂无订单</td>
+                  <td colSpan={6} className="p-8 text-center text-muted">暂无订单</td>
                 </tr>
               )}
             </tbody>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { MessageSquareWarning, Check, X } from 'lucide-react';
-import api from '../utils/api';
+import { MessageSquareWarning, Check, X, Ban } from 'lucide-react';
+import api from '../utils/axios';
 
 interface Post {
   id: string;
@@ -35,8 +35,8 @@ export default function ContentAudit() {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/posts', { params: { status } });
-      setPosts(res.data.data || []);
+      const res = await api.get('/admin/posts', { params: { status } });
+      setPosts(res.data.data?.list || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -48,10 +48,10 @@ export default function ContentAudit() {
     fetchPosts();
   }, [status]);
 
-  const handleAudit = async (id: string, action: 'approve' | 'reject') => {
+  const handleAudit = async (id: string, action: 'approve' | 'reject' | 'ban') => {
     let note = '';
-    if (action === 'reject') {
-      const input = window.prompt('请输入驳回原因:');
+    if (action === 'reject' || action === 'ban') {
+      const input = window.prompt(`请输入${action === 'ban' ? '下架' : '驳回'}原因:`);
       if (input === null) return;
       note = input;
     } else {
@@ -59,7 +59,7 @@ export default function ContentAudit() {
     }
 
     try {
-      await api.post(`/posts/${id}/audit`, { action, note });
+      await api.post(`/admin/posts/${id}/audit`, { action, note });
       fetchPosts();
     } catch (e: any) {
       alert(e.response?.data?.message || '审核操作失败');
@@ -67,59 +67,63 @@ export default function ContentAudit() {
   };
 
   return (
-    <div style={{ padding: 16 }}>
-      <div className="flex justify-between items-center mb-4">
-        <h1 style={{ display: 'flex', alignItems: 'center', margin: 0 }}>
-          <MessageSquareWarning style={{ marginRight: 8 }} /> C2C闲置与服务审核
+    <div className="flex-col gap-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold flex items-center gap-3">
+          <MessageSquareWarning size={28} className="text-primary" /> 
+          C2C 闲置与服务审核
         </h1>
       </div>
 
-      <div className="glass-panel p-4 mb-4 flex gap-4">
+      <div className="glass-panel p-6 mb-6 flex gap-4 items-center">
+        <h2 className="text-lg font-medium m-0 text-secondary mr-4">审核队列</h2>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           className="glass-input"
-          style={{ width: 200 }}
+          style={{ width: '240px' }}
         >
-          <option value="pending_review">待审核</option>
+          <option value="pending_review">待审核排队中</option>
           <option value="published">已发布 (已通过)</option>
-          <option value="rejected">已驳回</option>
+          <option value="rejected">已驳回记录</option>
         </select>
       </div>
 
-      <div className="glass-panel">
+      <div className="glass-panel glass-table-container">
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center' }}>加载中...</div>
+          <div className="p-8 text-center text-muted">加载中...</div>
         ) : (
           <table className="glass-table">
             <thead>
               <tr>
                 <th>发布者</th>
                 <th>内容详情</th>
-                <th>图片</th>
-                <th>发布时间</th>
-                <th>状态</th>
-                <th style={{ textAlign: 'right' }}>操作</th>
+                <th>图集</th>
+                <th>提交时间</th>
+                <th>当前状态</th>
+                <th className="text-right">审核操作</th>
               </tr>
             </thead>
             <tbody>
               {posts.map((post) => (
                 <tr key={post.id}>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{post.user?.nickname}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{post.user?.phone}</div>
+                    <div className="font-semibold">{post.user?.nickname}</div>
+                    <div className="text-xs text-secondary mt-1">{post.user?.phone}</div>
                   </td>
-                  <td style={{ maxWidth: 300 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>
-                      <span className="badge" style={{ marginRight: 8, background: '#f3f4f6', color: '#374151' }}>{categoryNames[post.category] || post.category}</span>
+                  <td style={{ maxWidth: '300px' }}>
+                    <div className="font-semibold text-base mb-2">
+                      <span className="badge badge-neutral mr-2">
+                        {categoryNames[post.category] || post.category.replace('cat_', '')}
+                      </span>
                       {post.title}
                     </div>
-                    <div style={{ fontSize: 12, marginTop: 4, color: 'var(--text-secondary)' }}>
-                      {post.description.length > 50 ? post.description.substring(0, 50) + '...' : post.description}
+                    <div className="text-sm text-secondary truncate" style={{ maxWidth: '280px' }} title={post.description}>
+                      {post.description}
                     </div>
-                    {post.price !== null && (
-                      <div style={{ color: 'var(--primary)', fontWeight: 600, marginTop: 4 }}>
-                        ¥{post.price}
+                    {post.price !== undefined && post.price !== null && (
+                      <div className="text-danger font-bold mt-2">
+                        ¥ {post.price}
                       </div>
                     )}
                   </td>
@@ -129,28 +133,35 @@ export default function ContentAudit() {
                         <img key={i} src={img} alt="post" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--surface-border)' }} />
                       ))}
                       {post.images && post.images.length > 3 && (
-                        <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>
+                        <div className="text-xs font-semibold text-secondary flex items-center justify-center" style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(0,0,0,0.05)' }}>
                           +{post.images.length - 3}
                         </div>
                       )}
                     </div>
                   </td>
-                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  <td className="text-sm text-secondary">
                     {new Date(post.createdAt).toLocaleString()}
                   </td>
                   <td>
-                    <span className={`badge badge-${post.status === 'published' ? 'active' : post.status === 'pending_review' ? 'pending' : 'offline'}`}>
+                    <span className={`badge ${post.status === 'published' ? 'badge-success' : post.status === 'pending_review' ? 'badge-warning' : 'badge-danger'}`}>
                       {post.status === 'published' ? '已发布' : post.status === 'pending_review' ? '审核中' : '已驳回'}
                     </span>
                   </td>
-                  <td style={{ textAlign: 'right' }}>
+                  <td className="text-right">
                     {post.status === 'pending_review' && (
-                      <div className="flex gap-2" style={{ justifyContent: 'flex-end' }}>
-                        <button className="glass-button" style={{ padding: '6px 12px' }} onClick={() => handleAudit(post.id, 'approve')}>
+                      <div className="flex justify-end gap-2">
+                        <button className="glass-button success p-2 px-3" onClick={() => handleAudit(post.id, 'approve')}>
                           <Check size={16} /> 通过
                         </button>
-                        <button className="glass-button danger" style={{ padding: '6px 12px' }} onClick={() => handleAudit(post.id, 'reject')}>
+                        <button className="glass-button danger p-2 px-3" onClick={() => handleAudit(post.id, 'reject')}>
                           <X size={16} /> 驳回
+                        </button>
+                      </div>
+                    )}
+                    {post.status === 'published' && (
+                      <div className="flex justify-end gap-2">
+                        <button className="glass-button danger p-2 px-3" onClick={() => handleAudit(post.id, 'ban')}>
+                          <Ban size={16} /> 违规下架
                         </button>
                       </div>
                     )}
@@ -159,7 +170,7 @@ export default function ContentAudit() {
               ))}
               {posts.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>暂无帖子数据</td>
+                  <td colSpan={6} className="p-8 text-center text-muted">暂无帖子数据</td>
                 </tr>
               )}
             </tbody>

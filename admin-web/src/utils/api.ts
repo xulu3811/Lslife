@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api/admin',
+  baseURL: '/api',
 });
 
 // Add a request interceptor to inject the token
@@ -23,8 +23,8 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('admin_token');
       // Redirect to login if not already there
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      if (window.location.pathname !== '/admin-web/login') {
+        window.location.href = '/admin-web/login';
       }
     }
     return Promise.reject(error);

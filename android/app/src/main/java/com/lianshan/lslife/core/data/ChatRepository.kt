@@ -26,6 +26,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import android.content.Context
+import android.util.Base64
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +40,7 @@ class ChatRepository @Inject constructor(
     private val realtimeClient: RealtimeClient,
     private val chatSessionDao: ChatSessionDao,
     private val authRepository: AuthRepository,
+    @ApplicationContext private val context: Context,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -137,7 +143,8 @@ class ChatRepository @Inject constructor(
                 if (event == "chat_message") {
                     val msgObj = obj["message"]
                     if (msgObj != null) {
-                        val msg = json.decodeFromJsonElement(ChatMessage.serializer(), msgObj)
+                        var msg = json.decodeFromJsonElement(ChatMessage.serializer(), msgObj)
+                        msg = processIncomingImage(msg)
                         emit(msg)
                     }
                 } else if (event == "message_recalled") {
@@ -157,7 +164,8 @@ class ChatRepository @Inject constructor(
                     val msgsArray = obj["messages"]?.jsonArray
                     msgsArray?.forEach { element ->
                         try {
-                            val msg = json.decodeFromJsonElement(ChatMessage.serializer(), element)
+                            var msg = json.decodeFromJsonElement(ChatMessage.serializer(), element)
+                            msg = processIncomingImage(msg)
                             emit(msg.copy(isOfflineSync = true))
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -207,5 +215,31 @@ class ChatRepository @Inject constructor(
 
     fun decrementUnread(amount: Int) {
         // No-op: Unread counts are strictly observed from Room SSOT via ChatSessionDao
+    }
+
+    private suspend fun processIncomingImage(msg: ChatMessage): ChatMessage {
+        if (msg.type == "image" && msg.content.startsWith("base64:")) {
+            try {
+                val base64String = msg.content.removePrefix("base64:")
+                val bytes = Base64.decode(base64String, Base64.DEFAULT)
+                
+                val chatImagesDir = File(context.filesDir, "chat_images")
+                if (!chatImagesDir.exists()) {
+                    chatImagesDir.mkdirs()
+                }
+                
+                val imageFile = File(chatImagesDir, "msg_\${msg.id}.jpg")
+                FileOutputStream(imageFile).use { fos ->
+                    fos.write(bytes)
+                }
+                
+                // Return a new ChatMessage with the local file URI instead of Base64
+                return msg.copy(content = "file://\${imageFile.absolutePath}")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return msg.copy(content = "[图片解码失败]")
+            }
+        }
+        return msg
     }
 }

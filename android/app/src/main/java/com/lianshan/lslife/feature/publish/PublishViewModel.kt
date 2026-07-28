@@ -257,21 +257,7 @@ class PublishViewModel @Inject constructor(
                 return@launch
             }
 
-            val isGoodsCategory = s.categoryId == "second_hand" ||
-                s.categoryId.startsWith("cat_3c") ||
-                s.categoryId.startsWith("cat_cloth") ||
-                s.categoryId.startsWith("cat_dress") ||
-                s.categoryId.startsWith("cat_shoes") ||
-                s.categoryId.startsWith("cat_menswear") ||
-                s.categoryId.startsWith("cat_bag") ||
-                s.categoryId.startsWith("cat_luxury") ||
-                s.categoryId.startsWith("cat_home") ||
-                s.categoryId.startsWith("cat_beauty") ||
-                s.categoryId.startsWith("cat_baby") ||
-                s.categoryId.startsWith("cat_sports") ||
-                s.categoryId.startsWith("cat_hobby") ||
-                s.categoryId.startsWith("cat_ticket") ||
-                s.categoryId.startsWith("cat_other") ||
+            val isGoodsCategory = isPersonalIdleCategory(s.categoryId) ||
                 s.categoryId == "veggies" ||
                 s.categoryId == "veggies_fruit" ||
                 s.listingType == "GOODS"

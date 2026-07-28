@@ -1,14 +1,13 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, MessageSquareWarning, Receipt, Settings, LogOut, UserCheck, Store, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Users, MessageSquareWarning, Receipt, Settings, LogOut, UserCheck, Store, ShoppingBag, Layers } from 'lucide-react';
 import '../index.css';
-
-const SIDEBAR_WIDTH = 260;
 
 const menuItems = [
   { path: '/dashboard', label: '数据大盘', icon: <LayoutDashboard size={20} /> },
   { path: '/users', label: '用户管理', icon: <Users size={20} /> },
   { path: '/kyc', label: '实名认证审核', icon: <UserCheck size={20} /> },
   { path: '/content', label: '内容审核', icon: <MessageSquareWarning size={20} /> },
+  { path: '/categories', label: '类目管理', icon: <Layers size={20} /> },
   { path: '/products', label: '商品管控', icon: <ShoppingBag size={20} /> },
   { path: '/merchants', label: '商家管理', icon: <Store size={20} /> },
   { path: '/orders', label: '资金与订单', icon: <Receipt size={20} /> },
@@ -25,49 +24,44 @@ export default function AdminLayout() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="flex min-h-screen">
       {/* Sidebar */}
       <div 
-        className="glass-panel" 
+        className="glass-panel flex-col" 
         style={{ 
-          width: SIDEBAR_WIDTH, 
+          width: 260, 
           position: 'fixed', 
           top: 16, 
           bottom: 16, 
           left: 16, 
           display: 'flex', 
-          flexDirection: 'column',
           zIndex: 10 
         }}
       >
-        <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid var(--surface-border)' }}>
+        <div className="flex items-center gap-3 p-6" style={{ borderBottom: '1px solid var(--surface-border)' }}>
           <img src="/favicon.png" alt="LsLife Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>LsLife Admin</h2>
-            <span style={{ fontSize: '12px', color: 'var(--success)' }}>● 安全防御运行中</span>
+            <h2 className="text-lg font-semibold m-0">LsLife Admin</h2>
+            <span className="text-xs text-success">● 安全防御运行中</span>
           </div>
         </div>
 
-        <div style={{ flex: 1, padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="flex-col flex-1 p-4 gap-2" style={{ overflowY: 'auto' }}>
           {menuItems.map((item) => {
             const isActive = location.pathname.startsWith(item.path);
             return (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
+                className="flex items-center gap-3 py-2 px-4 w-full text-left"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  background: isActive ? 'rgba(229, 57, 53, 0.15)' : 'transparent',
+                  background: isActive ? 'var(--danger-bg)' : 'transparent',
                   color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
                   border: 'none',
                   borderRadius: 'var(--radius-md)',
                   cursor: 'pointer',
                   fontWeight: isActive ? 600 : 500,
                   transition: 'all 0.2s ease',
-                  textAlign: 'left'
                 }}
               >
                 {item.icon}
@@ -77,20 +71,14 @@ export default function AdminLayout() {
           })}
         </div>
 
-        <div style={{ padding: '24px 16px', borderTop: '1px solid var(--surface-border)' }}>
+        <div className="p-4" style={{ borderTop: '1px solid var(--surface-border)' }}>
           <button
             onClick={handleLogout}
+            className="flex items-center gap-3 py-2 px-4 w-full text-danger font-medium text-left"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
               background: 'transparent',
-              color: 'var(--danger)',
               border: 'none',
-              width: '100%',
               cursor: 'pointer',
-              fontWeight: 500,
             }}
           >
             <LogOut size={20} />
@@ -100,20 +88,20 @@ export default function AdminLayout() {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ marginLeft: SIDEBAR_WIDTH + 32, padding: '16px 16px 16px 0', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>
+      <div className="flex-col flex-1" style={{ marginLeft: 292, padding: '16px 16px 16px 0', minHeight: '100vh' }}>
+        <header className="glass-panel flex justify-between items-center px-6 py-4 mb-6">
+          <h1 className="text-xl font-semibold m-0 text-gradient">
             {menuItems.find(i => location.pathname.startsWith(i.path))?.label || '管理控制台'}
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>最后登录IP: 115.191.6.95 (已白名单)</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-secondary">最后登录IP: 115.191.6.95 (已白名单)</span>
+            <div className="flex items-center justify-center font-bold" style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), #FF7E67)', color: '#fff', boxShadow: '0 4px 12px rgba(229, 57, 53, 0.2)' }}>
               A
             </div>
           </div>
         </header>
 
-        <main style={{ flex: 1 }}>
+        <main className="flex-col flex-1">
           <Outlet />
         </main>
       </div>

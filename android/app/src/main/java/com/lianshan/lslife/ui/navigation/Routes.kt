@@ -22,7 +22,7 @@ object Routes {
     const val MESSAGE_LIST = "message_list"
     const val REAL_NAME_AUTH = "real_name_auth"
     const val CROP_AVATAR = "crop_avatar"
-    const val CHAT = "chat/{sessionId}/{targetUserId}/{targetName}"
+    const val CHAT = "chat/{sessionId}/{targetUserId}/{targetName}?initPostId={initPostId}"
     const val SEARCH = "search"
     const val POST_DETAIL = "post_detail/{postId}"
 
@@ -34,7 +34,8 @@ object Routes {
     fun addressEdit(addressId: String? = null) =
         if (addressId.isNullOrBlank()) "address_edit?addressId=" else "address_edit?addressId=$addressId"
     fun cropAvatar() = "crop_avatar"
-    fun chat(sessionId: String, targetUserId: String, targetName: String) = "chat/$sessionId/$targetUserId/$targetName"
+    fun chat(sessionId: String, targetUserId: String, targetName: String, initPostId: String? = null) = 
+        "chat/$sessionId/$targetUserId/$targetName" + if (!initPostId.isNullOrBlank()) "?initPostId=$initPostId" else ""
     fun publish(postId: String? = null) = if (postId.isNullOrBlank()) "publish" else "publish?postId=$postId"
     fun checkout(merchantId: String?, sellerId: String?) = "checkout?merchantId=${merchantId ?: ""}&sellerId=${sellerId ?: ""}"
 }

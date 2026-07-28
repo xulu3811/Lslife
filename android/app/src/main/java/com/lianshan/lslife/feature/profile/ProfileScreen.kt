@@ -94,8 +94,6 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            com.lianshan.lslife.ui.components.VendorBatteryOptimizationBanner()
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -135,6 +133,8 @@ fun ProfileScreen(
                 modifier = Modifier.padding(Dimens.lg),
                 verticalArrangement = Arrangement.spacedBy(Dimens.md),
             ) {
+                com.lianshan.lslife.ui.components.VendorBatteryOptimizationBanner()
+
                 SoftCard {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(Dimens.lg),

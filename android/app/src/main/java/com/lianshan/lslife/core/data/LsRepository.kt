@@ -112,6 +112,7 @@ class LsRepository @Inject constructor(
 
     // 上传
     suspend fun uploadImage(part: okhttp3.MultipartBody.Part) = safeCall { api.uploadImage(part) }
+    suspend fun uploadAudio(part: okhttp3.MultipartBody.Part) = safeCall { api.uploadAudio(part) }
 }
 
 private fun Merchant.toEntity() = MerchantEntity(

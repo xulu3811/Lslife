@@ -33,19 +33,7 @@ import com.lianshan.lslife.ui.components.EmptyState
 import com.lianshan.lslife.ui.components.PostListCard
 import com.lianshan.lslife.ui.components.SkeletonCard
 
-private val categories = listOf(
-    "all" to "全部",
-    "second_hand" to "闲置",
-    "job" to "招聘",
-    "part_time" to "兼职",
-    "house" to "租房",
-    "secondhand_house" to "二手房",
-    "shop_rent" to "旺铺",
-    "housekeeping" to "家政",
-    "maintenance" to "维修",
-    "moving" to "搬家",
-    "veggies" to "生鲜",
-)
+import androidx.compose.material.icons.filled.ArrowDropDown
 
 private val sorts = listOf(
     "latest" to "最新发布",
@@ -62,6 +50,19 @@ fun SearchScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
+    var showCategorySelector by remember { mutableStateOf(false) }
+
+    if (showCategorySelector && state.categoryTree.isNotEmpty()) {
+        com.lianshan.lslife.ui.components.GlobalCategorySelectorBottomSheet(
+            categoryTree = state.categoryTree,
+            onDismissRequest = { showCategorySelector = false },
+            onCategorySelected = { categoryId ->
+                showCategorySelector = false
+                viewModel.updateCategory(if (categoryId == "all") null else categoryId)
+            }
+        )
+    }
+
     LaunchedEffect(listState, state.loading, state.loadingMore, state.hasMore) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastIndex ->
@@ -76,7 +77,7 @@ fun SearchScreen(
 
     if (state.showFilterBottomSheet) {
         AdvancedFilterBottomSheet(
-            category = state.category,
+            schema = state.currentSchema,
             minPrice = state.minPrice,
             maxPrice = state.maxPrice,
             attributesFilter = state.attributesFilter,
@@ -146,31 +147,31 @@ fun SearchScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    val categoryPath = viewModel.getCategoryPathName(state.category) ?: "全部分类"
+                    
+                    ElevatedFilterChip(
+                        selected = state.category != null,
+                        onClick = { 
+                            if (state.categoryTree.isNotEmpty()) {
+                                showCategorySelector = true 
+                            }
+                        },
+                        label = { Text(categoryPath, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                        trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        colors = FilterChipDefaults.elevatedFilterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ),
                         modifier = Modifier.weight(1f)
-                    ) {
-                        item {
-                            FilterChip(
-                                selected = state.category == null,
-                                onClick = { viewModel.updateCategory(null) },
-                                label = { Text("全部") },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            )
-                        }
-                        items(categories.drop(1)) { (id, name) ->
-                            FilterChip(
-                                selected = state.category == id,
-                                onClick = { viewModel.updateCategory(id) },
-                                label = { Text(name) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            )
+                    )
+
+                    if (state.category != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { viewModel.updateCategory(null) },
+                            modifier = Modifier.size(28.dp).background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.CircleShape)
+                        ) {
+                            Icon(Icons.Filled.Clear, contentDescription = "清除分类", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 

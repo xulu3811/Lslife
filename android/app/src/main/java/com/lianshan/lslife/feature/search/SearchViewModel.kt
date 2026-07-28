@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lianshan.lslife.core.data.LsRepository
+import com.lianshan.lslife.core.model.CategorySchemaResponse
 import com.lianshan.lslife.core.model.Post
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -18,9 +19,11 @@ import javax.inject.Inject
 data class SearchUiState(
     val keyword: String = "",
     val category: String? = null,
+    val categoryTree: List<com.lianshan.lslife.core.model.CategoryNode> = emptyList(),
     val minPrice: Double? = null,
     val maxPrice: Double? = null,
     val sortBy: String = "latest", // latest, price_asc, price_desc
+    val currentSchema: CategorySchemaResponse? = null,
     val attributesFilter: Map<String, String> = emptyMap(),
     val searchHistory: List<String> = emptyList(),
     val hotSearches: List<String> = listOf("iPhone 15", "日常保洁", "两室一厅", "寒暑假工", "小面包车", "旺铺转让", "全新手机", "送货搬家"),
@@ -47,6 +50,32 @@ class SearchViewModel @Inject constructor(
 
     init {
         loadHistory()
+        loadCategoryTree()
+    }
+
+    private fun loadCategoryTree() {
+        viewModelScope.launch {
+            repo.categoryTree().onSuccess { tree ->
+                _state.update { it.copy(categoryTree = tree) }
+            }
+        }
+    }
+
+    fun getCategoryPathName(categoryId: String?): String? {
+        if (categoryId == null) return null
+        val tree = _state.value.categoryTree
+        if (tree.isEmpty()) return null
+        return findCategoryPath(tree, categoryId, "")
+    }
+
+    private fun findCategoryPath(nodes: List<com.lianshan.lslife.core.model.CategoryNode>, targetId: String, currentPath: String): String? {
+        for (node in nodes) {
+            val path = if (currentPath.isEmpty()) node.name else "$currentPath > ${node.name}"
+            if (node.id == targetId) return path
+            val found = findCategoryPath(node.children, targetId, path)
+            if (found != null) return found
+        }
+        return null
     }
 
     private fun loadHistory() {
@@ -91,7 +120,16 @@ class SearchViewModel @Inject constructor(
 
     fun updateCategory(c: String?) {
         _state.update { it.copy(category = c) }
-        load(page = 1)
+        viewModelScope.launch {
+            if (c == null) {
+                _state.update { it.copy(currentSchema = null, attributesFilter = emptyMap()) }
+            } else {
+                repo.categorySchema(c).onSuccess { schema ->
+                    _state.update { it.copy(currentSchema = schema, attributesFilter = emptyMap()) }
+                }
+            }
+            load(page = 1)
+        }
     }
 
     fun updatePrice(min: Double?, max: Double?) {
@@ -127,6 +165,7 @@ class SearchViewModel @Inject constructor(
                 minPrice = null,
                 maxPrice = null,
                 sortBy = "latest",
+                currentSchema = null,
                 attributesFilter = emptyMap()
             )
         }

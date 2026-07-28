@@ -216,7 +216,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     postId = postId,
                     onBack = { navController.popBackStack() },
                     onChatClick = { targetId, targetName ->
-                        navController.navigate(Routes.chat("new", targetId, targetName))
+                        navController.navigate(Routes.chat("new", targetId, targetName, initPostId = postId))
                     },
                     onBuyClick = { id ->
                         // Direct purchase can be simulated or a toast shown. Let's redirect to cart for now.
@@ -294,11 +294,17 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     }
                 )
             }
-            composable(Routes.CHAT) { entry ->
+            composable(
+                route = Routes.CHAT,
+                arguments = listOf(
+                    navArgument("initPostId") { nullable = true }
+                )
+            ) { entry ->
                 ChatScreen(
                     sessionId = entry.arguments?.getString("sessionId").orEmpty(),
                     targetUserId = entry.arguments?.getString("targetUserId").orEmpty(),
                     targetName = entry.arguments?.getString("targetName").orEmpty(),
+                    initPostId = entry.arguments?.getString("initPostId"),
                     onBack = { navController.popBackStack() }
                 )
             }

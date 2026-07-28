@@ -18,6 +18,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import com.lianshan.lslife.feature.publish.ImageCompressor
 import com.lianshan.lslife.core.data.LsRepository
 import javax.inject.Inject
+import android.util.Base64
 
 data class ChatUiState(
     val loading: Boolean = false,
@@ -71,14 +72,29 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun initSession(sessionId: String, toUserId: String) {
+    fun initSession(sessionId: String, toUserId: String, initPostId: String? = null) {
         currentSessionId = sessionId
         targetUserId = toUserId
-        if (sessionId.isNotEmpty()) {
+        if (sessionId.isNotEmpty() && sessionId != "new") {
             loadHistory(sessionId)
             chatRepository.syncOffline(sessionId)
             viewModelScope.launch {
                 chatRepository.clearUnreadCount(sessionId)
+            }
+        }
+        if (initPostId != null) {
+            sendPostCard(initPostId)
+        }
+    }
+
+    private fun sendPostCard(postId: String) {
+        viewModelScope.launch {
+            lsRepository.post(postId).onSuccess { post ->
+                val title = post.title.replace("\"", "\\\"").replace("\n", " ")
+                val image = post.images.firstOrNull() ?: ""
+                val price = post.price ?: 0.0
+                val cardJson = """{"id":"$postId","title":"$title","price":$price,"image":"$image"}"""
+                sendMessage(cardJson, "post_card")
             }
         }
     }
@@ -123,20 +139,42 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(loading = true) }
             try {
-                val bytes = ImageCompressor.compress(context, uri)
-                val reqFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
-                val part = MultipartBody.Part.createFormData("image", "chat_image.jpg", reqFile)
-                val res = lsRepository.uploadImage(part)
-                if (res.isSuccess) {
-                    val url = res.getOrNull()?.url ?: throw Exception("返回的图片地址为空")
-                    sendMessage(url, "image")
-                } else {
-                    _state.update { it.copy(error = res.exceptionOrNull()?.message ?: "图片上传失败") }
+                // Background compression
+                val bytes = withContext(Dispatchers.IO) {
+                    ImageCompressor.compress(context, uri)
                 }
+                
+                // Convert bytes to Base64 string
+                val base64String = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                
+                // Directly send via WebSocket with base64 prefix
+                sendMessage("base64:\$base64String", "image")
+                
             } catch (e: Exception) {
-                _state.update { it.copy(error = "图片上传异常: ${e.message}") }
+                _state.update { it.copy(error = "图片处理发送异常: \${e.message}") }
             } finally {
                 _state.update { it.copy(loading = false) }
+            }
+        }
+    }
+    fun sendVoice(filePath: String, duration: Int) {
+        if (targetUserId.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val file = java.io.File(filePath)
+                if (!file.exists()) return@launch
+                val reqFile = okhttp3.RequestBody.create("audio/mp4".toMediaTypeOrNull(), file)
+                val part = MultipartBody.Part.createFormData("audio", file.name, reqFile)
+                
+                lsRepository.uploadAudio(part).onSuccess { res ->
+                    val url = res.url
+                    val voiceJson = """{"url":"$url","duration":$duration}"""
+                    sendMessage(voiceJson, "voice")
+                }.onFailure {
+                    _state.update { st -> st.copy(error = "语音上传失败: ${it.message}") }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "语音发送异常: ${e.message}") }
             }
         }
     }

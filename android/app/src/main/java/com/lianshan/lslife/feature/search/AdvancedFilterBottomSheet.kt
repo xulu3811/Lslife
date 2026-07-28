@@ -14,14 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.lianshan.lslife.feature.publish.getCategoryConfig
-import com.lianshan.lslife.feature.publish.secondHandBrandSuggestions
-import com.lianshan.lslife.feature.publish.secondHandConditionOptions
+import com.lianshan.lslife.core.model.CategorySchemaResponse
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedFilterBottomSheet(
-    category: String?,
+    schema: CategorySchemaResponse?,
     minPrice: Double?,
     maxPrice: Double?,
     attributesFilter: Map<String, String>,
@@ -33,9 +31,6 @@ fun AdvancedFilterBottomSheet(
 ) {
     var minPriceText by remember(minPrice) { mutableStateOf(minPrice?.let { if (it % 1 == 0.0) it.toInt().toString() else it.toString() } ?: "") }
     var maxPriceText by remember(maxPrice) { mutableStateOf(maxPrice?.let { if (it % 1 == 0.0) it.toInt().toString() else it.toString() } ?: "") }
-
-    val currentCategory = category ?: "second_hand"
-    val config = remember(currentCategory) { getCategoryConfig(currentCategory) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -149,64 +144,19 @@ fun AdvancedFilterBottomSheet(
             }
 
             // 动态规格属性筛选 (Dynamic Attributes)
-            if (currentCategory in listOf("second_hand", "cat_idle") || category == null || category == "all") {
-                // 个人闲置 / 全部分类：展示品牌与成色
+            schema?.attributeSchema?.filter { it.fieldType == "SELECT" && it.options.isNotEmpty() }?.forEach { field ->
                 Text(
-                    text = "品牌 (Brand)",
+                    text = field.label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(top = 12.dp, bottom = 8.dp)
                 )
                 OptFlowRow(
-                    options = secondHandBrandSuggestions,
-                    selectedVal = attributesFilter["brand"] ?: attributesFilter["品牌"],
-                    onSelect = { onAttributeToggle("brand", it) }
+                    options = field.options,
+                    selectedVal = attributesFilter[field.label] ?: attributesFilter[field.key],
+                    onSelect = { onAttributeToggle(field.label, it) }
                 )
-
-                Text(
-                    text = "成色 (Condition)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                )
-                OptFlowRow(
-                    options = secondHandConditionOptions,
-                    selectedVal = attributesFilter["condition"] ?: attributesFilter["成色"],
-                    onSelect = { onAttributeToggle("condition", it) }
-                )
-            } else {
-                // 其他分类：基于 CategoryConfig 渲染
-                if (config.attr1Label != null && config.attr1Options.isNotEmpty()) {
-                    Text(
-                        text = config.attr1Label,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                    )
-                    OptFlowRow(
-                        options = config.attr1Options,
-                        selectedVal = attributesFilter[config.attr1Label] ?: attributesFilter["attr1"],
-                        onSelect = { onAttributeToggle(config.attr1Label, it) }
-                    )
-                }
-
-                if (config.attr2Label != null && config.attr2Options.isNotEmpty()) {
-                    Text(
-                        text = config.attr2Label,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                    )
-                    OptFlowRow(
-                        options = config.attr2Options,
-                        selectedVal = attributesFilter[config.attr2Label] ?: attributesFilter["attr2"],
-                        onSelect = { onAttributeToggle(config.attr2Label, it) }
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

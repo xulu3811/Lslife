@@ -158,6 +158,10 @@ interface ApiService {
     @POST("upload")
     suspend fun uploadImage(@Part image: okhttp3.MultipartBody.Part): ApiEnvelope<UploadResult>
 
+    @Multipart
+    @POST("upload/audio")
+    suspend fun uploadAudio(@Part audio: okhttp3.MultipartBody.Part): ApiEnvelope<UploadResult>
+
     // 聊天
     @GET("chat/sessions")
     suspend fun chatSessions(): ApiEnvelope<List<ChatSession>>

@@ -42,11 +42,17 @@ import com.lianshan.lslife.core.model.CategoryNode
 import com.lianshan.lslife.core.model.DynamicField
 import androidx.compose.ui.text.style.TextOverflow
 import com.lianshan.lslife.ui.components.CategoryIconView
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun PublishScreen(
     postId: String? = null,
@@ -284,6 +290,7 @@ fun PublishScreen(
                         Spacer(Modifier.height(16.dp))
                         
                         // Title
+                        val titleBringIntoView = remember { BringIntoViewRequester() }
                         BasicTextField(
                             value = state.title,
                             onValueChange = viewModel::onTitle,
@@ -291,6 +298,15 @@ fun PublishScreen(
                             cursorBrush = SolidColor(scheme.primary),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .bringIntoViewRequester(titleBringIntoView)
+                                .onFocusChanged { f ->
+                                    if (f.isFocused) {
+                                        scope.launch {
+                                            delay(300)
+                                            titleBringIntoView.bringIntoView()
+                                        }
+                                    }
+                                }
                                 .padding(bottom = 12.dp),
                             decorationBox = { innerTextField ->
                                 if (state.title.isEmpty()) {
@@ -304,6 +320,7 @@ fun PublishScreen(
                         Spacer(Modifier.height(12.dp))
 
                         // Description
+                        val descBringIntoView = remember { BringIntoViewRequester() }
                         BasicTextField(
                             value = state.description,
                             onValueChange = viewModel::onDescription,
@@ -311,7 +328,16 @@ fun PublishScreen(
                             cursorBrush = SolidColor(scheme.primary),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 100.dp),
+                                .heightIn(min = 100.dp)
+                                .bringIntoViewRequester(descBringIntoView)
+                                .onFocusChanged { f ->
+                                    if (f.isFocused) {
+                                        scope.launch {
+                                            delay(300)
+                                            descBringIntoView.bringIntoView()
+                                        }
+                                    }
+                                },
                             decorationBox = { innerTextField ->
                                 if (state.description.isEmpty()) {
                                     Text("描述一下宝贝或服务的细节、成色、转手原因...", color = Color.LightGray, fontSize = 15.sp)
@@ -378,10 +404,21 @@ fun PublishScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
+                        val priceFocusRequester = remember { FocusRequester() }
+                        val priceBringIntoView = remember { BringIntoViewRequester() }
+
                         // Price
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .bringIntoViewRequester(priceBringIntoView)
+                                .clickable {
+                                    priceFocusRequester.requestFocus()
+                                    scope.launch {
+                                        delay(300)
+                                        priceBringIntoView.bringIntoView()
+                                    }
+                                }
                                 .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -393,6 +430,16 @@ fun PublishScreen(
                                     onValueChange = viewModel::onPrice,
                                     textStyle = TextStyle(fontSize = 16.sp, color = Color.Red, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.End),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    modifier = Modifier
+                                        .focusRequester(priceFocusRequester)
+                                        .onFocusChanged { f ->
+                                            if (f.isFocused) {
+                                                scope.launch {
+                                                    delay(300)
+                                                    priceBringIntoView.bringIntoView()
+                                                }
+                                            }
+                                        },
                                     decorationBox = { inner ->
                                         Row {
                                             Text("¥", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -422,7 +469,7 @@ fun PublishScreen(
                     }
                 }
 
-                Spacer(Modifier.height(80.dp))
+                Spacer(Modifier.height(320.dp))
             }
         }
     }
@@ -444,6 +491,7 @@ fun PublishScreen(
 }
 
 /** 动态表单引擎单字段渲染组件 */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun DynamicFieldRenderer(
     field: DynamicField,
@@ -476,6 +524,9 @@ private fun DynamicFieldRenderer(
                     }
                 }
                 else -> { // TEXT / NUMBER / DATE
+                    val fieldFocusRequester = remember { FocusRequester() }
+                    val fieldBringIntoView = remember { BringIntoViewRequester() }
+                    val coroutineScope = rememberCoroutineScope()
                     BasicTextField(
                         value = currentValue,
                         onValueChange = onValueChange,
@@ -483,6 +534,16 @@ private fun DynamicFieldRenderer(
                         keyboardOptions = if (field.fieldType == "NUMBER") KeyboardOptions(keyboardType = KeyboardType.Decimal) else KeyboardOptions.Default,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .bringIntoViewRequester(fieldBringIntoView)
+                            .focusRequester(fieldFocusRequester)
+                            .onFocusChanged { f ->
+                                if (f.isFocused) {
+                                    coroutineScope.launch {
+                                        delay(300)
+                                        fieldBringIntoView.bringIntoView()
+                                    }
+                                }
+                            }
                             .background(Color(0xFFF7F7F7), RoundedCornerShape(8.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         decorationBox = { inner ->
@@ -711,7 +772,7 @@ private fun CategoryTreeBottomSheet(
                                         fontSize = 14.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black,
-                                        maxLines = 1,
+                                        maxLines = 2,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
@@ -843,14 +904,28 @@ private fun CategoryListRow(
                     tint = if (isHot) Color(0xFFFF5722) else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(end = 10.dp)
                 )
-                Text(
-                    text = leafNode.name,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (isHot) Color(0xFFC2410C) else Color(0xFF1F2937),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                val parenIdx = leafNode.name.indexOfAny(charArrayOf('(', '（'))
+                val mainText = if (parenIdx > 0) leafNode.name.substring(0, parenIdx).trim() else leafNode.name
+                val subText = if (parenIdx > 0) leafNode.name.substring(parenIdx).trim() else null
+
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                    Text(
+                        text = mainText,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isHot) Color(0xFFC2410C) else Color(0xFF1F2937),
+                    )
+                    if (subText != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = subText,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (isHot) Color(0xFFE65100) else Color(0xFF6B7280),
+                            lineHeight = 15.sp,
+                        )
+                    }
+                }
             }
             Icon(
                 imageVector = Icons.Filled.ChevronRight,

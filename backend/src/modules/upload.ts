@@ -39,6 +39,15 @@ const upload = multer({
   },
 });
 
+const uploadAudio = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for audio
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('audio/')) cb(null, true);
+    else cb(new ApiError(400, '只允许上传音频文件'));
+  },
+});
+
 router.post(
   '/',
   requireAuth,
@@ -60,6 +69,17 @@ router.post(
     const base = publicBaseUrl(req);
     const urls = files.map((f) => `${base}/uploads/${f.filename}`);
     return ok(res, { urls });
+  }),
+);
+
+router.post(
+  '/audio',
+  requireAuth,
+  uploadAudio.single('audio'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw new ApiError(400, '未找到上传的音频文件');
+    const url = `${publicBaseUrl(req)}/uploads/${req.file.filename}`;
+    return ok(res, { url });
   }),
 );
 

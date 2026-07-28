@@ -9,13 +9,8 @@ import UserManagement from './pages/UserManagement';
 import { OrderManagement } from './pages/OrderManagement';
 import { MerchantManagement } from './pages/MerchantManagement';
 import { ProductAudit } from './pages/ProductAudit';
-
-// Placeholder pages for other routes
-const Placeholder = ({ title }: { title: string }) => (
-  <div className="glass-panel" style={{ padding: '24px', minHeight: '400px' }}>
-    <h2>{title} (建设中...)</h2>
-  </div>
-);
+import CategoryManagement from './pages/CategoryManagement';
+import { SystemSecurity } from './pages/SystemSecurity';
 
 // Protected Route Guard
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -42,10 +37,11 @@ export default function App() {
           <Route path="users" element={<UserManagement />} />
           <Route path="content" element={<ContentAudit />} />
           <Route path="kyc" element={<KycAudit />} />
+          <Route path="categories" element={<CategoryManagement />} />
           <Route path="orders" element={<OrderManagement />} />
           <Route path="merchants" element={<MerchantManagement />} />
           <Route path="products" element={<ProductAudit />} />
-          <Route path="settings" element={<Placeholder title="系统安全设置" />} />
+          <Route path="settings" element={<SystemSecurity />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />

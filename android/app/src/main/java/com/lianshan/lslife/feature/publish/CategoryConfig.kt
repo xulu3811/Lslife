@@ -102,7 +102,17 @@ val publishCategoryConfigs = listOf(
     ),
 )
 
+fun isPersonalIdleCategory(categoryId: String?): Boolean {
+    if (categoryId == null || categoryId == "all") return true
+    if (categoryId == "second_hand" || categoryId == "cat_idle") return true
+    val idlePrefixes = listOf("cat_3c", "cat_clothing", "cat_dress", "cat_bag", "cat_luxury", "cat_home", "cat_beauty", "cat_baby", "cat_sports", "cat_hobby", "cat_other")
+    return idlePrefixes.any { categoryId.startsWith(it) }
+}
+
 fun getCategoryConfig(categoryId: String): CategoryConfig {
+    if (isPersonalIdleCategory(categoryId)) {
+        return publishCategoryConfigs.find { it.id == "second_hand" } ?: publishCategoryConfigs.first()
+    }
     return publishCategoryConfigs.find { it.id == categoryId } ?: publishCategoryConfigs.first()
 }
 

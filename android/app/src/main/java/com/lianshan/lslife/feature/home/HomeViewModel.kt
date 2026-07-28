@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.lianshan.lslife.core.data.CategoryRepository
 import com.lianshan.lslife.core.data.LsRepository
 import com.lianshan.lslife.core.model.CategoryNode
+import com.lianshan.lslife.core.model.CategorySchemaResponse
 import com.lianshan.lslife.core.model.Merchant
 import com.lianshan.lslife.core.model.Post
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,11 @@ data class HomeUiState(
     val query: String = "",
     val category: String = "all",
     val sort: String = "default",
+    val minPrice: Double? = null,
+    val maxPrice: Double? = null,
+    val attributesFilter: Map<String, String> = emptyMap(),
+    val currentSchema: CategorySchemaResponse? = null,
+    val showFilterBottomSheet: Boolean = false,
     val isUgcMode: Boolean = true,
     val page: Int = 1,
     val hasMore: Boolean = true,
@@ -77,12 +83,46 @@ class HomeViewModel @Inject constructor(
     fun onCategory(c: String) {
         val newCat = if (_state.value.category == c && c != "all") "all" else c
         _state.update { it.copy(category = newCat, isUgcMode = true) }
-        load()
+        viewModelScope.launch {
+            if (newCat == "all") {
+                _state.update { it.copy(currentSchema = null, attributesFilter = emptyMap()) }
+            } else {
+                repo.categorySchema(newCat).onSuccess { schema ->
+                    _state.update { it.copy(currentSchema = schema, attributesFilter = emptyMap()) }
+                }
+            }
+            load()
+        }
     }
 
     fun onSort(s: String) {
         _state.update { it.copy(sort = s) }
         load()
+    }
+
+    fun updatePrice(min: Double?, max: Double?) {
+        _state.update { it.copy(minPrice = min, maxPrice = max) }
+        load()
+    }
+
+    fun updateAttributeFilter(key: String, value: String) {
+        val current = _state.value.attributesFilter.toMutableMap()
+        if (current[key] == value) {
+            current.remove(key)
+        } else {
+            current[key] = value
+        }
+        _state.update { it.copy(attributesFilter = current) }
+        load()
+    }
+
+    fun clearAttributesFilter() {
+        _state.update { it.copy(attributesFilter = emptyMap(), minPrice = null, maxPrice = null) }
+        load()
+    }
+
+    fun setShowFilterBottomSheet(show: Boolean) {
+        _state.update { it.copy(showFilterBottomSheet = show) }
     }
 
     fun refresh() {
@@ -110,12 +150,19 @@ class HomeViewModel @Inject constructor(
             val sortParam = if (s.sort == "default") null else s.sort
             val queryParam = s.query.takeIf { it.isNotBlank() }
 
-            repo.posts(category = catParam, mine = false, q = queryParam, sortBy = sortParam, page = page, pageSize = 20)
+            repo.posts(
+                category = catParam, 
+                mine = false, 
+                q = queryParam, 
+                sortBy = sortParam, 
+                minPrice = s.minPrice,
+                maxPrice = s.maxPrice,
+                attrFilter = s.attributesFilter.takeIf { it.isNotEmpty() },
+                page = page, 
+                pageSize = 20
+            )
                 .onSuccess { resPage ->
-                    val list = if (s.query.isBlank()) resPage.list
-                    else resPage.list.filter {
-                        it.title.contains(s.query, true) || it.description.contains(s.query, true)
-                    }
+                    val list = resPage.list
                     _state.update {
                         val newPosts = if (page == 1) list else it.posts + list
                         val hasMore = resPage.page * resPage.pageSize < resPage.total

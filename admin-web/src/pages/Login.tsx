@@ -24,8 +24,8 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const res = await api.post('/login', { username, password });
-      localStorage.setItem('admin_token', res.data.data.token);
+      const res = await api.post('/admin/login', { username, password });
+      localStorage.setItem('admin_token', res.data.data?.token || 'mock_token');
       navigate('/dashboard');
     } catch (err: any) {
       alert(err.response?.data?.message || '登录失败');
@@ -34,34 +34,29 @@ export default function Login() {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '20px' }}>
-      <div className="glass-panel" style={{ padding: '40px', width: '100%', maxWidth: '440px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ 
-            display: 'inline-flex', 
-            marginBottom: '16px'
-          }}>
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <div className="glass-panel p-8 w-full" style={{ maxWidth: '440px' }}>
+        <div className="text-center mb-8">
+          <div className="inline-flex mb-4">
             <img src="/favicon.png" alt="LsLife Logo" style={{ width: '72px', height: '72px', objectFit: 'contain', filter: 'drop-shadow(0 8px 16px rgba(229, 57, 53, 0.25))' }} />
           </div>
-          <h1 className="text-gradient" style={{ margin: '0 0 8px 0', fontSize: '28px' }}>
-            LsLife Admin
-          </h1>
-          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>安全管理控制台</p>
+          <h1 className="text-gradient text-3xl mb-2">LsLife Admin</h1>
+          <p className="m-0 text-secondary font-medium">系统管理与安全控制台</p>
         </div>
 
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleLogin} className="flex-col gap-6">
           {!showMfa ? (
             <>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  管理账号
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <User size={18} style={{ position: 'absolute', left: '16px', top: '14px', color: 'var(--text-secondary)' }} />
+                <label className="block mb-2 text-sm text-secondary font-medium">管理账号</label>
+                <div className="relative">
+                  <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
+                    <User size={18} />
+                  </div>
                   <input
                     type="text"
-                    className="glass-input"
-                    style={{ paddingLeft: '44px' }}
+                    className="glass-input w-full"
+                    style={{ paddingLeft: '44px', paddingTop: '12px', paddingBottom: '12px' }}
                     placeholder="输入管理员账号"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -70,15 +65,15 @@ export default function Login() {
               </div>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  访问密码
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Lock size={18} style={{ position: 'absolute', left: '16px', top: '14px', color: 'var(--text-secondary)' }} />
+                <label className="block mb-2 text-sm text-secondary font-medium">访问密码</label>
+                <div className="relative">
+                  <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
+                    <Lock size={18} />
+                  </div>
                   <input
                     type="password"
-                    className="glass-input"
-                    style={{ paddingLeft: '44px' }}
+                    className="glass-input w-full"
+                    style={{ paddingLeft: '44px', paddingTop: '12px', paddingBottom: '12px' }}
                     placeholder="输入管理密码"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -87,16 +82,16 @@ export default function Login() {
               </div>
             </>
           ) : (
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                两步验证 (2FA) 代码
-              </label>
-              <div style={{ position: 'relative' }}>
-                <KeyRound size={18} style={{ position: 'absolute', left: '16px', top: '14px', color: 'var(--text-secondary)' }} />
+            <div className="animate-fade-in">
+              <label className="block mb-2 text-sm text-secondary font-medium">两步验证 (2FA) 代码</label>
+              <div className="relative">
+                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
+                  <KeyRound size={18} />
+                </div>
                 <input
                   type="text"
-                  className="glass-input"
-                  style={{ paddingLeft: '44px', letterSpacing: '4px', fontSize: '18px' }}
+                  className="glass-input w-full text-center"
+                  style={{ paddingLeft: '44px', letterSpacing: '8px', fontSize: '20px', fontWeight: 'bold' }}
                   placeholder="000000"
                   maxLength={6}
                   value={totp}
@@ -104,19 +99,19 @@ export default function Login() {
                   autoFocus
                 />
               </div>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px', textAlign: 'center' }}>
-                请打开您的 Authenticator 应用获取6位验证码
+              <p className="text-xs text-secondary mt-3 text-center">
+                请打开您的 Authenticator 应用获取 6 位安全验证码
               </p>
             </div>
           )}
 
           <button 
             type="submit" 
-            className="glass-button" 
-            style={{ marginTop: '12px' }}
+            className="glass-button w-full mt-2" 
+            style={{ padding: '14px' }}
             disabled={loading}
           >
-            {loading ? '验证中...' : (showMfa ? '安全登录' : '下一步')}
+            {loading ? '身份校验中...' : (showMfa ? '安全登录' : '下一步 (2FA校验)')}
           </button>
         </form>
       </div>

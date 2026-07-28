@@ -179,7 +179,11 @@ export function attachRealtime(server: Server) {
              await prisma.chatSession.update({
                  where: { id: session.id },
                  data: {
-                     lastMessage: type === 'text' ? content : (type === 'image' ? '[图片]' : content),
+                     lastMessage: type === 'text' ? content : 
+                                 (type === 'image' ? '[图片]' : 
+                                 (type === 'voice' ? '[语音]' : 
+                                 (type === 'post_card' ? '[商品卡片]' : 
+                                 (type === 'order_card' ? '[订单卡片]' : content)))),
                      unread1: isUser1 ? { increment: 1 } : undefined,
                      unread2: !isUser1 ? { increment: 1 } : undefined,
                  }

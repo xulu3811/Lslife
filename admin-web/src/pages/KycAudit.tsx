@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/axios';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, UserCheck } from 'lucide-react';
 
 export default function KycAudit() {
   const [users, setUsers] = useState<any[]>([]);
@@ -9,8 +9,8 @@ export default function KycAudit() {
 
   const fetchUsers = () => {
     setLoading(true);
-    api.get(`/kyc?status=${tab}`)
-      .then(res => setUsers(res.data.data))
+    api.get(`/admin/kyc?status=${tab}`)
+      .then(res => setUsers(res.data.data?.list || []))
       .catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -22,7 +22,7 @@ export default function KycAudit() {
   const handleAudit = (id: string, action: 'approve' | 'reject') => {
     if (!window.confirm(`确定要${action === 'approve' ? '通过' : '驳回'}该实名认证吗？`)) return;
     
-    api.post(`/kyc/${id}/audit`, { action })
+    api.post(`/admin/kyc/${id}/audit`, { action })
       .then(res => {
         alert(res.data.message);
         fetchUsers();
@@ -32,58 +32,57 @@ export default function KycAudit() {
       });
   };
 
+  const tabs = [
+    { id: 'pending', label: '待审核' },
+    { id: 'verified', label: '已通过' },
+    { id: 'none', label: '未实名/已驳回' }
+  ];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div className="glass-panel" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid var(--surface-border)', marginBottom: '24px' }}>
-          <div 
-            onClick={() => setTab('pending')}
-            style={{ paddingBottom: '12px', cursor: 'pointer', fontWeight: tab === 'pending' ? 600 : 400, color: tab === 'pending' ? 'var(--primary)' : 'var(--text-secondary)', borderBottom: tab === 'pending' ? '2px solid var(--primary)' : 'none' }}
-          >
-            待审核
-          </div>
-          <div 
-            onClick={() => setTab('verified')}
-            style={{ paddingBottom: '12px', cursor: 'pointer', fontWeight: tab === 'verified' ? 600 : 400, color: tab === 'verified' ? 'var(--primary)' : 'var(--text-secondary)', borderBottom: tab === 'verified' ? '2px solid var(--primary)' : 'none' }}
-          >
-            已通过
-          </div>
-          <div 
-            onClick={() => setTab('none')}
-            style={{ paddingBottom: '12px', cursor: 'pointer', fontWeight: tab === 'none' ? 600 : 400, color: tab === 'none' ? 'var(--primary)' : 'var(--text-secondary)', borderBottom: tab === 'none' ? '2px solid var(--primary)' : 'none' }}
-          >
-            未实名/已驳回
-          </div>
+    <div className="flex-col gap-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold flex items-center gap-3">
+          <UserCheck size={28} className="text-primary" /> 
+          实名认证 (KYC) 审核大盘
+        </h1>
+      </div>
+
+      <div className="glass-panel p-6">
+        <div className="flex gap-6 mb-6" style={{ borderBottom: '1px solid var(--surface-border)' }}>
+          {tabs.map(t => (
+            <div 
+              key={t.id}
+              onClick={() => setTab(t.id as any)}
+              className={`pb-3 cursor-pointer transition-all duration-200 ${tab === t.id ? 'text-primary font-semibold' : 'text-secondary font-medium'}`}
+              style={{ borderBottom: tab === t.id ? '2px solid var(--primary)' : '2px solid transparent' }}
+            >
+              {t.label}
+            </div>
+          ))}
         </div>
         
         {loading ? (
-          <p>加载中...</p>
+          <div className="p-8 text-center text-muted">加载中...</div>
         ) : users.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)' }}>
+          <div className="p-8 text-center text-secondary">
             {tab === 'pending' ? '暂无需要审核的实名认证。' : '暂无相关记录。'}
-          </p>
+          </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="flex-col gap-4">
             {users.map(user => (
-              <div key={user.id} style={{ border: '1px solid var(--surface-border)', borderRadius: '12px', padding: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, fontSize: '16px' }}>{user.realName || '未知姓名'}</span>
-                    <span style={{ fontSize: '12px', padding: '2px 8px', background: 'var(--surface-variant)', color: 'var(--primary)', borderRadius: '4px' }}>{user.phone}</span>
+              <div key={user.id} className="p-4" style={{ border: '1px solid var(--surface-border)', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.3)' }}>
+                <div className="flex justify-between mb-4">
+                  <div className="flex gap-3 items-center">
+                    <span className="font-semibold text-lg">{user.realName || '未知姓名'}</span>
+                    <span className="badge badge-info font-mono">{user.phone}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="flex gap-2">
                     {tab === 'pending' && (
                       <>
-                        <button 
-                          onClick={() => handleAudit(user.id, 'approve')}
-                          style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                        >
+                        <button onClick={() => handleAudit(user.id, 'approve')} className="glass-button success p-2 px-3">
                           <CheckCircle size={16} /> 通过
                         </button>
-                        <button 
-                          onClick={() => handleAudit(user.id, 'reject')}
-                          style={{ background: 'var(--danger)', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                        >
+                        <button onClick={() => handleAudit(user.id, 'reject')} className="glass-button danger p-2 px-3">
                           <XCircle size={16} /> 驳回
                         </button>
                       </>
@@ -91,9 +90,9 @@ export default function KycAudit() {
                   </div>
                 </div>
                 
-                <div style={{ marginTop: '12px', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', gap: '16px', flexWrap: 'wrap', flexDirection: 'column' }}>
-                  <span>用户昵称: {user.nickname}</span>
-                  <span>身份证哈希: {user.idCardHash || '无'}</span>
+                <div className="text-sm text-secondary flex-col gap-2">
+                  <span>用户昵称: <span className="font-medium text-primary">{user.nickname}</span></span>
+                  <span>身份证哈希: <span className="font-mono text-muted">{user.idCardHash || '无'}</span></span>
                   <span>最近更新: {new Date(user.updatedAt).toLocaleString()}</span>
                 </div>
               </div>

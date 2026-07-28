@@ -25,11 +25,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +59,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.Badge
+import androidx.compose.material3.ElevatedFilterChip
+import androidx.compose.material3.FilterChipDefaults
+import com.lianshan.lslife.feature.search.AdvancedFilterBottomSheet
 
 private data class CategoryItem(
     val id: String,
@@ -93,6 +99,9 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    var selectedParentCategory by androidx.compose.runtime.remember { 
+        androidx.compose.runtime.mutableStateOf<com.lianshan.lslife.core.model.CategoryNode?>(null) 
+    }
 
     val displayCategories = androidx.compose.runtime.remember(state.categoryTree) {
         if (state.categoryTree.isEmpty()) {
@@ -107,6 +116,31 @@ fun HomeScreen(
                 )
             }
         }
+    }
+
+    if (selectedParentCategory != null) {
+        com.lianshan.lslife.ui.components.CategorySelectorBottomSheet(
+            parentCategory = selectedParentCategory!!,
+            onDismissRequest = { selectedParentCategory = null },
+            onCategorySelected = { categoryId ->
+                selectedParentCategory = null
+                viewModel.onCategory(categoryId)
+            }
+        )
+    }
+
+    if (state.showFilterBottomSheet) {
+        AdvancedFilterBottomSheet(
+            schema = state.currentSchema,
+            minPrice = state.minPrice,
+            maxPrice = state.maxPrice,
+            attributesFilter = state.attributesFilter,
+            onPriceChange = viewModel::updatePrice,
+            onAttributeToggle = viewModel::updateAttributeFilter,
+            onReset = viewModel::clearAttributesFilter,
+            onDismiss = { viewModel.setShowFilterBottomSheet(false) },
+            onConfirm = { viewModel.setShowFilterBottomSheet(false) }
+        )
     }
 
     // Infinite scroll
@@ -214,7 +248,14 @@ fun HomeScreen(
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable { viewModel.onCategory(item.id) },
+                                    .clickable { 
+                                        val node = state.categoryTree.find { it.id == item.id }
+                                        if (node != null && node.children.isNotEmpty()) {
+                                            selectedParentCategory = node
+                                        } else {
+                                            viewModel.onCategory(item.id)
+                                        }
+                                    },
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Box(
@@ -265,9 +306,34 @@ fun HomeScreen(
                             label = name,
                             selected = state.sort == id,
                             onClick = { viewModel.onSort(id) },
-                            modifier = Modifier.weight(1f),
                         )
                     }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    val activeFiltersCount = state.attributesFilter.size + (if (state.minPrice != null || state.maxPrice != null) 1 else 0)
+                    ElevatedFilterChip(
+                        selected = activeFiltersCount > 0,
+                        onClick = { viewModel.setShowFilterBottomSheet(true) },
+                        label = { 
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("筛选")
+                                if (activeFiltersCount > 0) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                        Text(activeFiltersCount.toString(), color = MaterialTheme.colorScheme.onPrimary)
+                                    }
+                                }
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Filled.FilterList, contentDescription = "筛选", modifier = Modifier.size(16.dp))
+                        },
+                        colors = FilterChipDefaults.elevatedFilterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    )
                 }
                 Spacer(Modifier.height(Dimens.sm))
             }

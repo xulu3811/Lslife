@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://mentalhlp.site/api/admin',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10000,
 });
 
@@ -25,15 +25,14 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        // Here we would normally call the refresh token endpoint
-        // const res = await axios.post('/api/admin/refresh-token');
-        // localStorage.setItem('admin_token', res.data.token);
-        // return api(originalRequest);
-        
-        // For now, if unauthorized, redirect to login
-        window.location.href = '/login';
+        // For now, if unauthorized, redirect to login if not already there
+        if (window.location.pathname !== '/admin-web/login') {
+          window.location.href = '/admin-web/login';
+        }
       } catch (err) {
-        window.location.href = '/login';
+        if (window.location.pathname !== '/admin-web/login') {
+          window.location.href = '/admin-web/login';
+        }
       }
     }
     return Promise.reject(error);

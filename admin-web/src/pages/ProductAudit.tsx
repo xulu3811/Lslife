@@ -46,28 +46,33 @@ export function ProductAudit() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-          <ShoppingBag className="mr-2" /> 全局商品监管库
+    <div className="flex-col gap-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold flex items-center gap-3">
+          <ShoppingBag size={28} className="text-primary" /> 
+          全局商品监管库
         </h1>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[200px] relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+      <div className="glass-panel p-6 flex flex-wrap gap-4 items-center mb-6">
+        <div className="flex-1 relative">
+          <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+            <Search size={18} />
+          </div>
           <input
             type="text"
             placeholder="搜索商品名/描述..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500"
+            className="glass-input"
+            style={{ paddingLeft: '40px' }}
           />
         </div>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="border rounded-lg px-4 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          className="glass-input"
+          style={{ width: '200px' }}
         >
           <option value="">全部状态</option>
           <option value="active">正常在售</option>
@@ -75,58 +80,55 @@ export function ProductAudit() {
         </select>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+      <div className="glass-panel glass-table-container">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">加载中...</div>
+          <div className="p-8 text-center text-muted">加载中...</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300">
-                <tr>
-                  <th className="p-4 font-medium">商品名称</th>
-                  <th className="p-4 font-medium">所属商户</th>
-                  <th className="p-4 font-medium">价格/销量</th>
-                  <th className="p-4 font-medium">状态</th>
-                  <th className="p-4 font-medium text-right">干预操作</th>
+          <table className="glass-table">
+            <thead>
+              <tr>
+                <th>商品名称</th>
+                <th>所属商户</th>
+                <th>价格/销量</th>
+                <th>状态</th>
+                <th className="text-right">干预操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product.id}>
+                  <td>
+                    <div className="font-semibold">{product.name}</div>
+                    <div className="text-xs text-secondary mt-2 truncate" style={{ maxWidth: '250px' }} title={product.desc}>{product.desc}</div>
+                  </td>
+                  <td className="font-medium">{product.merchant?.name || '未知商户'}</td>
+                  <td>
+                    <div className="text-danger font-bold text-lg">¥ {product.price.toFixed(2)}</div>
+                    <div className="text-sm text-secondary mt-2">已售 {product.sales}</div>
+                  </td>
+                  <td>
+                    <span className={`badge ${product.status === 'active' ? 'badge-active' : 'badge-danger'}`}>
+                      {product.status === 'active' ? '正常在售' : '强制下架'}
+                    </span>
+                  </td>
+                  <td className="text-right">
+                    {product.status === 'active' ? (
+                      <button onClick={() => handleStatusChange(product.id, 'offline')} className="glass-button danger" title="强制下架">
+                        <Ban size={18} /> 违规下架
+                      </button>
+                    ) : (
+                      <button onClick={() => handleStatusChange(product.id, 'active')} className="glass-button success" title="解除限制">
+                        <CheckCircle size={18} /> 解除限制
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {products.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td className="p-4">
-                      <div className="font-medium text-gray-900 dark:text-white">{product.name}</div>
-                      <div className="text-xs text-gray-500 max-w-xs truncate" title={product.desc}>{product.desc}</div>
-                    </td>
-                    <td className="p-4 text-gray-900 dark:text-white font-medium">{product.merchant?.name || '未知商户'}</td>
-                    <td className="p-4">
-                      <div className="text-red-500 font-medium">¥ {product.price.toFixed(2)}</div>
-                      <div className="text-sm text-gray-500">已售 {product.sales}</div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium
-                        ${product.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {product.status === 'active' ? '正常在售' : '强制下架'}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right space-x-2">
-                      {product.status === 'active' ? (
-                        <button onClick={() => handleStatusChange(product.id, 'offline')} className="p-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center justify-end w-full" title="强制下架">
-                          <Ban className="w-5 h-5 mr-1" /> 违规下架
-                        </button>
-                      ) : (
-                        <button onClick={() => handleStatusChange(product.id, 'active')} className="p-2 text-green-600 hover:bg-green-50 rounded-lg flex items-center justify-end w-full" title="解除限制">
-                          <CheckCircle className="w-5 h-5 mr-1" /> 解除限制
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {products.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-gray-500">暂无商品</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+              {products.length === 0 && (
+                <tr><td colSpan={5} className="p-8 text-center text-muted">暂无商品</td></tr>
+              )}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
