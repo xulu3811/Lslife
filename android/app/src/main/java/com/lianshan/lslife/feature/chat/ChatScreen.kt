@@ -19,8 +19,11 @@ import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import android.util.Base64
+import android.util.Log
+import androidx.compose.ui.res.painterResource
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
@@ -67,6 +70,7 @@ fun ChatScreen(
     var selectedMsgForRecall by remember { mutableStateOf<ChatMessage?>(null) }
     var isVoiceMode by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
+    var isCancelled by remember { mutableStateOf(false) }
     val audioManager = remember { AudioManager(context) }
     
     val recordPermissionLauncher = rememberLauncherForActivityResult(
@@ -200,49 +204,46 @@ fun ChatScreen(
                                 .weight(1f)
                                 .height(48.dp)
                                 .pointerInput(Unit) {
-                                    detectDragGestures(
-                                        onDragStart = {
-                                            isRecording = true
-                                            audioManager.startRecording()
-                                        },
-                                        onDragEnd = {
-                                            isRecording = false
-                                            audioManager.stopRecording()?.let { (path, duration) ->
-                                                viewModel.sendVoice(path, duration)
-                                            }
-                                        },
-                                        onDragCancel = {
-                                            isRecording = false
-                                            audioManager.stopRecording(cancel = true)
-                                        },
-                                        onDrag = { change, dragAmount -> 
-                                            // Handle drag to cancel if needed
-                                        }
-                                    )
-                                }
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onPress = {
-                                            isRecording = true
-                                            audioManager.startRecording()
-                                            val released = tryAwaitRelease()
-                                            isRecording = false
-                                            if (released) {
-                                                audioManager.stopRecording()?.let { (path, duration) ->
-                                                    viewModel.sendVoice(path, duration)
-                                                }
-                                            } else {
-                                                audioManager.stopRecording(cancel = true)
+                                    awaitEachGesture {
+                                        val down = awaitFirstDown(requireUnconsumed = false)
+                                        
+                                        isRecording = true
+                                        isCancelled = false
+                                        down.consume()
+                                        
+                                        val startSuccess = audioManager.startRecording()
+                                        if (startSuccess) {
+                                            var pointerEvent = awaitPointerEvent()
+                                            while (pointerEvent.changes.any { it.pressed }) {
+                                                val change = pointerEvent.changes.first()
+                                                val dragOffset = change.position.y - down.position.y
+                                                isCancelled = dragOffset < -100f
+                                                change.consume()
+                                                pointerEvent = awaitPointerEvent()
                                             }
                                         }
-                                    )
+                                        
+                                        isRecording = false
+                                        val result = audioManager.stopRecording(cancel = isCancelled)
+                                        if (result != null && !isCancelled) {
+                                            viewModel.sendVoice(result.first, result.second)
+                                        } else if (isCancelled) {
+                                            android.widget.Toast.makeText(context, "已取消发送", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else if (startSuccess) {
+                                            android.widget.Toast.makeText(context, "录音太短", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                 },
                             color = if (isRecording) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             shape = RoundedCornerShape(24.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = if (isRecording) "松开发送" else "按住 说话",
+                                    text = when {
+                                        isCancelled -> "松开手指，取消发送"
+                                        isRecording -> "松开 发送 / 上滑 取消"
+                                        else -> "按住 说话"
+                                    },
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -380,9 +381,9 @@ fun ChatBubble(
                 var model: Any = message.content
                 if (message.content.startsWith("base64:")) {
                     try {
-                        model = android.util.Base64.decode(message.content.substring(7), android.util.Base64.DEFAULT)
+                        model = Base64.decode(message.content.removePrefix("base64:"), Base64.DEFAULT)
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        Log.e("ChatScreen", "Base64 decode failed", e)
                     }
                 }
                 coil.compose.AsyncImage(
@@ -390,8 +391,10 @@ fun ChatBubble(
                     contentDescription = "图片",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .widthIn(max = 200.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .widthIn(max = 240.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
+                    error = painterResource(id = android.R.drawable.stat_notify_error)
                 )
             } else if (message.type == "post_card") {
                 // Parse JSON

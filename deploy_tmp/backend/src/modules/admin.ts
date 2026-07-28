@@ -125,7 +125,7 @@ router.post(
     const id = req.params.id;
     const { action, note } = z
       .object({
-        action: z.enum(['approve', 'reject']),
+        action: z.enum(['approve', 'reject', 'ban']),
         note: z.string().optional(),
       })
       .parse(req.body);
@@ -133,17 +133,23 @@ router.post(
     const post = await prisma.post.findUnique({ where: { id } });
     if (!post) throw new ApiError(404, '帖子不存在');
 
-    const newStatus = action === 'approve' ? 'published' : 'rejected';
+    const newStatus = action === 'approve' ? 'published' : (action === 'ban' ? 'removed' : 'rejected');
+    let reviewNote = note;
+    if (!reviewNote) {
+      if (action === 'approve') reviewNote = '人工审核通过';
+      else if (action === 'reject') reviewNote = '人工审核拒绝';
+      else reviewNote = '人工违规下架';
+    }
 
     await prisma.post.update({
       where: { id },
       data: {
         status: newStatus,
-        reviewNote: note || (action === 'approve' ? '人工审核通过' : '人工审核拒绝'),
+        reviewNote,
       },
     });
 
-    return ok(res, null, `内容已${action === 'approve' ? '通过发布' : '驳回'}`);
+    return ok(res, null, `内容已${action === 'approve' ? '通过发布' : (action === 'ban' ? '下架' : '驳回')}`);
   }),
 );
 
@@ -214,6 +220,7 @@ router.get(
         membershipTier: true,
         walletBalance: true,
         realNameStatus: true,
+        status: true,
         createdAt: true,
       },
     });
@@ -249,6 +256,21 @@ router.put(
     });
 
     return ok(res, user, `已将用户设为 ${tier} 会员`);
+  }),
+);
+
+router.put(
+  '/users/:id/status',
+  asyncHandler(async (req, res) => {
+    const id = req.params.id;
+    const { status } = z.object({ status: z.enum(['active', 'banned']) }).parse(req.body);
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { status },
+    });
+
+    return ok(res, user, `已将用户状态设为 ${status === 'banned' ? '封禁' : '正常'}`);
   }),
 );
 
@@ -535,6 +557,77 @@ router.post(
     });
 
     return ok(res, product, `商品状态已更新为 ${status}`);
+  })
+);
+
+// ================= 类目管理 ==================
+router.get(
+  '/categories',
+  asyncHandler(async (_req, res) => {
+    const categories = await prisma.category.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+    return ok(res, categories);
+  })
+);
+
+router.post(
+  '/categories',
+  asyncHandler(async (req, res) => {
+    const body = z.object({
+      name: z.string(),
+      iconUrl: z.string().optional(),
+      parentId: z.string().optional(),
+      sortOrder: z.number().default(0),
+      isLeaf: z.boolean().default(false),
+      isActive: z.boolean().default(true),
+      attributeSchema: z.string().optional().default('[]'),
+    }).parse(req.body);
+
+    // parentId empty string check
+    if (body.parentId === '') {
+      delete body.parentId;
+    }
+
+    const category = await prisma.category.create({
+      data: body,
+    });
+    return ok(res, category, '类目创建成功');
+  })
+);
+
+router.put(
+  '/categories/:id',
+  asyncHandler(async (req, res) => {
+    const id = req.params.id;
+    const body = z.object({
+      name: z.string().optional(),
+      iconUrl: z.string().optional(),
+      parentId: z.string().nullable().optional(),
+      sortOrder: z.number().optional(),
+      isLeaf: z.boolean().optional(),
+      isActive: z.boolean().optional(),
+      attributeSchema: z.string().optional(),
+    }).parse(req.body);
+
+    if (body.parentId === '') {
+      body.parentId = null;
+    }
+
+    const category = await prisma.category.update({
+      where: { id },
+      data: body,
+    });
+    return ok(res, category, '类目修改成功');
+  })
+);
+
+router.delete(
+  '/categories/:id',
+  asyncHandler(async (req, res) => {
+    const id = req.params.id;
+    await prisma.category.delete({ where: { id } });
+    return ok(res, null, '类目已删除');
   })
 );
 

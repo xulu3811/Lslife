@@ -5,6 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -102,7 +106,7 @@ fun GlobalCategorySelectorBottomSheet(
                             }
                             Text(
                                 text = l1Node.name,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
@@ -201,19 +205,35 @@ fun GlobalCategorySelectorBottomSheet(
                                             ) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(48.dp)
+                                                        .size(56.dp)
+                                                        .shadow(
+                                                            elevation = 6.dp,
+                                                            shape = MaterialTheme.shapes.medium,
+                                                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                                        )
                                                         .background(
-                                                            MaterialTheme.colorScheme.surfaceVariant,
+                                                            brush = Brush.linearGradient(
+                                                                colors = listOf(
+                                                                    MaterialTheme.colorScheme.surface,
+                                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                                                )
+                                                            ),
+                                                            shape = MaterialTheme.shapes.medium
+                                                        )
+                                                        .border(
+                                                            width = 1.dp,
+                                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
                                                             shape = MaterialTheme.shapes.medium
                                                         ),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     if (!l3Node.iconUrl.isNullOrBlank()) {
-                                                        CategoryIconView(iconUrl = l3Node.iconUrl, iconName = l3Node.icon, size = 32.dp)
+                                                        CategoryIconView(iconUrl = l3Node.iconUrl, iconName = l3Node.icon, size = 36.dp)
                                                     } else if (!l3Node.icon.isNullOrBlank()) {
-                                                        Text(l3Node.icon, fontSize = 24.sp)
+                                                        Text(l3Node.icon, fontSize = 28.sp)
                                                     } else {
-                                                        Text(l3Node.name.take(1), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                                        Text(l3Node.name.take(1), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                                     }
                                                 }
                                                 Spacer(modifier = Modifier.height(4.dp))
@@ -222,7 +242,8 @@ fun GlobalCategorySelectorBottomSheet(
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onBackground,
                                                     textAlign = TextAlign.Center,
-                                                    maxLines = 1
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         }

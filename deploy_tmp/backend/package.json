@@ -16,6 +16,7 @@
     "setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
     "smoke": "tsx scripts/smoke.ts",
     "stress:publish": "tsx scripts/stress-publish.ts",
+    "stress:im": "tsx scripts/stress-im.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -44,6 +45,7 @@
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.13",
     "prisma": "^5.22.0",
+    "sharp": "^0.35.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

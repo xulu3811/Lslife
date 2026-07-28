@@ -37,7 +37,11 @@ export function pushToRoom(room: string, payload: Record<string, unknown>) {
  * 支持 15s 心跳保活、断线重连补发、AES-256-GCM 终身加密落盘与防篡改存证哈希链
  */
 export function attachRealtime(server: Server) {
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server, 
+    path: '/ws',
+    maxPayload: 50 * 1024 * 1024 
+  });
 
   // 15秒周期心跳保活检测，清理 30 秒无响应的半开连接死 Socket
   const pingInterval = setInterval(() => {

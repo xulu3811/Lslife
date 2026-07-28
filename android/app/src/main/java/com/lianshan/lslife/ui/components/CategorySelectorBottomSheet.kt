@@ -2,6 +2,10 @@ package com.lianshan.lslife.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -126,7 +130,7 @@ fun CategorySelectorBottomSheet(
                             }
                             Text(
                                 text = l2Node.name,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
@@ -137,62 +141,115 @@ fun CategorySelectorBottomSheet(
 
                 // Right Pane: Level 3 Categories
                 val l3Children = selectedL2?.children ?: emptyList()
-                if (l3Children.isEmpty()) {
-                    Box(
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "暂无细分分类",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                        contentPadding = PaddingValues(Dimens.md),
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.md),
-                        verticalArrangement = Arrangement.spacedBy(Dimens.md)
-                    ) {
-                        items(l3Children) { l3Node ->
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentPadding = PaddingValues(Dimens.md),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.md),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.md)
+                ) {
+                    selectedL2?.let { l2Node ->
+                        item {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(MaterialTheme.shapes.small)
-                                    .clickable { onCategorySelected(l3Node.id) }
+                                    .clickable { onCategorySelected(l2Node.id) }
                                     .padding(vertical = Dimens.sm),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // We can use the iconUrl or icon, or fallback text icon
                                 Box(
                                     modifier = Modifier
-                                        .size(48.dp)
+                                        .size(56.dp)
                                         .background(
-                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                                    MaterialTheme.colorScheme.primaryContainer
+                                                )
+                                            ),
+                                            shape = MaterialTheme.shapes.medium
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                             shape = MaterialTheme.shapes.medium
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (!l3Node.iconUrl.isNullOrBlank()) {
-                                        CategoryIconView(iconUrl = l3Node.iconUrl, iconName = l3Node.icon, size = 32.dp)
-                                    } else if (!l3Node.icon.isNullOrBlank()) {
-                                        Text(l3Node.icon, fontSize = 24.sp)
-                                    } else {
-                                        Text(l3Node.name.take(1), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                    }
+                                    Text(
+                                        text = "全部", 
+                                        fontSize = 16.sp, 
+                                        fontWeight = FontWeight.Bold, 
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = l3Node.name,
+                                    text = "全部" + l2Node.name.take(4),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onBackground,
                                     textAlign = TextAlign.Center,
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
+                        }
+                    }
+
+                    items(l3Children) { l3Node ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable { onCategorySelected(l3Node.id) }
+                                .padding(vertical = Dimens.sm),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .shadow(
+                                        elevation = 6.dp,
+                                        shape = MaterialTheme.shapes.medium,
+                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                    )
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.surface,
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                            )
+                                        ),
+                                        shape = MaterialTheme.shapes.medium
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                        shape = MaterialTheme.shapes.medium
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (!l3Node.iconUrl.isNullOrBlank()) {
+                                    CategoryIconView(iconUrl = l3Node.iconUrl, iconName = l3Node.icon, size = 36.dp)
+                                } else if (!l3Node.icon.isNullOrBlank()) {
+                                    Text(l3Node.icon, fontSize = 28.sp)
+                                } else {
+                                    Text(l3Node.name.take(1), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = l3Node.name,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }

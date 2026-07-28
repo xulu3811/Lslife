@@ -37,7 +37,11 @@ export function pushToRoom(room: string, payload: Record<string, unknown>) {
  * 支持 15s 心跳保活、断线重连补发、AES-256-GCM 终身加密落盘与防篡改存证哈希链
  */
 export function attachRealtime(server: Server) {
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server, 
+    path: '/ws',
+    maxPayload: 50 * 1024 * 1024 
+  });
 
   // 15秒周期心跳保活检测，清理 30 秒无响应的半开连接死 Socket
   const pingInterval = setInterval(() => {
@@ -98,17 +102,31 @@ export function attachRealtime(server: Server) {
           // 3. 弱网重连增量同步补送 (Sync Offline Messages)
           if (msg.action === 'sync_offline') {
              const sessionId = msg.sessionId as string | undefined;
-             if (sessionId) {
+             const targetSessions = sessionId && sessionId !== 'all' 
+                 ? [{ id: sessionId }] 
+                 : await prisma.chatSession.findMany({
+                     where: {
+                       OR: [
+                         { user1Id: userId, unread1: { gt: 0 } },
+                         { user2Id: userId, unread2: { gt: 0 } }
+                       ]
+                     },
+                     select: { id: true }
+                   });
+
+             for (const s of targetSessions) {
                const unreadMsgs = await prisma.chatMessage.findMany({
-                 where: { sessionId, senderId: { not: userId } },
+                 where: { sessionId: s.id, senderId: { not: userId } },
                  orderBy: { createdAt: 'desc' },
                  take: 30
                });
-               const decryptedMsgs = unreadMsgs.reverse().map(m => ({
-                 ...m,
-                 content: m.isEncrypted ? decryptChatMessage(m.content) : m.content
-               }));
-               ws.send(JSON.stringify({ event: 'offline_sync', sessionId, messages: decryptedMsgs }));
+               if (unreadMsgs.length > 0) {
+                 const decryptedMsgs = unreadMsgs.reverse().map(m => ({
+                   ...m,
+                   content: m.isEncrypted ? decryptChatMessage(m.content) : m.content
+                 }));
+                 ws.send(JSON.stringify({ event: 'offline_sync', sessionId: s.id, messages: decryptedMsgs }));
+               }
              }
              return;
           }
@@ -165,7 +183,11 @@ export function attachRealtime(server: Server) {
              await prisma.chatSession.update({
                  where: { id: session.id },
                  data: {
-                     lastMessage: type === 'text' ? content : (type === 'image' ? '[图片]' : content),
+                     lastMessage: type === 'text' ? content : 
+                                 (type === 'image' ? '[图片]' : 
+                                 (type === 'voice' ? '[语音]' : 
+                                 (type === 'post_card' ? '[商品卡片]' : 
+                                 (type === 'order_card' ? '[订单卡片]' : content)))),
                      unread1: isUser1 ? { increment: 1 } : undefined,
                      unread2: !isUser1 ? { increment: 1 } : undefined,
                  }

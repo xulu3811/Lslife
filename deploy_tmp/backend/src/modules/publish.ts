@@ -11,12 +11,21 @@ const router = Router();
 const UNLIMITED_PHONES = ['19926387658', '13828577665'];
 const MONTHLY_LIMIT: Record<string, number> = { free: 10, vip: 20, premium: 50 };
 
+const IDLE_CATEGORY_IDS = [
+  'cat_idle', 'second_hand', 'cat_3c', 'cat_3c_pc', 'cat_3c_camera', 'cat_3c_audio',
+  'cat_clothing', 'cat_dress', 'cat_shoes', 'cat_bag', 'cat_luxury',
+  'cat_home_goods', 'cat_home_appliance', 'cat_home_furniture', 'cat_home_daily',
+  'cat_beauty', 'cat_beauty_skin', 'cat_beauty_care',
+  'cat_baby', 'cat_baby_clothes', 'cat_baby_stroller', 'cat_baby_toy', 'cat_baby_care',
+  'cat_sports', 'cat_sports_bike', 'cat_sports_gym', 'cat_sports_camp',
+  'cat_hobby', 'cat_hobby_figure', 'cat_hobby_book', 'cat_hobby_music', 'cat_hobby_pet', 'cat_hobby_ticket',
+  'cat_ticket', 'cat_ticket_shop', 'cat_ticket_movie',
+  'cat_other', 'cat_other_idle'
+];
+
 const ALLOWED_CATEGORIES = [
-  'cat_idle',
-  'second_hand',
+  ...IDLE_CATEGORY_IDS,
   'cat_idle_clothing',
-  'cat_dress',
-  'cat_shoes',
   'cat_house',
   'house',
   'secondhand_house',
@@ -74,7 +83,7 @@ router.post(
       .parse(req.body);
 
     // 闲置类建议至少 1 张图（贴近闲鱼）
-    if (body.category === 'second_hand' && body.images.length === 0) {
+    if (IDLE_CATEGORY_IDS.includes(body.category) && body.images.length === 0) {
       throw new ApiError(400, '个人闲置请至少上传1张图片');
     }
 
@@ -152,7 +161,7 @@ router.get(
   '/',
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const { category, publisherType, listingType, mine, page, pageSize, q, minPrice, maxPrice, sortBy } = z
+    const { category, publisherType, listingType, mine, page, pageSize, q, minPrice, maxPrice, sortBy, attrFilter } = z
       .object({
         category: z.string().optional(),
         publisherType: z.enum(['INDIVIDUAL', 'MERCHANT']).optional(),
@@ -164,6 +173,7 @@ router.get(
         minPrice: z.coerce.number().nonnegative().optional(),
         maxPrice: z.coerce.number().nonnegative().optional(),
         sortBy: z.enum(['latest', 'price_asc', 'price_desc']).default('latest'),
+        attrFilter: z.string().optional(),
       })
       .parse(req.query);
 
@@ -182,7 +192,7 @@ router.get(
         where.category = { in: Array.from(new Set(targetIds)) };
       } else {
         const parentChildMap: Record<string, string[]> = {
-          cat_idle: ['cat_idle', 'second_hand', 'cat_idle_clothing', 'cat_dress', 'cat_shoes', 'cat_phone', 'cat_laptop', 'cat_novel'],
+          cat_idle: IDLE_CATEGORY_IDS,
           cat_house: ['cat_house', 'house', 'secondhand_house', 'shop_rent'],
           cat_service: ['cat_service', 'housekeeping', 'moving'],
           cat_maintenance: ['cat_maintenance', 'maintenance'],
@@ -218,6 +228,36 @@ router.get(
         ...(minPrice !== undefined && { gte: minPrice }),
         ...(maxPrice !== undefined && { lte: maxPrice }),
       };
+    }
+
+    if (attrFilter) {
+      try {
+        const parsed = JSON.parse(attrFilter) as Record<string, string>;
+        const andConditions: Record<string, unknown>[] = [];
+        for (const [k, v] of Object.entries(parsed)) {
+          if (v && v.trim() !== '') {
+            const exactNoSpace = `"${k}":"${v}"`;
+            const exactWithSpace = `"${k}": "${v}"`;
+            andConditions.push({
+              OR: [
+                { attributes: { contains: exactNoSpace } },
+                { attributes: { contains: exactWithSpace } }
+              ]
+            });
+          }
+        }
+        if (andConditions.length > 0) {
+          if (Array.isArray(where.AND)) {
+            (where.AND as unknown[]).push(...andConditions);
+          } else if (where.AND) {
+            where.AND = [where.AND, ...andConditions];
+          } else {
+            where.AND = andConditions;
+          }
+        }
+      } catch (e) {
+        // 忽略 JSON 解析错误
+      }
     }
 
     let orderBy: any = { createdAt: 'desc' };
@@ -317,7 +357,7 @@ router.put(
       })
       .parse(req.body);
 
-    if (body.category === 'second_hand' && body.images.length === 0) {
+    if (IDLE_CATEGORY_IDS.includes(body.category) && body.images.length === 0) {
       throw new ApiError(400, '个人闲置请至少上传1张图片');
     }
 
