@@ -78,9 +78,16 @@ fun SearchScreen(
     if (state.showFilterBottomSheet) {
         AdvancedFilterBottomSheet(
             schema = state.currentSchema,
+            categoryTree = state.categoryTree,
+            selectedCategory = state.category,
+            publisherType = state.publisherType,
+            listingType = state.listingType,
             minPrice = state.minPrice,
             maxPrice = state.maxPrice,
             attributesFilter = state.attributesFilter,
+            onPublisherTypeChange = viewModel::updatePublisherType,
+            onListingTypeChange = viewModel::updateListingType,
+            onCategoryChange = { c -> viewModel.updateCategory(if (c == "all") null else c) },
             onPriceChange = viewModel::updatePrice,
             onAttributeToggle = viewModel::updateAttributeFilter,
             onReset = viewModel::clearAttributesFilter,
@@ -127,7 +134,7 @@ fun SearchScreen(
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(onSearch = { viewModel.searchNow(state.keyword) }),
-                        modifier = Modifier.weight(1f).height(50.dp),
+                        modifier = Modifier.weight(1f).height(56.dp),
                         shape = RoundedCornerShape(25.dp),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -178,7 +185,11 @@ fun SearchScreen(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     // 高级筛选按钮 (直接开启 BottomSheet)
-                    val activeFiltersCount = state.attributesFilter.size + (if (state.minPrice != null || state.maxPrice != null) 1 else 0)
+                    val activeFiltersCount = state.attributesFilter.size + 
+                        (if (state.category != null && state.category != "all") 1 else 0) +
+                        (if (state.minPrice != null || state.maxPrice != null) 1 else 0) +
+                        (if (state.publisherType != null) 1 else 0) +
+                        (if (state.listingType != null) 1 else 0)
                     ElevatedFilterChip(
                         selected = activeFiltersCount > 0,
                         onClick = { viewModel.setShowFilterBottomSheet(true) },

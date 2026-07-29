@@ -12,6 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -22,6 +25,7 @@ import com.lianshan.lslife.ui.components.NetworkImage
 import com.lianshan.lslife.ui.components.PriceText
 import com.lianshan.lslife.ui.components.SoftCard
 import com.lianshan.lslife.ui.theme.Dimens
+import com.lianshan.lslife.ui.components.PaymentBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +38,24 @@ fun CheckoutScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scheme = MaterialTheme.colorScheme
+    
+    var showPaymentSheet by remember { mutableStateOf(false) }
+    var createdOrderId by remember { mutableStateOf<String?>(null) }
+
+    if (showPaymentSheet && createdOrderId != null) {
+        PaymentBottomSheet(
+            amount = state.totalAmount,
+            onDismissRequest = { 
+                showPaymentSheet = false
+                onOrderCreated(createdOrderId!!) 
+            },
+            onPaymentMethodSelected = { method ->
+                // Simulate payment API call, then proceed
+                showPaymentSheet = false
+                onOrderCreated(createdOrderId!!)
+            }
+        )
+    }
 
     Scaffold(
         containerColor = scheme.background,
@@ -58,7 +80,12 @@ fun CheckoutScreen(
                             PriceText(state.totalAmount)
                         }
                         Button(
-                            onClick = { viewModel.submitOrder(onOrderCreated) },
+                            onClick = { 
+                                viewModel.submitOrder { orderId ->
+                                    createdOrderId = orderId
+                                    showPaymentSheet = true
+                                } 
+                            },
                             enabled = !state.isCreatingOrder && state.address != null,
                             contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp),
                         ) {

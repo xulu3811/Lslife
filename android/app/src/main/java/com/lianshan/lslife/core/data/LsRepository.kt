@@ -67,6 +67,8 @@ class LsRepository @Inject constructor(
     suspend fun createPost(req: CreatePostRequest) = safeCall { api.createPost(req) }
     suspend fun posts(
         category: String? = null,
+        publisherType: String? = null,
+        listingType: String? = null,
         mine: Boolean? = null,
         q: String? = null,
         minPrice: Double? = null,
@@ -81,7 +83,7 @@ class LsRepository @Inject constructor(
                 map.forEach { (k, v) -> put(k, v) }
             }.toString()
         }
-        api.posts(category, mine, q, minPrice, maxPrice, sortBy, attrJson, page, pageSize) 
+        api.posts(category, publisherType, listingType, mine, q, minPrice, maxPrice, sortBy, attrJson, page, pageSize) 
     }
     suspend fun quota() = safeCall { api.quota() }
     suspend fun post(id: String) = safeCall { api.post(id) }

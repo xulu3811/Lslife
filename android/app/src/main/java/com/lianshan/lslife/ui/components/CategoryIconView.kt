@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -119,7 +120,7 @@ private fun resolveVectorIcon(name: String?): ImageVector {
         key.contains("phone") || key.contains("electronics") -> Icons.Filled.Smartphone
         key.contains("laptop") || key.contains("computer") -> Icons.Filled.Laptop
         key.contains("dress") || key.contains("clothing") || key.contains("shoes") -> Icons.Filled.Checkroom
-        key.contains("book") || key.contains("novel") -> Icons.Filled.MenuBook
+        key.contains("book") || key.contains("novel") -> Icons.AutoMirrored.Filled.MenuBook
         key.contains("sparkles") || key.contains("awesome") || key.contains("ai") -> Icons.Filled.AutoAwesome
         else -> Icons.Filled.Folder
     }

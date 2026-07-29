@@ -41,8 +41,8 @@ class AuthRepository @Inject constructor(
 
     suspend fun me(): Result<User> = safeCall { api.me() }.onSuccess { _cachedUser = it }
 
-    suspend fun realName(name: String, idCard: String): Result<User> =
-        safeCall { api.realName(RealNameRequest(name, idCard)) }
+    suspend fun realName(name: String, idCard: String, idCardFrontImage: String?, idCardBackImage: String?, idCardHandheldImage: String?): Result<User> =
+        safeCall { api.realName(RealNameRequest(name, idCard, idCardFrontImage, idCardBackImage, idCardHandheldImage)) }
 
     suspend fun updateProfile(nickname: String?, avatar: String?): Result<User> =
         safeCall { api.updateProfile(com.lianshan.lslife.core.model.ProfileUpdateRequest(nickname, avatar)) }

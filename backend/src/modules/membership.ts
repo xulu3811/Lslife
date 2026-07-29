@@ -8,8 +8,8 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 
 const PLANS = [
-  { tier: 'vip', name: '连山超级会员', price: 9.9, period: '月', benefits: ['每月20条发布额度', '免配送费券x2', '专属会员标识'] },
-  { tier: 'premium', name: '连山至尊会员', price: 19.9, period: '月', benefits: ['每月50条发布额度', '免配送费券x5', '尊贵皇冠标识', '优先客服'] },
+  { tier: 'vip', name: '连山超级会员', price: 9.9, period: '月', benefits: ['每月20条发布额度', '每月2张商品曝光卡', '专属主页会员主题', '专属会员标识'] },
+  { tier: 'premium', name: '连山至尊会员', price: 19.9, period: '月', benefits: ['每月50条发布额度', '每月5张商品曝光卡', '支持上传18张图片', '无限次AI智能文案', '尊贵皇冠标识', '优先专属客服'] },
 ];
 
 /** 会员套餐 */

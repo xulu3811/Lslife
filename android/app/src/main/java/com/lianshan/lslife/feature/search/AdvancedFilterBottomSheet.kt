@@ -20,9 +20,16 @@ import com.lianshan.lslife.core.model.CategorySchemaResponse
 @Composable
 fun AdvancedFilterBottomSheet(
     schema: CategorySchemaResponse?,
+    categoryTree: List<com.lianshan.lslife.core.model.CategoryNode>,
+    selectedCategory: String?,
+    publisherType: String?,
+    listingType: String?,
     minPrice: Double?,
     maxPrice: Double?,
-    attributesFilter: Map<String, String>,
+    attributesFilter: Map<String, Set<String>>,
+    onPublisherTypeChange: (String?) -> Unit,
+    onListingTypeChange: (String?) -> Unit,
+    onCategoryChange: (String?) -> Unit,
     onPriceChange: (Double?, Double?) -> Unit,
     onAttributeToggle: (String, String) -> Unit,
     onReset: () -> Unit,
@@ -59,6 +66,7 @@ fun AdvancedFilterBottomSheet(
                 TextButton(onClick = {
                     minPriceText = ""
                     maxPriceText = ""
+                    onCategoryChange(null)
                     onReset()
                 }) {
                     Text("全部重置", color = MaterialTheme.colorScheme.primary)
@@ -66,6 +74,106 @@ fun AdvancedFilterBottomSheet(
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            // 业务分类筛选
+            if (categoryTree.isNotEmpty()) {
+                Text(
+                    text = "商品/服务分类",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedCategory == null || selectedCategory == "all",
+                            onClick = { onCategoryChange(null) },
+                            label = { Text("全部") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
+                    items(categoryTree) { node ->
+                        var isSelected = false
+                        fun checkSelected(n: com.lianshan.lslife.core.model.CategoryNode, target: String?): Boolean {
+                            if (target == null) return false
+                            if (n.id == target) return true
+                            return n.children.any { checkSelected(it, target) }
+                        }
+                        isSelected = checkSelected(node, selectedCategory)
+                        
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onCategoryChange(node.id) },
+                            label = { Text(node.name) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
+                }
+            }
+
+            // 全局基础筛选 (发布者身份 / 服务类型)
+            Text(
+                text = "来源类型",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+            ) {
+                val publishers = listOf(null to "全部", "INDIVIDUAL" to "个人发布", "MERCHANT" to "认证商家")
+                items(publishers) { (v, label) ->
+                    val isSelected = publisherType == v
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onPublisherTypeChange(v) },
+                        label = { Text(label) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
+            }
+
+            Text(
+                text = "交易类型",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            ) {
+                val listings = listOf(null to "全部", "GOODS" to "实体商品", "SERVICE" to "本地服务")
+                items(listings) { (v, label) ->
+                    val isSelected = listingType == v
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onListingTypeChange(v) },
+                        label = { Text(label) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             // 价格区间 (Price Range)
             Text(
@@ -154,7 +262,7 @@ fun AdvancedFilterBottomSheet(
                 )
                 OptFlowRow(
                     options = field.options,
-                    selectedVal = attributesFilter[field.label] ?: attributesFilter[field.key],
+                    selectedVals = attributesFilter[field.label] ?: attributesFilter[field.key],
                     onSelect = { onAttributeToggle(field.label, it) }
                 )
             }
@@ -187,7 +295,7 @@ fun AdvancedFilterBottomSheet(
 @Composable
 private fun OptFlowRow(
     options: List<String>,
-    selectedVal: String?,
+    selectedVals: Set<String>?,
     onSelect: (String) -> Unit
 ) {
     FlowRow(
@@ -196,7 +304,7 @@ private fun OptFlowRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         options.forEach { opt ->
-            val isSelected = (selectedVal == opt)
+            val isSelected = selectedVals?.contains(opt) == true
             FilterChip(
                 selected = isSelected,
                 onClick = { onSelect(opt) },

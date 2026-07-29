@@ -220,7 +220,6 @@ router.get(
         membershipTier: true,
         walletBalance: true,
         realNameStatus: true,
-        status: true,
         createdAt: true,
       },
     });
@@ -259,6 +258,7 @@ router.put(
   }),
 );
 
+/*
 router.put(
   '/users/:id/status',
   asyncHandler(async (req, res) => {
@@ -273,6 +273,7 @@ router.put(
     return ok(res, user, `已将用户状态设为 ${status === 'banned' ? '封禁' : '正常'}`);
   }),
 );
+*/
 
 // ================== 财务监控 ==================
 router.get(

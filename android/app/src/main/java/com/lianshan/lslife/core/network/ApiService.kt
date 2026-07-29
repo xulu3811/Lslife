@@ -107,6 +107,8 @@ interface ApiService {
     @GET("posts")
     suspend fun posts(
         @Query("category") category: String? = null,
+        @Query("publisherType") publisherType: String? = null,
+        @Query("listingType") listingType: String? = null,
         @Query("mine") mine: Boolean? = null,
         @Query("q") q: String? = null,
         @Query("minPrice") minPrice: Double? = null,

@@ -24,6 +24,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +36,7 @@ import com.lianshan.lslife.core.model.MembershipPlan
 import com.lianshan.lslife.ui.components.LoadingBox
 import com.lianshan.lslife.ui.components.PrimaryButton
 import com.lianshan.lslife.ui.components.SoftCard
+import com.lianshan.lslife.ui.components.PaymentBottomSheet
 import com.lianshan.lslife.ui.theme.Dimens
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +47,7 @@ fun MembershipScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var selectedPlanForPayment by remember { mutableStateOf<MembershipPlan?>(null) }
 
     LaunchedEffect(Unit) { viewModel.load() }
     LaunchedEffect(state.message) {
@@ -92,9 +96,21 @@ fun MembershipScreen(
             )
             Spacer(Modifier.height(Dimens.sm))
             state.plans.forEach { plan ->
-                MembershipPlanBlock(plan) { viewModel.subscribe(plan.tier) }
+                MembershipPlanBlock(plan) { selectedPlanForPayment = plan }
             }
             Spacer(Modifier.height(Dimens.xl))
+        }
+
+        selectedPlanForPayment?.let { plan ->
+            PaymentBottomSheet(
+                amount = plan.price,
+                onDismissRequest = { selectedPlanForPayment = null },
+                onPaymentMethodSelected = { method ->
+                    // 模拟支付成功后调用开通
+                    selectedPlanForPayment = null
+                    viewModel.subscribe(plan.tier)
+                }
+            )
         }
     }
 }

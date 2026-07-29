@@ -58,6 +58,7 @@ import com.lianshan.lslife.feature.profile.AddressScreen
 import com.lianshan.lslife.feature.profile.CropScreen
 import com.lianshan.lslife.feature.profile.EditProfileScreen
 import com.lianshan.lslife.feature.profile.MembershipScreen
+import com.lianshan.lslife.feature.profile.RealNameAgreementScreen
 import com.lianshan.lslife.feature.chat.ChatSessionListScreen
 import com.lianshan.lslife.feature.chat.ChatScreen
 import com.lianshan.lslife.feature.profile.MyPostsScreen
@@ -118,7 +119,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                                 selected = selected,
                                 onClick = {
                                     navController.navigate(tab.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        popUpTo(Routes.HOME) { saveState = true }
                                         launchSingleTop = true
                                         restoreState = true
                                     }
@@ -187,7 +188,8 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                 HomeScreen(
                     onOpenMerchant = { navController.navigate(Routes.merchant(it)) },
                     onOpenPost = { navController.navigate(Routes.postDetail(it)) },
-                    onSearchClick = { navController.navigate(Routes.SEARCH) }
+                    onSearchClick = { navController.navigate(Routes.SEARCH) },
+                    onMessageClick = { navController.navigate(Routes.MESSAGE_LIST) }
                 )
             }
             composable(Routes.SEARCH) {
@@ -251,7 +253,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     onOpenMembership = { navController.navigate(Routes.MEMBERSHIP) },
                     onOpenAddress = { navController.navigate(Routes.ADDRESS_LIST) },
                     onOpenMessage = { navController.navigate(Routes.MESSAGE_LIST) },
-                    onOpenRealName = { navController.navigate(Routes.REAL_NAME_AUTH) },
+                    onOpenRealName = { navController.navigate(Routes.REAL_NAME_AGREEMENT) },
                     onOpenMyPosts = { navController.navigate(Routes.MY_POSTS) },
                     onLoggedOut = {
                         navController.navigate(Routes.LOGIN) { popUpTo(0) }
@@ -308,7 +310,20 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(Routes.REAL_NAME_AUTH) { RealNameScreen(onBack = { navController.popBackStack() }) }
+            composable(Routes.REAL_NAME_AGREEMENT) { 
+                RealNameAgreementScreen(
+                    onAgree = { signature -> navController.navigate(Routes.realNameAuth(signature)) {
+                        popUpTo(Routes.REAL_NAME_AGREEMENT) { inclusive = true }
+                    } },
+                    onBack = { navController.popBackStack() }
+                ) 
+            }
+            composable(Routes.REAL_NAME_AUTH) { entry ->
+                RealNameScreen(
+                    signature = entry.arguments?.getString("signature").orEmpty(),
+                    onBack = { navController.popBackStack() }
+                ) 
+            }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     onBack = { navController.popBackStack() },

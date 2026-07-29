@@ -236,14 +236,14 @@ router.get(
         const andConditions: Record<string, unknown>[] = [];
         for (const [k, v] of Object.entries(parsed)) {
           if (v && v.trim() !== '') {
-            const exactNoSpace = `"${k}":"${v}"`;
-            const exactWithSpace = `"${k}": "${v}"`;
-            andConditions.push({
-              OR: [
-                { attributes: { contains: exactNoSpace } },
-                { attributes: { contains: exactWithSpace } }
-              ]
-            });
+            const values = v.split('||').map(s => s.trim()).filter(Boolean);
+            if (values.length > 0) {
+              const valueOrs = values.flatMap(val => [
+                { attributes: { contains: `"${k}":"${val}"` } },
+                { attributes: { contains: `"${k}": "${val}"` } }
+              ]);
+              andConditions.push({ OR: valueOrs });
+            }
           }
         }
         if (andConditions.length > 0) {

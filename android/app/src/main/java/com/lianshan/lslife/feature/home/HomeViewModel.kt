@@ -34,7 +34,9 @@ data class HomeUiState(
     val sort: String = "default",
     val minPrice: Double? = null,
     val maxPrice: Double? = null,
-    val attributesFilter: Map<String, String> = emptyMap(),
+    val publisherType: String? = null,
+    val listingType: String? = null,
+    val attributesFilter: Map<String, Set<String>> = emptyMap(),
     val currentSchema: CategorySchemaResponse? = null,
     val showFilterBottomSheet: Boolean = false,
     val isUgcMode: Boolean = true,
@@ -107,17 +109,30 @@ class HomeViewModel @Inject constructor(
 
     fun updateAttributeFilter(key: String, value: String) {
         val current = _state.value.attributesFilter.toMutableMap()
-        if (current[key] == value) {
-            current.remove(key)
+        val currentSet = (current[key] ?: emptySet()).toMutableSet()
+        if (currentSet.contains(value)) {
+            currentSet.remove(value)
+            if (currentSet.isEmpty()) current.remove(key) else current[key] = currentSet
         } else {
-            current[key] = value
+            currentSet.add(value)
+            current[key] = currentSet
         }
         _state.update { it.copy(attributesFilter = current) }
         load()
     }
 
+    fun updatePublisherType(type: String?) {
+        _state.update { it.copy(publisherType = type) }
+        load()
+    }
+
+    fun updateListingType(type: String?) {
+        _state.update { it.copy(listingType = type) }
+        load()
+    }
+
     fun clearAttributesFilter() {
-        _state.update { it.copy(attributesFilter = emptyMap(), minPrice = null, maxPrice = null) }
+        _state.update { it.copy(attributesFilter = emptyMap(), minPrice = null, maxPrice = null, publisherType = null, listingType = null) }
         load()
     }
 
@@ -152,12 +167,14 @@ class HomeViewModel @Inject constructor(
 
             repo.posts(
                 category = catParam, 
+                publisherType = s.publisherType,
+                listingType = s.listingType,
                 mine = false, 
                 q = queryParam, 
                 sortBy = sortParam, 
                 minPrice = s.minPrice,
                 maxPrice = s.maxPrice,
-                attrFilter = s.attributesFilter.takeIf { it.isNotEmpty() },
+                attrFilter = s.attributesFilter.takeIf { it.isNotEmpty() }?.mapValues { it.value.joinToString("||") },
                 page = page, 
                 pageSize = 20
             )

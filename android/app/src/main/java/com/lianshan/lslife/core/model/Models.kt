@@ -28,6 +28,7 @@ data class User(
     val avatar: String? = null,
     val membershipTier: String = "free",
     val realNameStatus: String = "none",
+    val realName: String? = null,
     val walletBalance: Double = 0.0,
     val points: Int = 0,
 )

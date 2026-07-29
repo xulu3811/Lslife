@@ -29,19 +29,19 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = PrimaryRed,
-    onPrimary = PureWhite,
-    primaryContainer = PrimaryRedDark,
-    onPrimaryContainer = PrimaryRedContainer,
-    background = PureBlack,
-    onBackground = PureWhite,
+    primary = DarkPrimary,
+    onPrimary = DarkOnPrimary,
+    primaryContainer = DarkPrimaryContainer,
+    onPrimaryContainer = DarkOnPrimary,
+    background = DarkBackground,
+    onBackground = DarkOnBackground,
     surface = SurfaceDark,
-    onSurface = PureWhite,
+    onSurface = DarkOnBackground,
     surfaceVariant = SurfaceVariantDark,
     onSurfaceVariant = TextSecondaryDark,
     outline = OutlineDark,
-    error = PrimaryRed,
-    onError = PureWhite,
+    error = DarkPrimary,
+    onError = DarkOnPrimary,
 )
 
 @Composable

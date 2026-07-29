@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import javax.inject.Inject
 
 data class ProfileUiState(
@@ -20,6 +21,7 @@ data class ProfileUiState(
     val unread: Int = 0,
     val message: String? = null,
     val loggedOut: Boolean = false,
+    val realNameSubmitting: Boolean = false,
 )
 
 @HiltViewModel
@@ -57,5 +59,52 @@ class ProfileViewModel @Inject constructor(
             authRepository.logout()
             _state.update { it.copy(loggedOut = true) }
         }
+    }
+
+    fun submitRealName(
+        name: String, 
+        idCard: String, 
+        frontUri: android.net.Uri, 
+        backUri: android.net.Uri, 
+        handheldUri: android.net.Uri, 
+        context: android.content.Context
+    ) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            _state.update { it.copy(realNameSubmitting = true, message = "正在上传照片...") }
+            try {
+                val frontUrl = uploadSingleImage(frontUri, context, "front.jpg")
+                val backUrl = uploadSingleImage(backUri, context, "back.jpg")
+                val handheldUrl = uploadSingleImage(handheldUri, context, "handheld.jpg")
+                
+                if (frontUrl == null || backUrl == null || handheldUrl == null) {
+                    _state.update { it.copy(realNameSubmitting = false, message = "图片上传失败，请重试") }
+                    return@launch
+                }
+
+                _state.update { it.copy(message = "正在提交认证资料...") }
+                authRepository.realName(name, idCard, frontUrl, backUrl, handheldUrl)
+                    .onSuccess { 
+                        _state.update { it.copy(realNameSubmitting = false, message = "认证资料已提交，请等待审核") }
+                        load()
+                    }
+                    .onFailure { e ->
+                        _state.update { it.copy(realNameSubmitting = false, message = e.message ?: "提交失败") }
+                    }
+            } catch (e: Exception) {
+                _state.update { it.copy(realNameSubmitting = false, message = "处理失败: ${e.message}") }
+            }
+        }
+    }
+    
+    private suspend fun uploadSingleImage(uri: android.net.Uri, context: android.content.Context, filename: String): String? {
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+        val tempFile = java.io.File(context.cacheDir, filename)
+        tempFile.outputStream().use { out -> inputStream.use { it.copyTo(out) } }
+        val reqFile = okhttp3.RequestBody.create(
+            "image/jpeg".toMediaTypeOrNull(), tempFile
+        )
+        val part = okhttp3.MultipartBody.Part.createFormData("image", filename, reqFile)
+        val res = repo.uploadImage(part)
+        return res.getOrNull()?.url
     }
 }

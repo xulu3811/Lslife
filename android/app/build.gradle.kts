@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.io.File
 
 plugins {
     alias(libs.plugins.android.application)
@@ -39,9 +40,9 @@ if (isReleaseTask) {
     val newCode = curCode + 1
     val newName = "$major.$minor"
 
+    // Set the properties in memory for the current build
     versionProps["versionCode"] = newCode.toString()
     versionProps["versionName"] = newName
-    versionProps.store(versionPropsFile.writer(), "Auto-incremented Version Properties")
 }
 
 val appVersionCode = (versionProps["versionCode"] as String).toInt()
@@ -126,6 +127,9 @@ dependencies {
 
     // OSMdroid (免费开源地图替代方案)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
+    
+    // ZXing QR Code Scanner
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -157,6 +161,20 @@ afterEvaluate {
             "LsLife-v${verName}-release.apk"
         }
         includeEmptyDirs = false
+
+        val propsFilePath = project.file("version.properties").absolutePath
+        val nextName = verName
+        val nextCode = android.defaultConfig.versionCode.toString()
+        doLast {
+            val file = File(propsFilePath)
+            val props = Properties()
+            if (file.exists()) {
+                props.load(file.reader())
+            }
+            props.setProperty("versionCode", nextCode)
+            props.setProperty("versionName", nextName)
+            props.store(file.writer(), "Auto-incremented Version Properties")
+        }
     }
 
     tasks.named("assembleDebug") {

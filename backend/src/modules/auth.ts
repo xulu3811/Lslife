@@ -189,20 +189,33 @@ router.get(
   }),
 );
 
-/** 实名认证 (身份证号仅存哈希) */
+/** 实名认证 (存凭证并转入人工审核) */
 router.post(
   '/realname',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const { realName, idCard } = z
-      .object({ realName: z.string().min(2), idCard: z.string().regex(/^\d{17}[\dXx]$/, '身份证号格式错误') })
+    const { realName, idCard, idCardFrontImage, idCardBackImage, idCardHandheldImage } = z
+      .object({ 
+        realName: z.string().min(2), 
+        idCard: z.string().regex(/^\d{17}[\dXx]$/, '身份证号格式错误'),
+        idCardFrontImage: z.string().url('必须提供身份证正面照').optional(),
+        idCardBackImage: z.string().url('必须提供身份证反面照').optional(),
+        idCardHandheldImage: z.string().url('必须提供手持身份证照').optional()
+      })
       .parse(req.body);
     const idCardHash = createHash('sha256').update(idCard).digest('hex');
     const user = await prisma.user.update({
       where: { id: req.userId! },
-      data: { realName, idCardHash, realNameStatus: 'verified' },
+      data: { 
+        realName, 
+        idCardHash, 
+        idCardFrontImage,
+        idCardBackImage,
+        idCardHandheldImage,
+        realNameStatus: 'pending' // 转入待审核状态
+      },
     });
-    return ok(res, sanitize(user), '实名认证成功');
+    return ok(res, sanitize(user), '实名认证资料已提交，请等待人工审核');
   }),
 );
 

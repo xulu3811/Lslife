@@ -20,7 +20,8 @@ object Routes {
     const val ADDRESS_LIST = "address_list"
     const val ADDRESS_EDIT = "address_edit?addressId={addressId}"
     const val MESSAGE_LIST = "message_list"
-    const val REAL_NAME_AUTH = "real_name_auth"
+    const val REAL_NAME_AGREEMENT = "real_name_agreement"
+    const val REAL_NAME_AUTH = "real_name_auth/{signature}"
     const val CROP_AVATAR = "crop_avatar"
     const val CHAT = "chat/{sessionId}/{targetUserId}/{targetName}?initPostId={initPostId}"
     const val SEARCH = "search"
@@ -38,4 +39,5 @@ object Routes {
         "chat/$sessionId/$targetUserId/$targetName" + if (!initPostId.isNullOrBlank()) "?initPostId=$initPostId" else ""
     fun publish(postId: String? = null) = if (postId.isNullOrBlank()) "publish" else "publish?postId=$postId"
     fun checkout(merchantId: String?, sellerId: String?) = "checkout?merchantId=${merchantId ?: ""}&sellerId=${sellerId ?: ""}"
+    fun realNameAuth(signature: String) = "real_name_auth/$signature"
 }

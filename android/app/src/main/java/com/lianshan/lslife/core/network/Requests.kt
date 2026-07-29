@@ -20,7 +20,13 @@ data class ResetPasswordRequest(val email: String, val code: String, val newPass
 data class ChangePasswordRequest(val oldPassword: String, val newPassword: String)
 
 @Serializable
-data class RealNameRequest(val realName: String, val idCard: String)
+data class RealNameRequest(
+    val realName: String, 
+    val idCard: String,
+    val idCardFrontImage: String? = null,
+    val idCardBackImage: String? = null,
+    val idCardHandheldImage: String? = null
+)
 
 @Serializable
 data class CartUpsertRequest(val productId: String? = null, val postId: String? = null, val quantity: Int)

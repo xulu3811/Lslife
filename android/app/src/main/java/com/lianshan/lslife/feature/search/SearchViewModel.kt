@@ -24,7 +24,9 @@ data class SearchUiState(
     val maxPrice: Double? = null,
     val sortBy: String = "latest", // latest, price_asc, price_desc
     val currentSchema: CategorySchemaResponse? = null,
-    val attributesFilter: Map<String, String> = emptyMap(),
+    val publisherType: String? = null,
+    val listingType: String? = null,
+    val attributesFilter: Map<String, Set<String>> = emptyMap(),
     val searchHistory: List<String> = emptyList(),
     val hotSearches: List<String> = listOf("iPhone 15", "日常保洁", "两室一厅", "寒暑假工", "小面包车", "旺铺转让", "全新手机", "送货搬家"),
     val showFilterBottomSheet: Boolean = false,
@@ -144,17 +146,30 @@ class SearchViewModel @Inject constructor(
 
     fun updateAttributeFilter(key: String, value: String) {
         val current = _state.value.attributesFilter.toMutableMap()
-        if (current[key] == value) {
-            current.remove(key)
+        val currentSet = (current[key] ?: emptySet()).toMutableSet()
+        if (currentSet.contains(value)) {
+            currentSet.remove(value)
+            if (currentSet.isEmpty()) current.remove(key) else current[key] = currentSet
         } else {
-            current[key] = value
+            currentSet.add(value)
+            current[key] = currentSet
         }
         _state.update { it.copy(attributesFilter = current) }
         load(page = 1)
     }
 
+    fun updatePublisherType(type: String?) {
+        _state.update { it.copy(publisherType = type) }
+        load(page = 1)
+    }
+
+    fun updateListingType(type: String?) {
+        _state.update { it.copy(listingType = type) }
+        load(page = 1)
+    }
+
     fun clearAttributesFilter() {
-        _state.update { it.copy(attributesFilter = emptyMap(), minPrice = null, maxPrice = null) }
+        _state.update { it.copy(attributesFilter = emptyMap(), minPrice = null, maxPrice = null, publisherType = null, listingType = null) }
         load(page = 1)
     }
 
@@ -165,6 +180,8 @@ class SearchViewModel @Inject constructor(
                 minPrice = null,
                 maxPrice = null,
                 sortBy = "latest",
+                publisherType = null,
+                listingType = null,
                 currentSchema = null,
                 attributesFilter = emptyMap()
             )
@@ -211,12 +228,14 @@ class SearchViewModel @Inject constructor(
 
             repo.posts(
                 category = s.category,
+                publisherType = s.publisherType,
+                listingType = s.listingType,
                 mine = false,
                 q = s.keyword.takeIf { it.isNotBlank() },
                 minPrice = s.minPrice,
                 maxPrice = s.maxPrice,
                 sortBy = s.sortBy,
-                attrFilter = s.attributesFilter.takeIf { it.isNotEmpty() },
+                attrFilter = s.attributesFilter.takeIf { it.isNotEmpty() }?.mapValues { it.value.joinToString("||") },
                 page = page,
                 pageSize = 20
             ).onSuccess { resPage ->

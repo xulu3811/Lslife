@@ -21,8 +21,11 @@ model User {
   membershipUntil DateTime?
   realNameStatus  String    @default("none") // none | pending | verified
   realName        String?
-  idCardHash      String? // 实名身份证仅存哈希
-  walletBalance   Float     @default(0)
+  idCardHash          String? // 实名身份证仅存哈希
+  idCardFrontImage    String? // 身份证正面照
+  idCardBackImage     String? // 身份证反面照
+  idCardHandheldImage String? // 手持身份证照
+  walletBalance       Float     @default(0)
   points          Int       @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

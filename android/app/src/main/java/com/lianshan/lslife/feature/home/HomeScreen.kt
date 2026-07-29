@@ -62,6 +62,11 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import com.lianshan.lslife.feature.search.AdvancedFilterBottomSheet
 
 private data class CategoryItem(
@@ -95,9 +100,16 @@ fun HomeScreen(
     onOpenMerchant: (String) -> Unit,
     onOpenPost: (String) -> Unit,
     onSearchClick: () -> Unit,
+    onMessageClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        if (result.contents != null) {
+            Toast.makeText(context, "扫码结果: ${result.contents}", Toast.LENGTH_LONG).show()
+        }
+    }
     val listState = rememberLazyListState()
     var selectedParentCategory by androidx.compose.runtime.remember { 
         androidx.compose.runtime.mutableStateOf<com.lianshan.lslife.core.model.CategoryNode?>(null) 
@@ -132,9 +144,16 @@ fun HomeScreen(
     if (state.showFilterBottomSheet) {
         AdvancedFilterBottomSheet(
             schema = state.currentSchema,
+            categoryTree = state.categoryTree,
+            selectedCategory = state.category,
+            publisherType = state.publisherType,
+            listingType = state.listingType,
             minPrice = state.minPrice,
             maxPrice = state.maxPrice,
             attributesFilter = state.attributesFilter,
+            onPublisherTypeChange = viewModel::updatePublisherType,
+            onListingTypeChange = viewModel::updateListingType,
+            onCategoryChange = { c -> viewModel.onCategory(c ?: "all") },
             onPriceChange = viewModel::updatePrice,
             onAttributeToggle = viewModel::updateAttributeFilter,
             onReset = viewModel::clearAttributesFilter,
@@ -187,14 +206,19 @@ fun HomeScreen(
                     Icons.Filled.Notifications,
                     contentDescription = "消息",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp).clickable { onMessageClick() }
                 )
                 Spacer(modifier = Modifier.width(Dimens.md))
                 Icon(
                     Icons.Filled.QrCodeScanner,
                     contentDescription = "扫一扫",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp).clickable {
+                        val options = ScanOptions()
+                        options.setPrompt("请将二维码置于框内")
+                        options.setBeepEnabled(true)
+                        scanLauncher.launch(options)
+                    }
                 )
             }
             
@@ -311,7 +335,11 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    val activeFiltersCount = state.attributesFilter.size + (if (state.minPrice != null || state.maxPrice != null) 1 else 0)
+                    val activeFiltersCount = state.attributesFilter.size + 
+                        (if (state.category != "all") 1 else 0) +
+                        (if (state.minPrice != null || state.maxPrice != null) 1 else 0) +
+                        (if (state.publisherType != null) 1 else 0) +
+                        (if (state.listingType != null) 1 else 0)
                     ElevatedFilterChip(
                         selected = activeFiltersCount > 0,
                         onClick = { viewModel.setShowFilterBottomSheet(true) },

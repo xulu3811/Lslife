@@ -15,8 +15,11 @@ data class CartUiState(
     val loading: Boolean = true,
     val error: String? = null,
     val entries: List<CartEntry> = emptyList(),
+    val selectedGroupId: String? = null,
 ) {
-    val total: Double get() = entries.sumOf { (it.product?.price ?: it.post?.price ?: 0.0) * it.quantity }
+    val total: Double get() = entries
+        .filter { (it.merchantId ?: it.sellerId ?: "unknown") == selectedGroupId }
+        .sumOf { (it.product?.price ?: it.post?.price ?: 0.0) * it.quantity }
 }
 
 @HiltViewModel
@@ -45,6 +48,13 @@ class CartViewModel @Inject constructor(
                 quantity = next
             )
             load()
+        }
+    }
+
+    fun toggleGroupSelection(groupId: String) {
+        _state.update {
+            if (it.selectedGroupId == groupId) it.copy(selectedGroupId = null)
+            else it.copy(selectedGroupId = groupId)
         }
     }
 }

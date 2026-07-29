@@ -26,6 +26,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,15 +90,20 @@ fun CartScreen(
                             
                             item(key = "header-$groupId") {
                                 SoftCard(onClick = { 
-                                    if (isMerchant) onCheckout(groupId, null) else onCheckout(null, groupId)
+                                    viewModel.toggleGroupSelection(groupId)
                                 }) {
                                     Column(Modifier.padding(Dimens.md), verticalArrangement = Arrangement.spacedBy(Dimens.sm)) {
-                                        Text(
-                                            "【$shopName】的商品 · 点击去结算",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = scheme.primary,
-                                            fontWeight = FontWeight.SemiBold,
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            RadioButton(
+                                                selected = state.selectedGroupId == groupId,
+                                                onClick = { viewModel.toggleGroupSelection(groupId) }
+                                            )
+                                            Text(
+                                                "【$shopName】",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
                                         entries.forEach { entry ->
                                             CartRow(
                                                 entry = entry,
@@ -118,11 +125,17 @@ fun CartScreen(
                                 Text("合计", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
                                 PriceText(state.total)
                             }
-                            Text(
-                                "请点击上方卡片进入结算",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = scheme.onSurfaceVariant,
-                            )
+                            Button(
+                                onClick = {
+                                    val selectedGroup = grouped[state.selectedGroupId]
+                                    val isM = selectedGroup?.firstOrNull()?.merchantId != null
+                                    if (isM) onCheckout(state.selectedGroupId, null) else onCheckout(null, state.selectedGroupId)
+                                },
+                                enabled = state.selectedGroupId != null,
+                                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp)
+                            ) {
+                                Text("去结算", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
