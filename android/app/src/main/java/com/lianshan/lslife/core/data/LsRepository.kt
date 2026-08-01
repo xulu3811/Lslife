@@ -56,6 +56,10 @@ class LsRepository @Inject constructor(
     // 支付
     suspend fun createPayment(orderId: String, channel: String) = safeCall { api.createPayment(CreatePaymentRequest(orderId, channel)) }
     suspend fun mockConfirm(orderNo: String) = safeCall { api.mockConfirm(MockConfirmRequest(orderNo)) }
+    suspend fun recharge(amount: Double, type: String = "cash", channel: String = "mock") = safeCall { api.recharge(RechargeRequest(amount, type, channel)) }
+
+    // 钱包
+    suspend fun walletInfo(page: Int = 1, limit: Int = 20) = safeCall { api.walletInfo(page, limit) }
 
     // 地址
     suspend fun addresses() = safeCall { api.addresses() }
@@ -86,6 +90,7 @@ class LsRepository @Inject constructor(
         api.posts(category, publisherType, listingType, mine, q, minPrice, maxPrice, sortBy, attrJson, page, pageSize) 
     }
     suspend fun quota() = safeCall { api.quota() }
+    suspend fun getDiscoverPosts(categoryId: String?) = safeCall { api.getDiscoverPosts(categoryId) }
     suspend fun post(id: String) = safeCall { api.post(id) }
     suspend fun updatePost(id: String, req: CreatePostRequest) = safeCall { api.updatePost(id, req) }
     suspend fun updatePostStatus(id: String, status: String) = safeCall { api.updatePostStatus(id, mapOf("status" to status)) }

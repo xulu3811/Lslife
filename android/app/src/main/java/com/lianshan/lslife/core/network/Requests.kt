@@ -43,6 +43,8 @@ data class CreateOrderRequest(
     val sellerId: String? = null,
     val items: List<OrderItemRequest>,
     val deliveryAddress: DeliveryAddressBody,
+    val deliveryMethod: String? = null,
+    val pickupTime: String? = null,
 )
 
 @Serializable
@@ -97,3 +99,10 @@ data class AiGenerateDescResponse(
 
 @Serializable
 data class UploadResult(val url: String)
+
+@Serializable
+data class RechargeRequest(
+    val amount: Double,
+    val type: String = "cash",
+    val channel: String = "wechat",
+)

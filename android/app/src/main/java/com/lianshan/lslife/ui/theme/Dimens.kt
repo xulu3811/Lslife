@@ -21,4 +21,10 @@ object Dimens {
     val bannerHeight = 180.dp
     val bottomBarHeight = 72.dp
     val buttonHeight = 52.dp
+
+    // Unified UI Elements
+    val menuIconSize = 22.dp
+    val menuRowHeight = 56.dp
+    val menuRowIconBg = 38.dp
+    val categoryIconSize = 48.dp
 }

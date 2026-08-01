@@ -45,6 +45,7 @@ private val sorts = listOf(
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
+    onPostClick: (String) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -357,7 +358,7 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(state.posts, key = { it.id }) { post ->
-                        PostListCard(post)
+                        PostListCard(post, onClick = { onPostClick(post.id) })
                     }
                     if (state.loadingMore) {
                         item {

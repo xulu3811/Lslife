@@ -5,10 +5,11 @@ object Routes {
     const val FORGOT_PASSWORD = "forgot_password"
     const val HOME = "home"
     const val ORDERS = "orders"
-    const val PUBLISH = "publish?postId={postId}"
+    const val PUBLISH = "publish?postId={postId}&categoryId={categoryId}"
     const val MY_POSTS = "my_posts"
     const val CART = "cart"
     const val PROFILE = "profile"
+    const val WALLET = "wallet"
     const val SETTINGS = "settings"
     const val ABOUT = "about"
     const val PRIVACY = "privacy"
@@ -20,14 +21,16 @@ object Routes {
     const val ADDRESS_LIST = "address_list"
     const val ADDRESS_EDIT = "address_edit?addressId={addressId}"
     const val MESSAGE_LIST = "message_list"
+    const val CATEGORY = "category"
     const val REAL_NAME_AGREEMENT = "real_name_agreement"
     const val REAL_NAME_AUTH = "real_name_auth/{signature}"
     const val CROP_AVATAR = "crop_avatar"
     const val CHAT = "chat/{sessionId}/{targetUserId}/{targetName}?initPostId={initPostId}"
     const val SEARCH = "search"
     const val POST_DETAIL = "post_detail/{postId}"
+    const val CATEGORY_DETAIL = "category_detail/{categoryId}/{categoryName}"
 
-    const val CHECKOUT = "checkout?merchantId={merchantId}&sellerId={sellerId}"
+    const val CHECKOUT = "checkout?merchantId={merchantId}&sellerId={sellerId}&entryIds={entryIds}&deliveryMethod={deliveryMethod}"
 
     fun merchant(id: String) = "merchant/$id"
     fun postDetail(id: String) = "post_detail/$id"
@@ -37,7 +40,10 @@ object Routes {
     fun cropAvatar() = "crop_avatar"
     fun chat(sessionId: String, targetUserId: String, targetName: String, initPostId: String? = null) = 
         "chat/$sessionId/$targetUserId/$targetName" + if (!initPostId.isNullOrBlank()) "?initPostId=$initPostId" else ""
-    fun publish(postId: String? = null) = if (postId.isNullOrBlank()) "publish" else "publish?postId=$postId"
-    fun checkout(merchantId: String?, sellerId: String?) = "checkout?merchantId=${merchantId ?: ""}&sellerId=${sellerId ?: ""}"
+    fun publish(postId: String? = null, categoryId: String? = null) = 
+        if (postId.isNullOrBlank() && categoryId.isNullOrBlank()) "publish" 
+        else "publish?postId=${postId ?: ""}&categoryId=${categoryId ?: ""}"
+    fun checkout(merchantId: String?, sellerId: String?, entryIds: String?, deliveryMethod: String? = null) = "checkout?merchantId=${merchantId ?: ""}&sellerId=${sellerId ?: ""}&entryIds=${entryIds ?: ""}&deliveryMethod=${deliveryMethod ?: "DELIVERY"}"
     fun realNameAuth(signature: String) = "real_name_auth/$signature"
+    fun categoryDetail(categoryId: String, categoryName: String) = "category_detail/$categoryId/${java.net.URLEncoder.encode(categoryName, "UTF-8")}"
 }

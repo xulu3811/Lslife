@@ -7,27 +7,38 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.CardGiftcard
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.CheckCircleOutline
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.HeadsetMic
+import androidx.compose.material.icons.outlined.LocalActivity
+import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -39,18 +50,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lianshan.lslife.ui.components.LoadingBox
 import com.lianshan.lslife.ui.components.NetworkImage
-import com.lianshan.lslife.ui.components.PrimaryButton
 import com.lianshan.lslife.ui.components.SoftCard
-import com.lianshan.lslife.ui.components.StatusChip
-import com.lianshan.lslife.ui.components.StatusTone
 import com.lianshan.lslife.ui.theme.Dimens
 
 @Composable
@@ -62,6 +71,7 @@ fun ProfileScreen(
     onOpenMessage: () -> Unit,
     onOpenRealName: () -> Unit,
     onOpenMyPosts: () -> Unit,
+    onOpenWallet: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
@@ -79,7 +89,7 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        containerColor = scheme.background,
+        containerColor = Color.White,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
@@ -94,124 +104,199 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            Box(
+            // Joybuy Style Header
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(scheme.primary, scheme.primary.copy(alpha = 0.9f), scheme.primaryContainer),
-                        ),
+                    .padding(horizontal = Dimens.lg, vertical = Dimens.xl)
+                    .statusBarsPadding(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                NetworkImage(
+                    user?.avatar, 
+                    "头像", 
+                    Modifier
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE0E0E0)) // Light gray background if no avatar
+                        .clickable(onClick = onOpenPersonalInfo)
+                )
+                Spacer(modifier = Modifier.width(Dimens.md))
+                Column(modifier = Modifier.weight(1f).clickable(onClick = onOpenPersonalInfo)) {
+                    Text(
+                        text = user?.nickname ?: "未登录",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = scheme.onBackground,
                     )
-                    .clickable(onClick = onOpenPersonalInfo)
-                    .statusBarsPadding()
-                    .padding(Dimens.xl),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.md),
-                ) {
-                    NetworkImage(user?.avatar, "头像", Modifier.size(72.dp).clip(CircleShape))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            user?.nickname ?: "-",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onPrimary,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.sm)) {
-                            StatusChip(tierLabel(user?.membershipTier), StatusTone.Warning)
-                            StatusChip(
-                                if (user?.realNameStatus == "verified") "已实名" else "未实名",
-                                if (user?.realNameStatus == "verified") StatusTone.Success else StatusTone.Neutral,
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = user?.phone ?: "点击登录/查看个人信息",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                    )
                 }
-            }
-
-            Column(
-                modifier = Modifier.padding(Dimens.lg),
-                verticalArrangement = Arrangement.spacedBy(Dimens.md),
-            ) {
-                com.lianshan.lslife.ui.components.VendorBatteryOptimizationBanner()
-
-                SoftCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(Dimens.lg),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
+                
+                // Top Right Notification Icon
+                if (state.unread > 0) {
+                    BadgedBox(
+                        badge = { Badge { Text(state.unread.toString()) } }
                     ) {
-                        StatCell("余额", "¥%.1f".format(user?.walletBalance ?: 0.0))
-                        StatCell("积分", "${user?.points ?: 0}")
-                        StatCell("未读", "${state.unread}")
-                    }
-                }
-
-                PrimaryButton(
-                    text = "升级会员 · 提升发布额度",
-                    onClick = onOpenMembership,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                SoftCard {
-                    Column {
-                        ProfileMenuRow(Icons.Filled.Place, "收货地址", "管理常用地址", onClick = onOpenAddress)
-                        ProfileMenuRow(Icons.Filled.Notifications, "消息通知", "${state.unread} 条未读", onClick = onOpenMessage)
-                        ProfileMenuRow(Icons.Filled.Edit, "我的发布", "管理已发布的信息", onClick = onOpenMyPosts)
-                        ProfileMenuRow(
-                            Icons.Filled.VerifiedUser,
-                            "实名认证",
-                            if (user?.realNameStatus == "verified") "已完成" else "去认证",
-                            onClick = onOpenRealName,
-                        )
-                        ProfileMenuRow(
-                            Icons.Filled.WorkspacePremium,
-                            "会员权益",
-                            tierLabel(user?.membershipTier),
-                            onClick = onOpenMembership,
-                        )
-                        ProfileMenuRow(
-                            Icons.Filled.Settings,
-                            "设置",
-                            "主题 · 通知 · 隐私与关于",
-                            onClick = onOpenSettings,
-                            showDivider = false,
+                        Icon(
+                            Icons.Outlined.Notifications,
+                            contentDescription = "消息",
+                            tint = scheme.onBackground,
+                            modifier = Modifier.size(24.dp).clickable(onClick = onOpenMessage)
                         )
                     }
+                } else {
+                    Icon(
+                        Icons.Outlined.Notifications,
+                        contentDescription = "消息",
+                        tint = scheme.onBackground,
+                        modifier = Modifier.size(24.dp).clickable(onClick = onOpenMessage)
+                    )
                 }
-
-                OutlinedButton(
-                    onClick = viewModel::logout,
-                    modifier = Modifier.fillMaxWidth().height(Dimens.buttonHeight),
-                    shape = MaterialTheme.shapes.large,
-                ) {
-                    Text("退出登录")
-                }
-
-                Text(
-                    "© 2026 连山壮族瑶族自治县 · 智慧同城生活平台",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
-                Spacer(Modifier.height(Dimens.lg))
             }
+
+            // --- Section 1: 订单 (Orders) ---
+            SectionTitle(title = "订单", showChevron = true, onClick = { /* To full orders */ })
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.sm, vertical = Dimens.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OrderGridItem(icon = Icons.Outlined.Schedule, label = "待付款", modifier = Modifier.weight(1f))
+                OrderGridItem(icon = Icons.Outlined.LocalShipping, label = "待收货", modifier = Modifier.weight(1f))
+                OrderGridItem(icon = Icons.Outlined.CheckCircleOutline, label = "已完成", modifier = Modifier.weight(1f))
+                OrderGridItem(icon = Icons.Outlined.ChatBubbleOutline, label = "评价", modifier = Modifier.weight(1f))
+                OrderGridItem(icon = Icons.Outlined.HeadsetMic, label = "售后", modifier = Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(Dimens.md))
+
+            // --- Section 2: 钱包 (Wallet) ---
+            SectionTitle(title = "钱包")
+            ProfileMenuRow(
+                icon = Icons.Outlined.AccountBalanceWallet,
+                title = "余额",
+                rightText = "¥%.2f".format(user?.walletBalance ?: 0.0),
+                onClick = onOpenWallet,
+                showDivider = true
+            )
+            ProfileMenuRow(
+                icon = Icons.Outlined.LocalActivity,
+                title = "积分",
+                rightText = "${user?.points ?: 0}分",
+                onClick = onOpenWallet,
+                showDivider = true
+            )
+            ProfileMenuRow(
+                icon = Icons.Outlined.WorkspacePremium,
+                title = "会员权益",
+                rightText = tierLabel(user?.membershipTier),
+                onClick = onOpenMembership,
+                showDivider = true
+            )
+
+            // --- Section 3: 个人与服务 (Personal Info & Services) ---
+            SectionTitle(title = "个人与服务")
+            ProfileMenuRow(
+                icon = Icons.Outlined.Place,
+                title = "收货地址",
+                onClick = onOpenAddress,
+                showDivider = true
+            )
+            ProfileMenuRow(
+                icon = Icons.Outlined.Edit,
+                title = "我的发布",
+                onClick = onOpenMyPosts,
+                showDivider = true
+            )
+            ProfileMenuRow(
+                icon = Icons.Outlined.VerifiedUser,
+                title = "实名认证",
+                rightText = if (user?.realNameStatus == "verified") "已完成" else "去认证",
+                onClick = onOpenRealName,
+                showDivider = false
+            )
+
+            Spacer(modifier = Modifier.height(Dimens.md))
+
+            // --- Section 4: 更多 (More) ---
+            SectionTitle(title = "更多")
+            ProfileMenuRow(
+                icon = Icons.Outlined.Settings,
+                title = "设置&隐私",
+                onClick = onOpenSettings,
+                showDivider = true
+            )
+            
+            // Logout Row (Styled as a menu row to fit minimalist design, or keep as a row)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = viewModel::logout)
+                    .padding(horizontal = Dimens.lg, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("退出登录", style = MaterialTheme.typography.titleSmall, color = Color(0xFFE52F2F))
+            }
+
+            Spacer(modifier = Modifier.height(Dimens.xl))
+            Text(
+                "© 2026 连山壮族瑶族自治县 · 智慧同城生活平台",
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            Spacer(modifier = Modifier.height(Dimens.xxl))
         }
     }
 }
 
 @Composable
-private fun StatCell(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun SectionTitle(title: String, showChevron: Boolean = false, onClick: (() -> Unit)? = null) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
+            .padding(horizontal = Dimens.lg, vertical = Dimens.md),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.weight(1f)
+        )
+        if (showChevron) {
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
+
+@Composable
+private fun OrderGridItem(icon: ImageVector, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(icon, contentDescription = label, modifier = Modifier.size(26.dp), tint = MaterialTheme.colorScheme.onBackground)
+        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+
 
 @Composable
 private fun ProfileMenuRow(
     icon: ImageVector,
     title: String,
-    subtitle: String,
+    rightText: String? = null,
     onClick: () -> Unit = {},
     showDivider: Boolean = true,
 ) {
@@ -220,31 +305,25 @@ private fun ProfileMenuRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(horizontal = Dimens.md, vertical = Dimens.md),
+                .padding(horizontal = Dimens.lg, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.md),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Icon(icon, contentDescription = title, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(20.dp))
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            
+            if (rightText != null) {
+                Text(rightText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
         }
         if (showDivider) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 68.dp)
-                    .height(1.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    .padding(horizontal = Dimens.lg) // Joybuy style thin full width divider
+                    .height(0.5.dp)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)),
             )
         }
     }

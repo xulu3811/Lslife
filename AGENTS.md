@@ -1,82 +1,86 @@
-# 连山壮瑶同城 (LianShan Local Services) - V3.8 存档与交接准则
+# 连山壮瑶同城 (LianShan Local Services) - V5.0 存档与交接准则
 
 ## 📌 项目状态与客观现实 (Project State & Objective Reality)
-
-经过从初创到 V3.8 阶段的爆发式演进，本项目已构建起一套**高性能、高安防、多维交互且全链路闭环**的本地同城生活服务交易与通讯平台。目前系统不仅具备了“1:1 闲鱼商品动态发布 + 本地同城分类服务”，更深度打通了**国民级的即时交易聊天系统 (IM)**，包含了图文、语音、商品卡片等多模态通讯能力。
-现阶段系统已稳定发版至 **v3.8**（归档于 `D:\LsLife\releases\LsLife-v3.8-release.apk`）。
+本项目是一款针对县域级市场（目标覆盖人口 3~10 万，并发支撑 3 万）量身打造的**本地同城生活服务交易与通讯平台**。
+历经多个版本的爆发式演进，项目现已全面升级至 **V5.0 (Joybuy 级商业视觉体验与全品类覆盖版)**。
+我们在具备“1:1 闲鱼动态发布 + 本地同城分类”底层逻辑的同时，打通了极其成熟的购物车与多模态即时通讯体系，并完成了客户端视觉体验的脱胎换骨。
+现阶段系统已极其稳定，且已成功部署至阿里云生产环境。客户端核心产物归档于 `D:\LsLife\releases\`。
 
 ---
 
-## 🏗 核心模块、技术架构与业务逻辑 (Core Architecture & Logic)
+## 🏗 核心模块、业务逻辑与算法 (Core Architecture & Logic)
 
-### 1. 深度即时通讯与交易存证体系 (Deep IM & Transaction System - V3.8 重点)
-- **多模态消息体系 (Multi-modal Messaging)**：
-  - **商品联动卡片 (`post_card`)**：买家在商品详情页点击“立刻沟通”时，系统自动抓取商品元数据（首图、标题、价格）并以 JSON 格式静默发送，极大提升了交易转化率。
-  - **极速图片流转 (`image`)**：为了追求极限速度，图片发送跳过传统 HTTP 接口，在本地无损压缩后转化为 `base64:` 文本流，直接通过 WebSocket 砸向服务端。Android 渲染层 (`ChatScreen`) 实施 `Base64.decode` 字节还原拦截，喂给 Coil 引擎进行极速显示。
-  - **原生语音通信 (`voice`)**：重构了底层的 `AudioManager`，采用高压高音质的 **AAC编码/m4a格式**。UI 层剥离了 Compose 默认组件的事件吞噬，纯手写 `pointerInput` (拖拽与点按探测) 完美复刻了微信/闲鱼“按住说话、松开发送”的高敏国民级手势。
-- **永久加密与防篡改存证链 (Encryption & Tamper-Proof Chain)**：
-  - 后端 `hub.ts` 对所有聊天载体自动执行 **AES-256-CBC 对称加密** 落盘。
-  - 每一条入库消息均基于“前一条哈希 + 当前明文 + 发送人 + 时间戳”，计算 **SHA-256 哈希值**，形成区块式存证链，实现法律级防删改追溯。
-- **后台守护与高优通知直达 (Foreground Service & Heads-up)**：
-  - 客户端通过前台服务 `LsLifeImService.kt` 独占接管 WebSocket，彻底杜绝系统杀后台。
-  - 收到新消息时弹出 `IMPORTANCE_HIGH` 系统横幅，点击通过 `PendingIntent` 无缝拉起应用直达私聊窗口。
+### 1. 交易流转与购物车引擎 (Commerce & Cart)
+*   **购物车多选与防跨店算法**：购物车 (`CartViewModel`) 采用精确的条目级 ID 追踪 (`selectedEntryIds`)，支持单个商品独立多选与单选。底层算法严格校验商户归属，勾选新商铺商品时自动互斥清空其他商铺，确保订单生成的合法性。
+*   **结算状态同步 (Lifecycle Sync)**：结算页 (`CheckoutScreen`) 与收货地址管理深度联动，利用 `LifecycleEventObserver` 捕获生命周期 `ON_RESUME` 事件，实现地址添加后的无缝自动回填。
 
-### 2. 千人千面动态发布引擎 (Dynamic Publish Engine)
-- **多级联动表单与动态 Schema**：基于 `CategoryConfig.kt` 驱动条件渲染，不同分类呈现专属的字段结构。
-- **DeepSeek AI 智能提取**：针对非结构化长文本，一键提炼品牌、成色等属性并自动回填。
-- **发贴额度算法与白名单**：普通账号限制最大发布量（防刷拦截）；特权账号白名单解除一切限制。
-- **图片沙盒 Cache-on-Select**：规避 Android 13+ 的跨页 URI 权限截断，并引入携程并发无损压缩突破上传瓶颈。
+### 2. 深度即时通讯与交易存证体系 (Deep IM & Transaction System)
+*   **多模态并发流**：支持图文、语音、以及**商品联动卡片 (`post_card`)**，买家在商品详情页可一键静默发送商品快照。
+*   **图片极速流转算法 (`image`)**：突破 HTTP 瓶颈，采用本地无损压缩 -> `base64:` 文本流 -> WebSocket 直连服务端的传输算法。客户端 (`ChatScreen`) 拦截字节流直接喂给 Coil 渲染引擎，实现毫秒级图片上屏。
+*   **原生语音通信 (`voice`)**：重构底层 `AudioManager`，采用高压高音质 **AAC编码/m4a格式**，结合纯手写 `pointerInput` 手势探测，完美复刻国民级“按住说话、松开发送/上划取消”操作。
+*   **区块链级防篡改存证**：后端 `hub.ts` 实施 **AES-256-CBC 对称加密** 落盘，且每条消息均基于“前一条哈希+当前明文+特征”计算 **SHA-256** 哈希，构成不可篡改的证据链。
+*   **前台服务保活**：`LsLifeImService.kt` 独占 WebSocket，并在收到消息时触发 `IMPORTANCE_HIGH` 系统级通知直达私聊。
 
-### 3. 主页展示与二级聚类导航 (Home & Sub-category Feed)
-- 实现了流畅的“骨架屏 (`SkeletonCard`)”丝滑过渡。
-- 支持基于业务模块（个人闲置、房屋租售等）的深度二级分类导航矩阵，数据结构高内聚。
+### 3. 千人千面动态发布引擎 (Dynamic Publish Engine)
+*   **动态 Schema 渲染**：利用 `CategoryConfig.kt` 驱动条件渲染，房产、二手、兼职、拼车等 10+ 个顶级大类及 100+ 个二级细分类各自呈现专属字段。
+*   **DeepSeek AI NLP 提取**：接入 AI 算法，针对非结构化长文本，一键智能提炼品牌、成色、价格等核心要素并自动回填。
+
+### 4. V5.0 顶级商业化视觉体验 (Joybuy Design System)
+*   **极简克制的留白**：移除了早期繁杂的块面背景，统一采用纯白 (`#FFFFFF`) 容器与浅冷灰底色，彻底突显商品图本身。
+*   **3D 扁平化图标矩阵**：全站 100+ 个细分品类已全面接入高规格 3D 图标库（覆盖个人闲置、餐饮、教育、拼车租车等），由后端下发动态 URL。
+*   **重构导航与 UI 组件**：利用 `URLEncoder` 修复了带特殊字符（如“拼车/租车”）的 Jetpack Compose 路由闪退。实现了纯文字 + 黑色下划线的高级 Tab、圆角优化的商品卡片（`8dp`）及醒目的红色实心 `+` 加购按钮。
 
 ---
 
 ## 💻 技术栈底座 (Technology Stack)
 
 ### Android 客户端 (Frontend)
-- **语言 / SDK**: Kotlin / Min SDK 24 / Target & Compile SDK 34-36
-- **UI 框架 / 手势**: Jetpack Compose (深度定制 `pointerInput` 与动画) / AndroidX Navigation
-- **架构 / 协程**: MVVM / Dagger Hilt / Coroutines & StateFlow
-- **网络通信**: Retrofit2 (RESTful) / OkHttp3 / WebSockets (实时全双工)
-- **媒体处理**: 原生 `MediaRecorder` & `MediaPlayer` / ImageCompressor / Coil
+*   **语言 / SDK**: Kotlin / Min SDK 24 / Target SDK 34
+*   **UI 框架**: Jetpack Compose / Material3 / AndroidX Navigation / URL 自动编解码路由
+*   **架构 / 状态管理**: MVVM 单向数据流 / Dagger Hilt 依赖注入 / Coroutines & StateFlow
+*   **网络通信**: Retrofit2 (RESTful) / OkHttp3 / WebSockets (全双工保活通信)
+*   **图像与多媒体**: Coil / CameraX / Android 原生 Media 引擎
 
 ### 服务端与数据存储 (Backend)
-- **环境 / 框架**: Node.js / Fastify / Express (兼容层) / TypeScript / PM2 热载托管
-- **数据库 / ORM**: PostgreSQL / Prisma ORM
-- **加密安防**: Node Crypto (AES-256-CBC + SHA-256)
-- **多媒体流**: Multer (`/api/upload/audio` 独立管道)
+*   **环境 / 框架**: Node.js / Express 兼容层 / TypeScript / PM2 热载托管 (`115.191.6.95`)
+*   **数据库 / ORM**: PostgreSQL 关系型数据库 / Prisma ORM
+*   **加密安防**: Node.js 原生 Crypto 模块 (AES-256 + SHA-256)
 
 ---
 
 ## 🗄 数据库模型架构 (Database Schema - Prisma)
-1. **`User`**: 核心主表（包含极简手机号注册、加密密码鉴权）。
-2. **`Post`**: 商品/服务发布表（含品类、JSON属性图集，动态拓展）。
-3. **`ChatSession`**: 会话拓扑表（维护双边未读池与高频唤醒映射）。
-4. **`ChatMessage`**: 交易存证表。通过 `type` 字段（`text/image/voice/post_card/recalled`）驱动客户端多态渲染，高度解耦。
+1. **`User`**: 核心主表（手机号极简注册、密码加密鉴权、实名与会员权益状态）。
+2. **`Post` / `Product`**: 商品服务发布表（含品类标识、JSON属性集合、图集链接，支持高度多态）。
+3. **`Cart` / `CartEntry`**: 购物车拓扑结构，存储用户的多商铺商品购买意向。
+4. **`Order` / `OrderItem`**: 订单流转核心表（关联收货地址、支付状态、履约生命周期）。
+5. **`ChatSession` & `ChatMessage`**: 交易沟通链路表。
+6. **`Category` 树**: 高度封装的分类表，已内置 `iconUrl` 指向最新的 3D 图标库。
 
 ---
 
-## 🚀 自动化发版与归档规范 (Build & Archiving Rules)
-- **自增版本与归档**：执行 Release 编译时，系统 (`version.properties` 脚本) 自动升阶。
-- **标准编译指令**：
+## 🚀 自动化发版与部署指引 (Build & Deploy)
+*   **归档规则**：以后只允许输出 `release` 版本到 `D:\LsLife\releases\` 目录，不再拷贝 debug 版本。
+*   **自增版本**：执行 Release 时，项目根目录的 `version.properties` 脚本会自动升阶 VersionCode。
+*   **标准编译指令** (使用 JDK 17 / Android Studio jbr):
   ```powershell
   $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat assembleRelease
   ```
-- **产物归档**：必须严格命名 `LsLife-vX.Y-release.apk` 存入 `D:\LsLife\releases\`。
+*   **服务端重置数据 (当且仅当修改了 seed.ts 时)**:
+  在远程服务器执行 `npm run seed` 并通过 `pm2 restart all` 热启。
 
 ---
 
-## 🎯 下一阶段开发接力指引 (Next Stage Handover - V3.9+)
-接手此项目的开发团队，请优先审阅以下规划：
-1. **全局高级搜索与多维过滤 (Search & Filter)**：
-   目前我们已经拥有了强大的结构化数据底座，下一步亟需开发一个独立的高级搜索路由，支持依据“价格区间、成色、分类标签”的联合聚合查询。请充分利用 Prisma 的复合查询索引。
-2. **地图定位卡片联动**：
-   在 IM 通讯协议中已预留多态空间，可引入 `type = "location"` 并接入高德地图 API，补齐最后一块 O2O 拼图。
-3. **架构严谨性约束**：
-   无论如何拓展 UI，必须维持 `MVVM + Hilt` 的单向数据流。所有新增权限（如定位）务必执行 `ActivityResultContracts` 动态运行时申请，不可抱有侥幸心理。
+## 🎯 二次开发交接与下一阶段指引 (Next Stage Handover)
 
-## ⏰ 开发后期与上线前强制检查单 (Pre-Launch Checklist)
-- **【核心提醒】数据容灾与备份机配置**：在全部开发与测试流程结束后、正式大规模拉新上线前，**必须提醒客户配置自动化容灾备份机**（包含数据库和全量静态资源的增量/全量同步 Cron 脚本）。
+接手此项目进行**二次开发**的工程师/Agent，请优先查阅以下未尽事宜并基于此开启新工作：
 
+1. **【强制】数据容灾与备份机配置**：
+   项目目前已跑通上线全流程，请务必在服务器上配置数据库及静态资源（如上传的图片、语音）的全量/增量自动化 Cron 备份脚本（推荐异地双机热备），防止数据灾难。
+2. **全局高级搜索与多维过滤 (Search & Filter)**：
+   目前数据底座已完全结构化。接下来需要为搜索页开发联合聚合查询（如“价格区间” + “成色” + “分类标签”），建议直接利用 Prisma 的高级复合查询。
+3. **地图与 O2O 闭环定位卡片**：
+   IM 协议已预留。可接入高德/腾讯地图 API，在聊天中实现 `type="location"` 的地图卡片互发，并增加商品距离检索。
+4. **架构严谨性与规范约束**：
+   在后续二次开发中，**绝对不允许破坏现有的 MVVM + Hilt 单向数据流架构**。任何新加的 Android 权限务必通过 `ActivityResultContracts` 进行动态请求。
+5. **严格的路由规范 (Navigation)**：
+   任何往 Jetpack Compose 传递的 String 路径参数，**必须**使用 `java.net.URLEncoder.encode` 进行封装，以免包含特殊字符（如 `/` 或 `?`）导致路由解析崩溃。

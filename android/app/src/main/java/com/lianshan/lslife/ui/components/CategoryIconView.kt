@@ -22,6 +22,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 
 @Composable
 fun CategoryIconView(
@@ -45,6 +55,11 @@ fun CategoryIconView(
             }
             else -> iconUrl
         }
+    }
+
+    if (iconName == "all") {
+        AllCategoryCustomIcon(size = size, modifier = modifier)
+        return
     }
 
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
@@ -123,5 +138,47 @@ private fun resolveVectorIcon(name: String?): ImageVector {
         key.contains("book") || key.contains("novel") -> Icons.AutoMirrored.Filled.MenuBook
         key.contains("sparkles") || key.contains("awesome") || key.contains("ai") -> Icons.Filled.AutoAwesome
         else -> Icons.Filled.Folder
+    }
+}
+
+@Composable
+fun AllCategoryCustomIcon(size: Dp, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .shadow(
+                elevation = 4.dp, 
+                shape = RoundedCornerShape(size * 0.22f),
+                spotColor = Color(0xFFE52F2F).copy(alpha = 0.5f),
+                ambientColor = Color(0xFFE52F2F).copy(alpha = 0.1f)
+            )
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFFF6B6B),
+                        Color(0xFFE52F2F)
+                    )
+                ),
+                shape = RoundedCornerShape(size * 0.22f)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        val gridSize = size * 0.55f
+        val spacing = size * 0.08f
+        val itemSize = (gridSize - spacing) / 2
+        
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(spacing),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                Box(modifier = Modifier.size(itemSize).background(Color.White, RoundedCornerShape(itemSize * 0.3f)))
+                Box(modifier = Modifier.size(itemSize).background(Color.White, RoundedCornerShape(itemSize * 0.3f)))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                Box(modifier = Modifier.size(itemSize).background(Color.White, RoundedCornerShape(itemSize * 0.3f)))
+                Box(modifier = Modifier.size(itemSize).background(Color.White, RoundedCornerShape(itemSize * 0.3f)))
+            }
+        }
     }
 }

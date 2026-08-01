@@ -2,6 +2,7 @@ package com.lianshan.lslife.feature.publish
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.lianshan.lslife.core.data.CategoryRepository
 import com.lianshan.lslife.core.data.LsRepository
@@ -35,6 +36,8 @@ data class PublishUiState(
     val selectedCategory: CategoryNode? = null,
     val selectedCategoryPath: String = "请选择分类",
     val categoryId: String = "second_hand",
+    val requireCategorySelection: Boolean = false,
+    val preSelectedLevel1Id: String? = null,
     val dynamicFields: List<DynamicField> = emptyList(),
     val dynamicFormValues: Map<String, String> = emptyMap(),
 
@@ -55,10 +58,14 @@ data class PublishUiState(
 class PublishViewModel @Inject constructor(
     private val repo: LsRepository,
     private val categoryRepo: CategoryRepository,
+    private val savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(PublishUiState())
+    private val isEditMode = savedStateHandle.get<String>("postId")?.let { it.isNotBlank() && it != "{postId}" } == true
+    private val initialCategoryId = savedStateHandle.get<String>("categoryId")?.takeIf { it.isNotBlank() && it != "{categoryId}" } ?: "second_hand"
+
+    private val _state = MutableStateFlow(PublishUiState(categoryId = initialCategoryId))
     val state: StateFlow<PublishUiState> = _state
 
     init {
@@ -73,10 +80,15 @@ class PublishViewModel @Inject constructor(
             categoryRepo.categoryTree.collect { tree ->
                 _state.update { it.copy(categoryTree = tree) }
                 if (tree.isNotEmpty() && _state.value.selectedCategory == null) {
-                    val found = categoryRepo.findLeafCategoryAndPath(tree, _state.value.categoryId)
-                        ?: categoryRepo.findFirstLeafAndPath(tree)
-                    if (found != null) {
-                        onSelectLeafCategory(found.first, found.second)
+                    val initialId = _state.value.categoryId
+                    val targetNodeAndPath = findExactNodeAndPath(tree, initialId)
+                    if (targetNodeAndPath != null && targetNodeAndPath.first.isLeaf) {
+                        onSelectLeafCategory(targetNodeAndPath.first, targetNodeAndPath.second)
+                    } else if (!isEditMode) {
+                        _state.update { it.copy(
+                            requireCategorySelection = true, 
+                            preSelectedLevel1Id = targetNodeAndPath?.first?.id
+                        ) }
                     }
                 }
             }
@@ -97,6 +109,20 @@ class PublishViewModel @Inject constructor(
         viewModelScope.launch {
             categoryRepo.getCategoryTree(forceRefresh = true)
         }
+    }
+
+    fun onCategorySelectionShown() = _state.update { it.copy(requireCategorySelection = false) }
+
+    private fun findExactNodeAndPath(nodes: List<CategoryNode>, targetId: String, pathPrefix: String = ""): Pair<CategoryNode, String>? {
+        for (node in nodes) {
+            val currentPath = if (pathPrefix.isEmpty()) node.name else "$pathPrefix > ${node.name}"
+            if (node.id == targetId) return node to currentPath
+            if (node.children.isNotEmpty()) {
+                val found = findExactNodeAndPath(node.children, targetId, currentPath)
+                if (found != null) return found
+            }
+        }
+        return null
     }
 
     fun loadQuota() {

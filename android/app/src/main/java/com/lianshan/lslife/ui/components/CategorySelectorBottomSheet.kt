@@ -160,32 +160,7 @@ fun CategorySelectorBottomSheet(
                                     .padding(vertical = Dimens.sm),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .background(
-                                            brush = Brush.linearGradient(
-                                                colors = listOf(
-                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                                    MaterialTheme.colorScheme.primaryContainer
-                                                )
-                                            ),
-                                            shape = MaterialTheme.shapes.medium
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                            shape = MaterialTheme.shapes.medium
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "全部", 
-                                        fontSize = 16.sp, 
-                                        fontWeight = FontWeight.Bold, 
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
+                                CategoryIconView(iconUrl = null, iconName = "all", size = 56.dp)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "全部" + l2Node.name.take(4),

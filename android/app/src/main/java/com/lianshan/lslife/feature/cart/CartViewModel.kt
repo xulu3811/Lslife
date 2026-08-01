@@ -15,11 +15,22 @@ data class CartUiState(
     val loading: Boolean = true,
     val error: String? = null,
     val entries: List<CartEntry> = emptyList(),
-    val selectedGroupId: String? = null,
+    val selectedEntryIds: Set<String> = emptySet(),
+    val deliveryMethod: String = "DELIVERY", // DELIVERY | PICKUP
 ) {
     val total: Double get() = entries
-        .filter { (it.merchantId ?: it.sellerId ?: "unknown") == selectedGroupId }
+        .filter { it.id in selectedEntryIds }
         .sumOf { (it.product?.price ?: it.post?.price ?: 0.0) * it.quantity }
+        
+    val savedAmount: Double get() = entries
+        .filter { it.id in selectedEntryIds }
+        .sumOf { 
+            val price = it.product?.price ?: it.post?.price ?: 0.0
+            val original = it.product?.originalPrice
+            if (original != null && original > price) {
+                (original - price) * it.quantity
+            } else 0.0
+        }
 }
 
 @HiltViewModel
@@ -51,10 +62,42 @@ class CartViewModel @Inject constructor(
         }
     }
 
-    fun toggleGroupSelection(groupId: String) {
-        _state.update {
-            if (it.selectedGroupId == groupId) it.copy(selectedGroupId = null)
-            else it.copy(selectedGroupId = groupId)
+    fun toggleEntrySelection(entry: CartEntry) {
+        val groupId = entry.merchantId ?: entry.sellerId ?: "unknown"
+        _state.update { st ->
+            val currentSelected = st.entries.filter { it.id in st.selectedEntryIds }
+            val currentGroupId = currentSelected.firstOrNull()?.let { it.merchantId ?: it.sellerId ?: "unknown" }
+            
+            val newSelected = if (currentGroupId != null && currentGroupId != groupId) {
+                // User selected an item from a different merchant. Clear previous selection to enforce single-merchant checkout.
+                setOf(entry.id)
+            } else {
+                if (st.selectedEntryIds.contains(entry.id)) {
+                    st.selectedEntryIds - entry.id
+                } else {
+                    st.selectedEntryIds + entry.id
+                }
+            }
+            st.copy(selectedEntryIds = newSelected)
         }
+    }
+
+    fun toggleGroupSelection(groupId: String) {
+        _state.update { st ->
+            val groupEntries = st.entries.filter { (it.merchantId ?: it.sellerId ?: "unknown") == groupId }
+            val groupEntryIds = groupEntries.map { it.id }.toSet()
+            
+            val allSelected = st.selectedEntryIds.containsAll(groupEntryIds) && groupEntryIds.isNotEmpty()
+            if (allSelected) {
+                st.copy(selectedEntryIds = emptySet())
+            } else {
+                // Select all in this group, clearing any other group
+                st.copy(selectedEntryIds = groupEntryIds)
+            }
+        }
+    }
+
+    fun setDeliveryMethod(method: String) {
+        _state.update { it.copy(deliveryMethod = method) }
     }
 }

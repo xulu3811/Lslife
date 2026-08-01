@@ -16,7 +16,7 @@ const genOrderNo = customAlphabet('0123456789', 6);
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { merchantId, sellerId, items, deliveryAddress } = z
+    const { merchantId, sellerId, items, deliveryAddress, deliveryMethod, pickupTime } = z
       .object({
         merchantId: z.string().optional(),
         sellerId: z.string().optional(),
@@ -26,6 +26,8 @@ router.post(
           quantity: z.number().int().positive() 
         })).min(1),
         deliveryAddress: z.object({ name: z.string(), phone: z.string(), address: z.string() }),
+        deliveryMethod: z.string().optional(),
+        pickupTime: z.string().optional(),
       })
       .parse(req.body);
 
@@ -40,7 +42,7 @@ router.post(
       if (!merchant) throw new ApiError(400, '商家不存在');
       shopName = merchant.name;
       shopLogo = merchant.logo;
-      baseDeliveryFee = merchant.deliveryFee;
+      baseDeliveryFee = deliveryMethod === 'PICKUP' ? 0 : merchant.deliveryFee;
     } else if (sellerId) {
       const seller = await prisma.user.findUnique({ where: { id: sellerId } });
       if (!seller) throw new ApiError(400, '卖家不存在');
@@ -87,6 +89,8 @@ router.post(
         deliveryFee: baseDeliveryFee,
         totalAmount,
         status: 'pending',
+        deliveryMethod: deliveryMethod || 'DELIVERY',
+        pickupTime,
         deliveryName: deliveryAddress.name,
         deliveryPhone: deliveryAddress.phone,
         deliveryAddress: deliveryAddress.address,

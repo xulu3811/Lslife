@@ -1,0 +1,114 @@
+package com.lianshan.lslife.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.lianshan.lslife.ui.theme.Dimens
+
+private data class PublishMenuItem(
+    val id: String,
+    val title: String,
+    val iconName: String,
+    val iconUrl: String,
+    val tintColor: Color
+)
+
+private val publishMenuItems = listOf(
+    PublishMenuItem("cat_idle", "闲置物品", "shopping-bag", "/assets/icons/3d_flat_secondhand.png", Color(0xFFE52F2F)),
+    PublishMenuItem("cat_house", "房源租售", "home", "/assets/icons/3d_flat_housing.png", Color(0xFF2196F3)),
+    PublishMenuItem("cat_service", "家政保洁", "cleaning-services", "/assets/icons/3d_flat_cleaning.png", Color(0xFFFF9800)),
+    PublishMenuItem("cat_maintenance", "水电维修", "build", "/assets/icons/3d_flat_repair.png", Color(0xFF607D8B)),
+    PublishMenuItem("cat_veggies", "同城生鲜", "shopping-basket", "/assets/icons/3d_flat_fresh_food.png", Color(0xFF4CAF50)),
+    PublishMenuItem("cat_job", "本地招聘", "work", "/assets/icons/3d_flat_jobs.png", Color(0xFF00BCD4)),
+    PublishMenuItem("cat_car_rental", "拼车租车", "local-shipping", "/assets/icons/3d_flat_car_rental.png", Color(0xFF3F51B5)),
+    PublishMenuItem("cat_part_time", "兼职零工", "schedule", "/assets/icons/3d_flat_parttime.png", Color(0xFF9C27B0)),
+    PublishMenuItem("cat_education", "教育培训", "school", "/assets/icons/3d_flat_education.png", Color(0xFFE91E63)),
+    PublishMenuItem("cat_dining", "餐饮娱乐", "restaurant", "/assets/icons/3d_flat_dining.png", Color(0xFFFF5722))
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PublishMenuBottomSheet(
+    onDismiss: () -> Unit,
+    onNavigateToPublish: (String) -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Color.White
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Dimens.xxl, start = Dimens.lg, end = Dimens.lg),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "发布商业与生活服务",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = Dimens.md)
+            )
+            Text(
+                text = "严禁发布违规及泛社交动态信息",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = Dimens.xl)
+            )
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(5),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.sm),
+                verticalArrangement = Arrangement.spacedBy(Dimens.lg),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(publishMenuItems) { item ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onDismiss()
+                                onNavigateToPublish(item.id)
+                            },
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(item.tintColor.copy(alpha = 0.1f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CategoryIconView(
+                                iconUrl = item.iconUrl,
+                                iconName = item.iconName,
+                                size = 48.dp,
+                                tint = item.tintColor
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = item.title,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(Dimens.xxl))
+        }
+    }
+}

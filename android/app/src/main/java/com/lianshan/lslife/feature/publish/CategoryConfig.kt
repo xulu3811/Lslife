@@ -72,7 +72,7 @@ val publishCategoryConfigs = listOf(
     ),
     CategoryConfig(
         id = "veggies",
-        name = "水果蔬菜",
+        name = "同城生鲜",
         attr1Label = "分类",
         attr1Options = listOf("新鲜水果", "蔬菜", "农副产品"),
     ),

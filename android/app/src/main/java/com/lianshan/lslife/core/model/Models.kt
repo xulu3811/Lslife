@@ -131,6 +131,8 @@ data class Order(
     val deliveryFee: Double,
     val totalAmount: Double,
     val status: String,
+    val deliveryMethod: String = "DELIVERY",
+    val pickupTime: String? = null,
     val deliveryName: String,
     val deliveryPhone: String,
     val deliveryAddress: String,
@@ -256,6 +258,34 @@ data class ChatSession(
     val lastMessage: String? = null,
     val unread: Int = 0,
     val updatedAt: String,
+)
+
+@Serializable
+data class WalletTransaction(
+    val id: String,
+    val type: String, // points | cash
+    val amount: Double,
+    val balanceBefore: Double,
+    val balanceAfter: Double,
+    val bizType: String,
+    val description: String? = null,
+    val createdAt: String,
+)
+
+@Serializable
+data class Pagination(
+    val page: Int,
+    val limit: Int,
+    val total: Int,
+    val totalPages: Int,
+)
+
+@Serializable
+data class WalletInfoResponse(
+    val balance: Double,
+    val points: Int,
+    val transactions: List<WalletTransaction> = emptyList(),
+    val pagination: Pagination,
 )
 
 @Serializable

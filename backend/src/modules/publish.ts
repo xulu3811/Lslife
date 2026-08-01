@@ -295,6 +295,82 @@ router.get(
 );
 
 router.get(
+  '/discover',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const { categoryId } = z.object({ categoryId: z.string().optional() }).parse(req.query);
+    
+    // 如果没有传入 categoryId 或者传了 all，我们可以找所有的 一级分类
+    // 这里根据需求，通常前端会传选中的 level 1 id，比如 second_hand, house 等
+    
+    // 获取下一级的子分类（Level 2）
+    let level2Categories: any[] = [];
+    if (categoryId && categoryId !== 'all') {
+      level2Categories = await prisma.category.findMany({
+        where: { parentId: categoryId, isActive: true },
+        orderBy: { sortOrder: 'asc' },
+      });
+      // fallback：有些 category 没有 isActive 字段
+      if (level2Categories.length === 0) {
+        level2Categories = await prisma.category.findMany({
+          where: { parentId: categoryId },
+          orderBy: { sortOrder: 'asc' },
+        });
+      }
+    } else {
+      // 找不到或为all时，作为演示获取前5个二级分类
+      level2Categories = await prisma.category.findMany({
+        where: { parentId: { not: null } },
+        take: 5,
+        orderBy: { sortOrder: 'asc' }
+      });
+    }
+
+    const sections = [];
+    for (const child of level2Categories) {
+      // 找出当前 child 下的所有孙分类，包含 child 自己
+      const grandChildren = await prisma.category.findMany({ where: { parentId: child.id } });
+      const targetIds = [child.id, ...grandChildren.map((gc: any) => gc.id)];
+      
+      const posts = await prisma.post.findMany({
+        where: {
+          category: { in: targetIds },
+          status: 'published'
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        include: {
+          user: { select: { id: true, nickname: true, avatar: true } },
+          merchant: { select: { name: true, logo: true, status: true } },
+        },
+      });
+
+      if (posts.length > 0) {
+        sections.push({
+          categoryId: child.id,
+          categoryName: child.name,
+          posts: posts.map((p: any) => ({
+            ...p,
+            images: JSON.parse(p.images) as string[],
+            attributes: JSON.parse(p.attributes) as Record<string, string>,
+          }))
+        });
+      } else {
+        // 即便没有数据，如果是空分类也需要展示吗？
+        // Joybuy 设计中没数据的可以隐藏或者展示空，这里为了展示区块，保留空区块也行
+        sections.push({
+          categoryId: child.id,
+          categoryName: child.name,
+          posts: []
+        });
+      }
+    }
+
+    return ok(res, sections);
+  })
+);
+
+router.get(
   '/quota',
   requireAuth,
   asyncHandler(async (req, res) => {

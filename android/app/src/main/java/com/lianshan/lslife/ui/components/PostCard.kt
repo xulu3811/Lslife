@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,11 +23,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Icon
 import coil.compose.AsyncImage
 import com.lianshan.lslife.core.model.Post
@@ -37,60 +43,98 @@ fun PostListCard(post: Post, onClick: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = scheme.surface,
-        tonalElevation = 1.dp,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp, // Very clean, no shadow
     ) {
-        Row(modifier = Modifier.padding(10.dp)) {
+        Column {
             val cover = post.images.firstOrNull()
             if (cover != null) {
                 AsyncImage(
                     model = cover,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(88.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop,
+                        .fillMaxWidth()
+                        .heightIn(max = 180.dp) // 降低极限高度，让图片显得不那么庞大
+                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                        .background(androidx.compose.ui.graphics.Color(0xFFF7F7F7)), 
+                    contentScale = ContentScale.FillWidth, // 宽度填满，高度按比例自适应（实现不对称瀑布流的关键）
                 )
-                Spacer(Modifier.width(10.dp))
             } else {
                 Box(
                     modifier = Modifier
-                        .size(88.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .fillMaxWidth()
+                        .height(140.dp) // Default height if no image
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                         .background(scheme.surfaceVariant.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.Image, contentDescription = null, tint = scheme.onSurfaceVariant) 
+                    Icon(Icons.Filled.Image, contentDescription = null, tint = scheme.onSurfaceVariant, modifier = Modifier.size(32.dp)) 
                 }
-                Spacer(Modifier.width(10.dp))
             }
-            Column(modifier = Modifier.weight(1f).height(88.dp)) {
-                Text(post.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Spacer(modifier = Modifier.weight(1f))
+            
+            Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
+                Text(
+                    post.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontSize = 12.sp, // 字体略微调小
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (post.publisherType == "MERCHANT" && post.merchant != null) {
-                        Text(post.merchant.name, style = MaterialTheme.typography.labelSmall, color = scheme.primary, fontWeight = FontWeight.Medium)
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Filled.Verified,
-                            contentDescription = "认证商家",
-                            tint = androidx.compose.ui.graphics.Color(0xFFFBC02D),
-                            modifier = Modifier.size(14.dp)
-                        )
+                // Price tag and Add Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (post.price != null && post.price > 0) {
+                        Row(
+                            verticalAlignment = Alignment.Bottom,
+                        ) {
+                            Text("¥", style = MaterialTheme.typography.labelSmall, color = scheme.primary, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                            Text(
+                                "%.2f".format(post.price),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = scheme.primary,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 14.sp
+                            )
+                        }
                     } else {
-                        val nickname = post.user?.nickname ?: "连山用户"
-                        Text(nickname, style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                        Text(
+                            "面议",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = scheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(scheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "购买", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(16.dp))
                     }
                 }
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
-                    if (post.price != null && post.price > 0) {
-                        Text("¥", style = MaterialTheme.typography.labelSmall, color = scheme.error, fontWeight = FontWeight.Bold)
-                        Text("${post.price}", style = MaterialTheme.typography.titleMedium, color = scheme.error, fontWeight = FontWeight.Bold)
+                
+                Spacer(Modifier.height(8.dp))
+                
+                // Publisher
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (post.publisherType == "MERCHANT" && post.merchant != null) {
+                        Text("${post.merchant.name} 自营", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     } else {
-                        Text("面议", style = MaterialTheme.typography.titleSmall, color = scheme.error, fontWeight = FontWeight.Bold)
+                        val nickname = post.user?.nickname ?: "连山用户"
+                        Text(nickname, style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }

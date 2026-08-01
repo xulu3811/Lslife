@@ -87,38 +87,62 @@ export async function markOrderPaid(orderId: string, transactionId: string) {
 }
 
 /**
- * 积分充值成功回调
+ * 充值成功回调 (支持积分和现金)
  */
 export async function handleRechargePaid(orderId: string, transactionId: string) {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) return;
 
+  const isPoints = order.deliveryName !== '__RECHARGE_CASH__';
   const pointsToAdd = Math.floor(order.totalAmount * POINTS_PER_RMB);
+  const cashToAdd = order.totalAmount;
 
   await prisma.$transaction(async (tx) => {
     await tx.order.update({ where: { id: orderId }, data: { status: 'paid', paidAt: new Date() } });
     await tx.payment.updateMany({ where: { orderId }, data: { status: 'success', paidAt: new Date(), transactionId } });
 
-    const userAfter = await tx.user.update({
-      where: { id: order.userId },
-      data: { points: { increment: pointsToAdd } }
-    });
+    if (isPoints) {
+      const userAfter = await tx.user.update({
+        where: { id: order.userId },
+        data: { points: { increment: pointsToAdd } }
+      });
 
-    // Record recharge cash in (if we track system accounts we could, but here we just track it for completeness if needed)
-    // Actually, user paid with WeChat, they bought points. So their point balance increased.
-    await tx.walletTransaction.create({
-      data: {
-        userId: order.userId,
-        type: 'points',
-        amount: pointsToAdd,
-        balanceBefore: userAfter.points - pointsToAdd,
-        balanceAfter: userAfter.points,
-        bizType: 'recharge',
-        orderId,
-        description: `充值 ${pointsToAdd} 积分 (支付 ${order.totalAmount} 元)`
-      }
-    });
+      await tx.walletTransaction.create({
+        data: {
+          userId: order.userId,
+          type: 'points',
+          amount: pointsToAdd,
+          balanceBefore: userAfter.points - pointsToAdd,
+          balanceAfter: userAfter.points,
+          bizType: 'recharge',
+          orderId,
+          description: `充值 ${pointsToAdd} 积分 (支付 ${order.totalAmount} 元)`
+        }
+      });
+    } else {
+      const userAfter = await tx.user.update({
+        where: { id: order.userId },
+        data: { walletBalance: { increment: cashToAdd } }
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          userId: order.userId,
+          type: 'cash',
+          amount: cashToAdd,
+          balanceBefore: userAfter.walletBalance - cashToAdd,
+          balanceAfter: userAfter.walletBalance,
+          bizType: 'recharge',
+          orderId,
+          description: `充值 ${cashToAdd} 元`
+        }
+      });
+    }
   });
 
-  pushToUser(order.userId, { event: 'recharge_success', pointsAdded: pointsToAdd });
+  if (isPoints) {
+    pushToUser(order.userId, { event: 'recharge_success', pointsAdded: pointsToAdd });
+  } else {
+    pushToUser(order.userId, { event: 'recharge_success', cashAdded: cashToAdd });
+  }
 }

@@ -139,17 +139,7 @@ dependencies {
 afterEvaluate {
     val verName = android.defaultConfig.versionName ?: "1.9"
 
-    val copyDebugApk by tasks.registering(Copy::class) {
-        mustRunAfter("assembleDebug")
-        from(layout.buildDirectory.dir("outputs/apk/debug"))
-        into(rootProject.file("../releases"))
-        include("**/*.apk")
 
-        rename { _ ->
-            "LsLife-v${verName}-debug.apk"
-        }
-        includeEmptyDirs = false
-    }
 
     val copyReleaseApk by tasks.registering(Copy::class) {
         mustRunAfter("assembleRelease")
@@ -177,9 +167,7 @@ afterEvaluate {
         }
     }
 
-    tasks.named("assembleDebug") {
-        finalizedBy(copyDebugApk)
-    }
+
 
     tasks.named("assembleRelease") {
         finalizedBy(copyReleaseApk)

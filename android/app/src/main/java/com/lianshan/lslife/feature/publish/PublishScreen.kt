@@ -67,6 +67,13 @@ fun PublishScreen(
     val scope = rememberCoroutineScope()
     var showCategoryBottomSheet by remember { mutableStateOf(false) }
 
+    LaunchedEffect(state.requireCategorySelection) {
+        if (state.requireCategorySelection) {
+            showCategoryBottomSheet = true
+            viewModel.onCategorySelectionShown()
+        }
+    }
+
     val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(9)) { uris ->
         if (uris.isNotEmpty()) {
             scope.launch(Dispatchers.IO) {
@@ -485,7 +492,8 @@ fun PublishScreen(
             onSelectLeaf = { node, path ->
                 viewModel.onSelectLeafCategory(node, path)
                 showCategoryBottomSheet = false
-            }
+            },
+            preSelectedLevel1Id = state.preSelectedLevel1Id
         )
     }
 }
@@ -572,13 +580,18 @@ private fun CategoryTreeBottomSheet(
     error: String?,
     onRetry: () -> Unit,
     onDismiss: () -> Unit,
-    onSelectLeaf: (CategoryNode, String) -> Unit
+    onSelectLeaf: (CategoryNode, String) -> Unit,
+    preSelectedLevel1Id: String? = null
 ) {
     val publishableTree = remember(categoryTree) {
         categoryTree.filter { it.id != "all" }
     }
 
-    var selectedLevel1 by remember { mutableStateOf<CategoryNode?>(publishableTree.firstOrNull()) }
+    var selectedLevel1 by remember(publishableTree, preSelectedLevel1Id) { 
+        mutableStateOf<CategoryNode?>(
+            publishableTree.find { it.id == preSelectedLevel1Id } ?: publishableTree.firstOrNull()
+        ) 
+    }
     var searchQuery by remember { mutableStateOf("") }
 
     val allLeavesWithPaths = remember(publishableTree) {
@@ -628,19 +641,19 @@ private fun CategoryTreeBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(520.dp)
+                .fillMaxHeight(0.85f)
                 .padding(horizontal = 16.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 10.dp),
+                    .padding(bottom = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     "选择发布分类",
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
@@ -648,31 +661,38 @@ private fun CategoryTreeBottomSheet(
                 }
             }
 
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                placeholder = { Text("搜索分类，例: 手机 / 租房 / 兼职", fontSize = 13.sp, color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = Color.Gray, modifier = Modifier.size(18.dp)) },
-                trailingIcon = {
+                    .height(38.dp)
+                    .background(Color(0xFFF3F4F6), RoundedCornerShape(19.dp))
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Filled.Search, contentDescription = "Search", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
+                        decorationBox = { inner ->
+                            if (searchQuery.isEmpty()) {
+                                Text("搜索分类，例: 手机 / 租房 / 兼职", fontSize = 13.sp, color = Color.Gray)
+                            }
+                            inner()
+                        }
+                    )
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(18.dp)) {
-                            Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = Color.Gray)
+                        IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = Color.Gray, modifier = Modifier.size(16.dp))
                         }
                     }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(20.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = Color(0xFFE5E7EB),
-                    focusedContainerColor = Color(0xFFF9FAFB),
-                    unfocusedContainerColor = Color(0xFFF9FAFB)
-                ),
-                textStyle = TextStyle(fontSize = 14.sp)
-            )
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
 
             when {
                 isLoading && publishableTree.isEmpty() -> {
@@ -757,7 +777,7 @@ private fun CategoryTreeBottomSheet(
                                         .fillMaxWidth()
                                         .clickable { selectedLevel1 = node }
                                         .background(if (isSelected) Color.White else Color.Transparent)
-                                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                                        .padding(horizontal = 8.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     CategoryIconView(
@@ -883,7 +903,7 @@ private fun CategoryListRow(
         onClick = { onSelectLeaf(leafNode, path) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp),
+            .padding(vertical = 2.dp),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = if (isHot) Color(0xFFFFF7ED) else Color(0xFFF9FAFB)),
         border = androidx.compose.foundation.BorderStroke(0.5.dp, if (isHot) Color(0xFFFFCC80) else Color(0xFFE5E7EB)),
@@ -892,7 +912,7 @@ private fun CategoryListRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {

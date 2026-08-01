@@ -11,35 +11,35 @@ datasource db {
 
 // ================= 账户与鉴权 =================
 model User {
-  id              String    @id @default(cuid())
-  phone           String    @unique
-  email           String?   @unique
-  passwordHash    String? // 手机号+密码登录；bcrypt 哈希，可空兼容历史短信用户
-  nickname        String
-  avatar          String?
-  membershipTier  String    @default("free") // free | vip | premium
-  membershipUntil DateTime?
-  realNameStatus  String    @default("none") // none | pending | verified
-  realName        String?
+  id                  String    @id @default(cuid())
+  phone               String    @unique
+  email               String?   @unique
+  passwordHash        String? // 手机号+密码登录；bcrypt 哈希，可空兼容历史短信用户
+  nickname            String
+  avatar              String?
+  membershipTier      String    @default("free") // free | vip | premium
+  membershipUntil     DateTime?
+  realNameStatus      String    @default("none") // none | pending | verified
+  realName            String?
   idCardHash          String? // 实名身份证仅存哈希
   idCardFrontImage    String? // 身份证正面照
   idCardBackImage     String? // 身份证反面照
   idCardHandheldImage String? // 手持身份证照
   walletBalance       Float     @default(0)
-  points          Int       @default(0)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  points              Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  addresses     Address[]
-  orders        Order[]        @relation("BuyerOrders")
-  soldOrders    Order[]        @relation("SellerOrders")
-  cartItems     CartItem[]
-  soldCartItems CartItem[]     @relation("CartSeller")
-  posts         Post[]
-  notifications Notification[]
-  subscriptions Subscription[]
-  transactions  WalletTransaction[]
-  ownedMerchants Merchant[]     @relation("MerchantOwner")
+  addresses      Address[]
+  orders         Order[]             @relation("BuyerOrders")
+  soldOrders     Order[]             @relation("SellerOrders")
+  cartItems      CartItem[]
+  soldCartItems  CartItem[]          @relation("CartSeller")
+  posts          Post[]
+  notifications  Notification[]
+  subscriptions  Subscription[]
+  transactions   WalletTransaction[]
+  ownedMerchants Merchant[]          @relation("MerchantOwner")
 }
 
 model VerificationCode {
@@ -73,35 +73,35 @@ model Address {
 
 // ================= 商家与商品 =================
 model Merchant {
-  id           String   @id @default(cuid())
-  externalId   String?  @unique // 兼容原型中的 m1/m2...
-  name         String
-  rating       Float    @default(5)
-  distance     Float    @default(0)
-  sales        Int      @default(0)
-  avgPrice     Float    @default(0)
-  tags         String   @default("[]") // JSON 字符串数组
-  deliveryFee  Float    @default(0)
-  deliveryTime Int      @default(30)
-  logo         String
-  banner       String
-  isFood       Boolean  @default(false)
-  category     String?
-  latitude     Float
-  longitude    Float
-  description  String
-  address      String
-  phone        String
-  status       String   @default("active") // active | offline | pending
-  walletBalance Float   @default(0) // 商户可提现余额
-  ownerId      String?  // 店铺归属用户
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  externalId    String?  @unique // 兼容原型中的 m1/m2...
+  name          String
+  rating        Float    @default(5)
+  distance      Float    @default(0)
+  sales         Int      @default(0)
+  avgPrice      Float    @default(0)
+  tags          String   @default("[]") // JSON 字符串数组
+  deliveryFee   Float    @default(0)
+  deliveryTime  Int      @default(30)
+  logo          String
+  banner        String
+  isFood        Boolean  @default(false)
+  category      String?
+  latitude      Float
+  longitude     Float
+  description   String
+  address       String
+  phone         String
+  status        String   @default("active") // active | offline | pending
+  walletBalance Float    @default(0) // 商户可提现余额
+  ownerId       String? // 店铺归属用户
+  createdAt     DateTime @default(now())
 
   products     Product[]
   orders       Order[]
   posts        Post[]
   transactions WalletTransaction[]
-  owner        User?    @relation("MerchantOwner", fields: [ownerId], references: [id])
+  owner        User?               @relation("MerchantOwner", fields: [ownerId], references: [id])
 }
 
 model Product {
@@ -130,10 +130,10 @@ model Product {
 model CartItem {
   id         String   @id @default(cuid())
   userId     String
-  productId  String?  // Made optional for polymorphic
-  postId     String?  // Added for C2C
-  merchantId String?  // Made optional for polymorphic
-  sellerId   String?  // Added for C2C (User ID of post publisher)
+  productId  String? // Made optional for polymorphic
+  postId     String? // Added for C2C
+  merchantId String? // Made optional for polymorphic
+  sellerId   String? // Added for C2C (User ID of post publisher)
   quantity   Int      @default(1)
   updatedAt  DateTime @updatedAt
 
@@ -151,26 +151,28 @@ model Order {
   id              String    @id @default(cuid())
   orderNo         String    @unique
   userId          String
-  merchantId      String?   // Made optional
-  sellerId        String?   // Added for C2C
-  merchantName    String?   // Actually this acts as shopName/sellerName
-  merchantLogo    String?   // avatar or logo
+  merchantId      String? // Made optional
+  sellerId        String? // Added for C2C
+  merchantName    String? // Actually this acts as shopName/sellerName
+  merchantLogo    String? // avatar or logo
   itemsTotal      Float
   deliveryFee     Float     @default(0)
   totalAmount     Float
   status          String    @default("pending") // pending | paid | preparing | delivering | delivered | cancelled
+  deliveryMethod  String    @default("DELIVERY") // DELIVERY | PICKUP
+  pickupTime      String?
   deliveryName    String
   deliveryPhone   String
   deliveryAddress String
   createdAt       DateTime  @default(now())
   paidAt          DateTime?
 
-  user     User        @relation("BuyerOrders", fields: [userId], references: [id])
-  seller   User?       @relation("SellerOrders", fields: [sellerId], references: [id])
-  merchant Merchant?   @relation(fields: [merchantId], references: [id])
-  items    OrderItem[]
-  payment  Payment?
-  delivery Delivery?
+  user         User                @relation("BuyerOrders", fields: [userId], references: [id])
+  seller       User?               @relation("SellerOrders", fields: [sellerId], references: [id])
+  merchant     Merchant?           @relation(fields: [merchantId], references: [id])
+  items        OrderItem[]
+  payment      Payment?
+  delivery     Delivery?
   transactions WalletTransaction[]
 
   @@index([userId])
@@ -196,18 +198,18 @@ model OrderItem {
 }
 
 model Payment {
-  id            String    @id @default(cuid())
-  orderId       String    @unique
-  provider      String // wechat | alipay | wallet | mock
-  amount        Float
-  pointsUsed    Int       @default(0)
-  pointsDiscount Float    @default(0)
-  cashAmount    Float     @default(0)
-  status        String    @default("created") // created | success | failed | refunded
-  transactionId String? // 第三方支付流水号
-  prepayPayload String? // 客户端拉起支付所需参数 (JSON)
-  createdAt     DateTime  @default(now())
-  paidAt        DateTime?
+  id             String    @id @default(cuid())
+  orderId        String    @unique
+  provider       String // wechat | alipay | wallet | mock
+  amount         Float
+  pointsUsed     Int       @default(0)
+  pointsDiscount Float     @default(0)
+  cashAmount     Float     @default(0)
+  status         String    @default("created") // created | success | failed | refunded
+  transactionId  String? // 第三方支付流水号
+  prepayPayload  String? // 客户端拉起支付所需参数 (JSON)
+  createdAt      DateTime  @default(now())
+  paidAt         DateTime?
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
@@ -216,19 +218,19 @@ model Payment {
 model WalletTransaction {
   id            String   @id @default(cuid())
   userId        String
-  merchantId    String?  
-  type          String   // points | cash
-  amount        Float    // 正数表示收入，负数表示支出
+  merchantId    String?
+  type          String // points | cash
+  amount        Float // 正数表示收入，负数表示支出
   balanceBefore Float
   balanceAfter  Float
-  bizType       String   // recharge | order_pay | order_refund | settlement
+  bizType       String // recharge | order_pay | order_refund | settlement
   orderId       String?
   description   String?
   createdAt     DateTime @default(now())
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  merchant      Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  order         Order?    @relation(fields: [orderId], references: [id])
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order    Order?    @relation(fields: [orderId], references: [id])
 
   @@index([userId])
   @@index([merchantId])
@@ -252,16 +254,16 @@ model Delivery {
 
 // ================= 分类与动态表单 =================
 model Category {
-  id              String     @id @default(cuid())
+  id              String  @id @default(cuid())
   name            String
-  icon            String?    // 兼容客户端旧的 icon 字段
-  iconUrl         String?    // 新增：层级目录图标 URL
-  parentId        String?    // 引用父级 ID (nullable, referencing Category.id)
-  sortOrder       Int        @default(0)
-  isLeaf          Boolean    @default(false)
-  isActive        Boolean    @default(true) // 新增：是否启用
-  isHot           Boolean    @default(false) // 新增：是否为热门推荐
-  attributeSchema String?    @default("[]") // JSON 字符串数组 DynamicField[]
+  icon            String? // 兼容客户端旧的 icon 字段
+  iconUrl         String? // 新增：层级目录图标 URL
+  parentId        String? // 引用父级 ID (nullable, referencing Category.id)
+  sortOrder       Int     @default(0)
+  isLeaf          Boolean @default(false)
+  isActive        Boolean @default(true) // 新增：是否启用
+  isHot           Boolean @default(false) // 新增：是否为热门推荐
+  attributeSchema String? @default("[]") // JSON 字符串数组 DynamicField[]
 
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children Category[] @relation("CategoryHierarchy")
@@ -277,28 +279,28 @@ model Category {
 
 // ================= 同城发布 =================
 model Post {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   userId        String
-  publisherType String    @default("INDIVIDUAL") // INDIVIDUAL | MERCHANT
+  publisherType String   @default("INDIVIDUAL") // INDIVIDUAL | MERCHANT
   merchantId    String?
-  listingType   String    @default("GOODS") // GOODS | SERVICE
+  listingType   String   @default("GOODS") // GOODS | SERVICE
   category      String
   categoryId    String?
   title         String
   description   String
   price         Float?
-  images        String    @default("[]") // JSON 字符串数组
+  images        String   @default("[]") // JSON 字符串数组
   latitude      Float?
   longitude     Float?
   locationName  String?
-  attributes    String    @default("{}") // JSON 动态属性
-  status        String    @default("published") // pending_review | published | rejected | removed
+  attributes    String   @default("{}") // JSON 动态属性
+  status        String   @default("published") // pending_review | published | rejected | removed
   reviewNote    String?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime @default(now())
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  merchant    Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  categoryRel Category? @relation(fields: [categoryId], references: [id])
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant    Merchant?   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  categoryRel Category?   @relation(fields: [categoryId], references: [id])
   cartItems   CartItem[]
   orderItems  OrderItem[]
 
@@ -362,7 +364,7 @@ model ChatMessage {
   content      String
   isRecalled   Boolean  @default(false)
   isEncrypted  Boolean  @default(true)
-  evidenceHash String?  // SHA-256 密码学防篡改存证链哈希
+  evidenceHash String? // SHA-256 密码学防篡改存证链哈希
   createdAt    DateTime @default(now())
 
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -386,6 +388,6 @@ model AdminUser {
 // ================= 系统配置 =================
 model SystemConfig {
   key       String   @id // e.g., "merchant_require_approval"
-  value     String   // e.g., "true" or "false"
+  value     String // e.g., "true" or "false"
   updatedAt DateTime @updatedAt
 }

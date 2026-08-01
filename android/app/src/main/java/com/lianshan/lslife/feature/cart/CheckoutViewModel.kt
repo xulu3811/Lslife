@@ -36,15 +36,14 @@ class CheckoutViewModel @Inject constructor(
 
     private val merchantId = savedStateHandle.get<String>("merchantId")
     private val sellerId = savedStateHandle.get<String>("sellerId")
+    private val entryIdsParam = savedStateHandle.get<String>("entryIds")
+    val deliveryMethod = savedStateHandle.get<String>("deliveryMethod") ?: "DELIVERY"
+    private val pickupTime = "15:00-16:00" // Mock selected pickup time
 
     private val _state = MutableStateFlow(CheckoutUiState())
     val state: StateFlow<CheckoutUiState> = _state
 
-    init {
-        loadData()
-    }
-
-    private fun loadData() {
+    fun loadData() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
             
@@ -59,9 +58,11 @@ class CheckoutViewModel @Inject constructor(
             // 2. Load Cart
             repo.cart()
                 .onSuccess { allEntries ->
+                    val allowedIds = entryIdsParam?.split(",")?.filter { it.isNotBlank() }?.toSet()
                     val filtered = allEntries.filter { 
-                        (merchantId != null && it.merchantId == merchantId) || 
-                        (sellerId != null && it.sellerId == sellerId) 
+                        ((merchantId != null && it.merchantId == merchantId) || 
+                        (sellerId != null && it.sellerId == sellerId)) &&
+                        (allowedIds == null || it.id in allowedIds)
                     }
                     _state.update { it.copy(loading = false, entries = filtered, address = defaultAddr) }
                 }
@@ -93,7 +94,9 @@ class CheckoutViewModel @Inject constructor(
                     name = st.address.name,
                     phone = st.address.phone,
                     address = st.address.address
-                )
+                ),
+                deliveryMethod = deliveryMethod,
+                pickupTime = if (deliveryMethod == "PICKUP") pickupTime else null
             )
             repo.createOrder(req)
                 .onSuccess { order ->

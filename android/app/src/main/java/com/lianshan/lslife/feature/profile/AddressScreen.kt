@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -19,7 +20,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -90,11 +94,12 @@ class AddressViewModel @Inject constructor(
         }
     }
 
-    fun save(address: Address?, name: String, phone: String, detail: String, isDefault: Boolean) {
+    fun save(address: Address?, name: String, phone: String, tag: String, detail: String, isDefault: Boolean) {
         viewModelScope.launch {
             val body = AddressBody(
                 name = name.trim(),
                 phone = phone.trim(),
+                tag = tag,
                 address = detail.trim(),
                 isDefault = isDefault,
             )
@@ -139,8 +144,19 @@ fun AddressScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var page by remember { mutableStateOf<AddressPage>(AddressPage.List) }
+    var initialCheckDone by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.load() }
+    
+    LaunchedEffect(state.loading) {
+        if (!initialCheckDone && !state.loading) {
+            initialCheckDone = true
+            if (state.addresses.isEmpty()) {
+                page = AddressPage.Edit(null)
+            }
+        }
+    }
+
     LaunchedEffect(state.message) {
         state.message?.let {
             snackbar.showSnackbar(it)
@@ -161,8 +177,8 @@ fun AddressScreen(
         is AddressPage.Edit -> AddressEditPage(
             initial = current.address,
             onBack = { page = AddressPage.List },
-            onSave = { name, phone, detail, isDefault ->
-                viewModel.save(current.address, name, phone, detail, isDefault)
+            onSave = { name, phone, tag, detail, isDefault ->
+                viewModel.save(current.address, name, phone, tag, detail, isDefault)
                 page = AddressPage.List
             },
         )
@@ -213,6 +229,27 @@ private fun AddressListPage(
             LoadingBox(Modifier.padding(padding).fillMaxSize())
             return@Scaffold
         }
+        if (!loading && addresses.isEmpty()) {
+            Column(
+                modifier = Modifier.padding(padding).fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Outlined.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(Modifier.height(Dimens.md))
+                Text(
+                    "暂无收货地址，快去添加一个吧~",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            return@Scaffold
+        }
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
@@ -240,6 +277,7 @@ private fun AddressListPage(
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                 )
+                                StatusChip(address.tag, StatusTone.Primary)
                                 if (address.isDefault) StatusChip("默认", StatusTone.Success)
                             }
                             Text(
@@ -270,12 +308,14 @@ private fun AddressListPage(
 private fun AddressEditPage(
     initial: Address?,
     onBack: () -> Unit,
-    onSave: (name: String, phone: String, detail: String, isDefault: Boolean) -> Unit,
+    onSave: (name: String, phone: String, tag: String, detail: String, isDefault: Boolean) -> Unit,
 ) {
     var name by remember { mutableStateOf(initial?.name.orEmpty()) }
     var phone by remember { mutableStateOf(initial?.phone.orEmpty()) }
     var detail by remember { mutableStateOf(initial?.address.orEmpty()) }
+    var tag by remember { mutableStateOf(initial?.tag ?: "家") }
     var isDefault by remember { mutableStateOf(initial?.isDefault ?: false) }
+    var smartText by remember { mutableStateOf("") }
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -300,6 +340,32 @@ private fun AddressEditPage(
                 .padding(Dimens.lg),
             verticalArrangement = Arrangement.spacedBy(Dimens.md),
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.sm)
+            ) {
+                OutlinedTextField(
+                    value = smartText,
+                    onValueChange = { smartText = it },
+                    label = { Text("智能识别 (粘贴文本自动解析姓名电话地址)") },
+                    minLines = 2,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(
+                    onClick = {
+                        val parsedName = Regex("(?<=^|\\s)([\\u4e00-\\u9fa5]{2,4})(?=\\s|$)").find(smartText)?.value
+                        val parsedPhone = Regex("(1[3-9]\\d{9})").find(smartText)?.value
+                        val addressText = smartText.replace(parsedPhone ?: "", "").replace(parsedName ?: "", "").trim()
+                        if (parsedName != null) name = parsedName
+                        if (parsedPhone != null) phone = parsedPhone
+                        if (addressText.isNotBlank()) detail = addressText
+                        smartText = ""
+                    },
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                ) {
+                    Text("解析")
+                }
+            }
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -323,6 +389,20 @@ private fun AddressEditPage(
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("标签: ", style = MaterialTheme.typography.bodyMedium)
+                listOf("家", "公司", "学校", "其他").forEach { t ->
+                    FilterChip(
+                        selected = tag == t,
+                        onClick = { tag = t },
+                        label = { Text(t) }
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -332,7 +412,7 @@ private fun AddressEditPage(
             Spacer(Modifier.height(Dimens.md))
             PrimaryButton(
                 text = "保存地址",
-                onClick = { onSave(name, phone, detail, isDefault) },
+                onClick = { onSave(name, phone, tag, detail, isDefault) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = name.isNotBlank() && phone.isNotBlank() && detail.isNotBlank(),
             )

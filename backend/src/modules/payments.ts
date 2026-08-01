@@ -111,19 +111,24 @@ router.post(
   }),
 );
 
-/** 积分充值 */
+/** 充值 (支持积分和余额) */
 router.post('/recharge', requireAuth, asyncHandler(async (req, res) => {
-  const { amount, channel = 'wechat' } = z.object({ amount: z.number().min(0.01), channel: z.enum(['wechat', 'alipay', 'mock']).optional() }).parse(req.body);
+  const { amount, type = 'points', channel = 'wechat' } = z.object({ 
+    amount: z.number().min(0.01), 
+    type: z.enum(['points', 'cash']).optional(),
+    channel: z.enum(['wechat', 'alipay', 'mock']).optional() 
+  }).parse(req.body);
   
+  const isPoints = type === 'points' || !type;
   // 创建一个虚拟订单代表充值
   const order = await prisma.order.create({
     data: {
       orderNo: `REC${Date.now()}${Math.floor(Math.random()*1000)}`,
       userId: req.userId!,
-      merchantName: '积分充值',
+      merchantName: isPoints ? '积分充值' : '余额充值',
       itemsTotal: amount,
       totalAmount: amount,
-      deliveryName: '__RECHARGE__',
+      deliveryName: isPoints ? '__RECHARGE_POINTS__' : '__RECHARGE_CASH__',
       deliveryPhone: '000000',
       deliveryAddress: 'Virtual'
     }
@@ -134,7 +139,7 @@ router.post('/recharge', requireAuth, asyncHandler(async (req, res) => {
     orderNo: order.orderNo,
     amount,
     channel: channel as PayChannel,
-    description: `积分充值 ${amount * POINTS_PER_RMB} 积分`
+    description: isPoints ? `积分充值 ${amount * POINTS_PER_RMB} 积分` : `余额充值 ${amount} 元`
   });
 
   const payment = await prisma.payment.create({
@@ -154,7 +159,7 @@ router.post(
     if (!order) throw new ApiError(404, '订单不存在');
     if (order.status !== 'pending') return ok(res, { alreadyPaid: true });
     
-    if (order.deliveryName === '__RECHARGE__') {
+    if (order.deliveryName === '__RECHARGE__' || order.deliveryName === '__RECHARGE_POINTS__' || order.deliveryName === '__RECHARGE_CASH__') {
       await handleRechargePaid(order.id, `MOCK${Date.now()}`);
     } else {
       await markOrderPaid(order.id, `MOCK${Date.now()}`);
@@ -172,7 +177,7 @@ router.post(
     if (result.success) {
       const order = await prisma.order.findUnique({ where: { orderNo: result.orderNo } });
       if (order && order.status === 'pending') {
-        if (order.deliveryName === '__RECHARGE__') {
+        if (order.deliveryName === '__RECHARGE__' || order.deliveryName === '__RECHARGE_POINTS__' || order.deliveryName === '__RECHARGE_CASH__') {
           await handleRechargePaid(order.id, result.transactionId);
         } else {
           await markOrderPaid(order.id, result.transactionId);

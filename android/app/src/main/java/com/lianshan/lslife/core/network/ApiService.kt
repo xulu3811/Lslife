@@ -87,6 +87,16 @@ interface ApiService {
     @POST("payments/mock-confirm")
     suspend fun mockConfirm(@Body body: MockConfirmRequest): ApiEnvelope<PaymentCreateResult>
 
+    @POST("payments/recharge")
+    suspend fun recharge(@Body body: RechargeRequest): ApiEnvelope<PaymentCreateResult>
+
+    // 钱包
+    @GET("wallet/info")
+    suspend fun walletInfo(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20,
+    ): ApiEnvelope<WalletInfoResponse>
+
     // 收货地址
     @GET("addresses")
     suspend fun addresses(): ApiEnvelope<List<Address>>
@@ -118,6 +128,9 @@ interface ApiService {
         @Query("page") page: Int = 1,
         @Query("pageSize") pageSize: Int = 20,
     ): ApiEnvelope<PostPage>
+
+    @GET("posts/discover")
+    suspend fun getDiscoverPosts(@Query("categoryId") categoryId: String? = null): ApiEnvelope<List<DiscoverSection>>
 
     @GET("posts/quota")
     suspend fun quota(): ApiEnvelope<Quota>

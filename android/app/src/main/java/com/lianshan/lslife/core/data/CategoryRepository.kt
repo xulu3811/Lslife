@@ -57,22 +57,35 @@ class CategoryRepository @Inject constructor(
         return res
     }
 
-    /** 寻找特定的叶子分类节点及其完整层级路径 */
+    /** 寻找特定的分类节点，如果是叶子节点直接返回；如果不是，则返回其下的第一个有效叶子节点及其完整层级路径 */
     fun findLeafCategoryAndPath(tree: List<CategoryNode>, targetId: String): Pair<CategoryNode, String>? {
-        fun search(nodes: List<CategoryNode>, pathPrefix: String): Pair<CategoryNode, String>? {
+        fun findNodeAndPath(nodes: List<CategoryNode>, pathPrefix: String): Pair<CategoryNode, String>? {
             for (node in nodes) {
                 val currentPath = if (pathPrefix.isEmpty()) node.name else "$pathPrefix > ${node.name}"
-                if (node.isLeaf && node.id == targetId) {
-                    return Pair(node, currentPath)
-                }
+                if (node.id == targetId) return node to currentPath
                 if (node.children.isNotEmpty()) {
-                    val found = search(node.children, currentPath)
+                    val found = findNodeAndPath(node.children, currentPath)
                     if (found != null) return found
                 }
             }
             return null
         }
-        return search(tree, "")
+
+        val target = findNodeAndPath(tree, "") ?: return null
+        val (node, path) = target
+
+        if (node.isLeaf) return node to path
+
+        fun findFirstLeaf(n: CategoryNode, p: String): Pair<CategoryNode, String>? {
+            if (n.isLeaf) return n to p
+            for (child in n.children) {
+                val found = findFirstLeaf(child, "$p > ${child.name}")
+                if (found != null) return found
+            }
+            return null
+        }
+
+        return findFirstLeaf(node, path)
     }
 
     /** 寻找树中的第一个有效叶子节点及其完整层级路径作为兜底 */
