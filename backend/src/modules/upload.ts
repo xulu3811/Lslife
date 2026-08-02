@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { v4 as uuidv4 } from 'uuid';
 import { ok, ApiError } from '../lib/http.js';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdminAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -51,6 +51,17 @@ const uploadAudio = multer({
 router.post(
   '/',
   requireAuth,
+  upload.single('image'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw new ApiError(400, '未找到上传的图片文件');
+    const url = `${publicBaseUrl(req)}/uploads/${req.file.filename}`;
+    return ok(res, { url });
+  }),
+);
+
+router.post(
+  '/admin',
+  requireAdminAuth,
   upload.single('image'),
   asyncHandler(async (req, res) => {
     if (!req.file) throw new ApiError(400, '未找到上传的图片文件');

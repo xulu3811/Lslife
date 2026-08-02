@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.items as lazyItems
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FilterList
@@ -46,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lianshan.lslife.feature.search.AdvancedFilterBottomSheet
@@ -72,7 +76,7 @@ fun CategoryDetailScreen(
     viewModel: CategoryDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val listState = rememberLazyListState()
+    val listState = rememberLazyStaggeredGridState()
 
     if (state.showFilterBottomSheet) {
         AdvancedFilterBottomSheet(
@@ -110,7 +114,7 @@ fun CategoryDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(state.parentCategoryName, fontWeight = FontWeight.Bold) },
+                title = { Text(state.parentCategoryName, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
@@ -133,8 +137,8 @@ fun CategoryDetailScreen(
                     listOf(com.lianshan.lslife.core.model.CategoryNode(id = "all", name = "全部", icon = "all")) + state.subCategories
                 }
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(Dimens.md),
-                    modifier = Modifier.padding(vertical = Dimens.sm)
+                    verticalArrangement = Arrangement.spacedBy(Dimens.sm),
+                    modifier = Modifier.padding(vertical = Dimens.xs)
                 ) {
                     displayCategories.chunked(4).forEach { categoryRow ->
                         Row(
@@ -163,11 +167,12 @@ fun CategoryDetailScreen(
                                         CategoryIconView(
                                             iconUrl = item.iconUrl,
                                             iconName = item.icon,
-                                            size = 40.dp,
+                                            categoryName = item.name,
+                                            size = 36.dp,
                                             tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    Spacer(Modifier.height(6.dp))
+                                    Spacer(Modifier.height(4.dp))
                                     Text(
                                         text = item.name,
                                         style = MaterialTheme.typography.bodySmall,
@@ -180,6 +185,32 @@ fun CategoryDetailScreen(
                                 Spacer(modifier = Modifier.weight(1f))
                             }
                         }
+                    }
+                }
+            }
+
+            if (state.leafCategories.isNotEmpty()) {
+                val displayLeafCategories = remember(state.leafCategories) {
+                    listOf(com.lianshan.lslife.core.model.CategoryNode(id = "all", name = "全部", icon = "all")) + state.leafCategories
+                }
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = Dimens.lg),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.sm),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Dimens.sm)
+                ) {
+                    lazyItems(displayLeafCategories) { item ->
+                        val selected = state.selectedLeafCategory == item.id
+                        FilterChip(
+                            selected = selected,
+                            onClick = { viewModel.onLeafCategory(item.id) },
+                            label = { Text(item.name) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
                     }
                 }
             }
@@ -236,9 +267,11 @@ fun CategoryDetailScreen(
 
             when {
                 state.loading && state.posts.isEmpty() -> {
-                    LazyColumn(
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Fixed(2),
                         contentPadding = PaddingValues(horizontal = Dimens.lg, vertical = Dimens.md),
-                        verticalArrangement = Arrangement.spacedBy(Dimens.listGap),
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.listGap),
+                        verticalItemSpacing = Dimens.listGap,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         items(6) {
@@ -254,7 +287,8 @@ fun CategoryDetailScreen(
                     onRefresh = viewModel::refresh,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    LazyColumn(
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Fixed(2),
                         state = listState,
                         contentPadding = PaddingValues(
                             start = Dimens.lg,
@@ -262,15 +296,24 @@ fun CategoryDetailScreen(
                             top = Dimens.sm,
                             bottom = Dimens.xl,
                         ),
-                        verticalArrangement = Arrangement.spacedBy(Dimens.listGap),
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.listGap),
+                        verticalItemSpacing = Dimens.listGap,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         items(state.posts, key = { it.id }) { post ->
-                            PostListCard(post) { onOpenPost(post.id) }
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            PostListCard(
+                                post = post,
+                                onClick = { onOpenPost(post.id) },
+                                onAddCartClick = {
+                                    viewModel.addToCart(post.id)
+                                    android.widget.Toast.makeText(context, "已加入购物车", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            )
                         }
                         
                         if (state.posts.isEmpty()) {
-                            item {
+                            item(span = StaggeredGridItemSpan.FullLine) {
                                 EmptyState(
                                     title = "没有找到相关内容",
                                     subtitle = "试试看其他分类吧！",
@@ -282,7 +325,7 @@ fun CategoryDetailScreen(
                         }
 
                         if (state.loadingMore) {
-                            item {
+                            item(span = StaggeredGridItemSpan.FullLine) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -293,7 +336,7 @@ fun CategoryDetailScreen(
                                 }
                             }
                         } else if (!state.hasMore && state.posts.isNotEmpty()) {
-                            item {
+                            item(span = StaggeredGridItemSpan.FullLine) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()

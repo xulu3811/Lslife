@@ -40,20 +40,24 @@ fun CategoryIconView(
     modifier: Modifier = Modifier,
     size: Dp = 24.dp,
     tint: Color = MaterialTheme.colorScheme.primary,
-    contentDescription: String? = null
+    contentDescription: String? = null,
+    categoryName: String? = null
 ) {
-    val resolvedUrl = androidx.compose.runtime.remember(iconUrl) {
+    val resolvedUrl = androidx.compose.runtime.remember(iconUrl, categoryName) {
+        var finalIconUrl = iconUrl.takeIf { !it.isNullOrBlank() } ?: getFallbackIconUrl(categoryName)
+
+
         when {
-            iconUrl.isNullOrBlank() -> null
-            iconUrl.startsWith("http://") || iconUrl.startsWith("https://") -> iconUrl
-            iconUrl.startsWith("/") -> {
+            finalIconUrl.isNullOrBlank() -> null
+            finalIconUrl.startsWith("http://") || finalIconUrl.startsWith("https://") -> finalIconUrl
+            finalIconUrl.startsWith("/") -> {
                 val baseUrl = com.lianshan.lslife.BuildConfig.API_BASE_URL
                     .removeSuffix("/api/")
                     .removeSuffix("/api")
                     .removeSuffix("/")
-                "$baseUrl$iconUrl"
+                "$baseUrl$finalIconUrl"
             }
-            else -> iconUrl
+            else -> finalIconUrl
         }
     }
 
@@ -121,17 +125,17 @@ private fun isEmoji(str: String): Boolean {
 private fun resolveVectorIcon(name: String?): ImageVector {
     val key = name?.trim()?.lowercase() ?: ""
     return when {
-        key == "all" || key == "全部" -> Icons.Filled.GridView
-        key.contains("shopping-bag") || key.contains("second_hand") || key.contains("idle") || key.contains("闲置") -> Icons.Filled.ShoppingBag
-        key.contains("briefcase") || key.contains("job") || key.contains("work") || key.contains("招聘") || key.contains("求职") -> Icons.Filled.Work
-        key.contains("timer") || key.contains("time") || key.contains("part_time") || key.contains("clock") || key.contains("schedule") || key.contains("兼职") -> Icons.Filled.Schedule
-        key.contains("apartment") || key.contains("building") || key.contains("secondhand_house") || key.contains("resale") || key.contains("二手房") -> Icons.Filled.Apartment
-        key.contains("store") || key.contains("shop") || key.contains("shop_rent") || key.contains("commercial") || key.contains("旺铺") -> Icons.Filled.Storefront
-        key.contains("home") || key.contains("house") || key.contains("housing") || key.contains("房屋") || key.contains("租售") -> Icons.Filled.Home
-        key.contains("wrench") || key.contains("service") || key.contains("repair") || key.contains("maintenance") || key.contains("维修") || key.contains("水电") -> Icons.Filled.Build
-        key.contains("housekeeping") || key.contains("clean") || key.contains("家政") || key.contains("保洁") -> Icons.Filled.CleaningServices
-        key.contains("moving") || key.contains("shipping") || key.contains("truck") || key.contains("car") || key.contains("car_rental") || key.contains("租车") || key.contains("顺风车") -> Icons.Filled.LocalShipping
-        key.contains("apple") || key.contains("veggies") || key.contains("fruit") || key.contains("food") || key.contains("produce") || key.contains("生鲜") || key.contains("水果") || key.contains("蔬菜") -> Icons.Filled.ShoppingBasket
+        key == "all" || key == "鍏ㄩ儴" -> Icons.Filled.GridView
+        key.contains("shopping-bag") || key.contains("second_hand") || key.contains("idle") || key.contains("闂茬疆") -> Icons.Filled.ShoppingBag
+        key.contains("briefcase") || key.contains("job") || key.contains("work") || key.contains("鎷涜仒") || key.contains("姹傝亴") -> Icons.Filled.Work
+        key.contains("timer") || key.contains("time") || key.contains("part_time") || key.contains("clock") || key.contains("schedule") || key.contains("鍏艰亴") -> Icons.Filled.Schedule
+        key.contains("apartment") || key.contains("building") || key.contains("secondhand_house") || key.contains("resale") || key.contains("浜屾墜鎴�") -> Icons.Filled.Apartment
+        key.contains("store") || key.contains("shop") || key.contains("shop_rent") || key.contains("commercial") || key.contains("鏃洪摵") -> Icons.Filled.Storefront
+        key.contains("home") || key.contains("house") || key.contains("housing") || key.contains("鎴垮眿") || key.contains("绉熷敭") -> Icons.Filled.Home
+        key.contains("wrench") || key.contains("service") || key.contains("repair") || key.contains("maintenance") || key.contains("缁翠慨") || key.contains("姘寸數") -> Icons.Filled.Build
+        key.contains("housekeeping") || key.contains("clean") || key.contains("瀹舵斂") || key.contains("淇濇磥") -> Icons.Filled.CleaningServices
+        key.contains("moving") || key.contains("shipping") || key.contains("truck") || key.contains("car") || key.contains("car_rental") || key.contains("绉熻溅") || key.contains("椤洪�杞�") -> Icons.Filled.LocalShipping
+        key.contains("apple") || key.contains("veggies") || key.contains("fruit") || key.contains("food") || key.contains("produce") || key.contains("鐢熼矞") || key.contains("姘存灉") || key.contains("钄�彍") -> Icons.Filled.ShoppingBasket
         key.contains("phone") || key.contains("electronics") -> Icons.Filled.Smartphone
         key.contains("laptop") || key.contains("computer") -> Icons.Filled.Laptop
         key.contains("dress") || key.contains("clothing") || key.contains("shoes") -> Icons.Filled.Checkroom
@@ -180,5 +184,24 @@ fun AllCategoryCustomIcon(size: Dp, modifier: Modifier = Modifier) {
                 Box(modifier = Modifier.size(itemSize).background(Color.White, RoundedCornerShape(itemSize * 0.3f)))
             }
         }
+    }
+}
+
+private fun getFallbackIconUrl(name: String?): String? {
+    val key = name?.trim() ?: return null
+    return when (key) {
+        "数码 3C", "服饰箱包", "日用/家电", "美妆个护", "母婴儿童", "运动 & 交通工具", "文娱爱好", "其它", "其他" -> "/assets/icons/3d_flat_secondhand.png"
+        "新鲜水果" -> "/assets/icons/3d_flat_veg_fresh.png"
+        "时令蔬菜" -> "/assets/icons/3d_flat_produce.png"
+        "肉禽蛋品" -> "/assets/icons/3d_flat_veg_meat.png"
+        "海鲜水产" -> "/assets/icons/3d_flat_veg_local.png"
+        "冷藏冻货" -> "/assets/icons/3d_flat_veg_wholesale.png"
+        "粮油调味" -> "/assets/icons/3d_flat_veg_grocery.png"
+        "熟食卤味" -> "/assets/icons/3d_flat_dining.png"
+        "快餐便当" -> "/assets/icons/3d_flat_pt_errand.png"
+        "地方菜系" -> "/assets/icons/3d_flat_job_hospitality.png"
+        "烧烤海鲜" -> "/assets/icons/3d_flat_pt_hotel.png"
+        "火锅小吃" -> "/assets/icons/3d_flat_job_other.png"
+        else -> null
     }
 }

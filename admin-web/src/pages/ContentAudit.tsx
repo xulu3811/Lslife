@@ -14,29 +14,27 @@ interface Post {
   user: { nickname: string; phone: string };
 }
 
-const categoryNames: Record<string, string> = {
-  second_hand: '个人闲置',
-  job: '职位招聘',
-  part_time: '同城兼职',
-  house: '住房出租',
-  secondhand_house: '二手房源',
-  shop_rent: '旺铺转让',
-  housekeeping: '家政保洁',
-  maintenance: '水电维修',
-  moving: '货运搬家',
-  veggies: '农副土特产',
-};
-
 export default function ContentAudit() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('pending_review');
 
-  const fetchPosts = async () => {
+  const fetchPostsAndCategories = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/admin/posts', { params: { status } });
-      setPosts(res.data.data?.list || []);
+      const [postsRes, catRes] = await Promise.all([
+        api.get('/admin/posts', { params: { status } }),
+        api.get('/admin/categories')
+      ]);
+      setPosts(postsRes.data.data?.list || postsRes.data.data || []);
+      
+      const cats = catRes.data.data || [];
+      const map: Record<string, string> = {};
+      cats.forEach((c: any) => {
+        map[c.id] = c.name;
+      });
+      setCategoryMap(map);
     } catch (e) {
       console.error(e);
     } finally {
@@ -45,7 +43,7 @@ export default function ContentAudit() {
   };
 
   useEffect(() => {
-    fetchPosts();
+    fetchPostsAndCategories();
   }, [status]);
 
   const handleAudit = async (id: string, action: 'approve' | 'reject' | 'ban') => {
@@ -60,7 +58,7 @@ export default function ContentAudit() {
 
     try {
       await api.post(`/admin/posts/${id}/audit`, { action, note });
-      fetchPosts();
+      fetchPostsAndCategories();
     } catch (e: any) {
       alert(e.response?.data?.message || '审核操作失败');
     }
@@ -114,7 +112,7 @@ export default function ContentAudit() {
                   <td style={{ maxWidth: '300px' }}>
                     <div className="font-semibold text-base mb-2">
                       <span className="badge badge-neutral mr-2">
-                        {categoryNames[post.category] || post.category.replace('cat_', '')}
+                        {categoryMap[post.category] || post.category.replace('cat_', '')}
                       </span>
                       {post.title}
                     </div>

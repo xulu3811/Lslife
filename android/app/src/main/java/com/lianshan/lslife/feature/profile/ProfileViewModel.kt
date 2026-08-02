@@ -72,17 +72,21 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             _state.update { it.copy(realNameSubmitting = true, message = "正在上传照片...") }
             try {
-                val frontUrl = uploadSingleImage(frontUri, context, "front.jpg")
-                val backUrl = uploadSingleImage(backUri, context, "back.jpg")
-                val handheldUrl = uploadSingleImage(handheldUri, context, "handheld.jpg")
+                val parts = listOf(
+                    createMultipart(frontUri, context, "front.jpg"),
+                    createMultipart(backUri, context, "back.jpg"),
+                    createMultipart(handheldUri, context, "handheld.jpg")
+                )
                 
-                if (frontUrl == null || backUrl == null || handheldUrl == null) {
+                val res = repo.uploadImagesBatch(parts.filterNotNull())
+                if (res.isFailure || res.getOrNull()?.urls?.size != 3) {
                     _state.update { it.copy(realNameSubmitting = false, message = "图片上传失败，请重试") }
                     return@launch
                 }
+                val urls = res.getOrNull()!!.urls
 
                 _state.update { it.copy(message = "正在提交认证资料...") }
-                authRepository.realName(name, idCard, frontUrl, backUrl, handheldUrl)
+                authRepository.realName(name, idCard, urls[0], urls[1], urls[2])
                     .onSuccess { 
                         _state.update { it.copy(realNameSubmitting = false, message = "认证资料已提交，请等待审核") }
                         load()
@@ -96,15 +100,13 @@ class ProfileViewModel @Inject constructor(
         }
     }
     
-    private suspend fun uploadSingleImage(uri: android.net.Uri, context: android.content.Context, filename: String): String? {
+    private fun createMultipart(uri: android.net.Uri, context: android.content.Context, filename: String): okhttp3.MultipartBody.Part? {
         val inputStream = context.contentResolver.openInputStream(uri) ?: return null
         val tempFile = java.io.File(context.cacheDir, filename)
         tempFile.outputStream().use { out -> inputStream.use { it.copyTo(out) } }
         val reqFile = okhttp3.RequestBody.create(
             "image/jpeg".toMediaTypeOrNull(), tempFile
         )
-        val part = okhttp3.MultipartBody.Part.createFormData("image", filename, reqFile)
-        val res = repo.uploadImage(part)
-        return res.getOrNull()?.url
+        return okhttp3.MultipartBody.Part.createFormData("images", filename, reqFile)
     }
 }

@@ -35,6 +35,8 @@ async function main() {
   await ssh.putFiles([
     { local: path.join(__dirname, 'src/middleware/auth.ts'), remote: `${targetDir}/src/middleware/auth.ts` },
     { local: path.join(__dirname, 'src/modules/admin.ts'), remote: `${targetDir}/src/modules/admin.ts` },
+    { local: path.join(__dirname, 'src/modules/upload.ts'), remote: `${targetDir}/src/modules/upload.ts` },
+    { local: path.join(__dirname, 'prisma/schema.prisma'), remote: `${targetDir}/prisma/schema.prisma` },
     { local: path.join(__dirname, 'ecosystem.config.cjs'), remote: `${targetDir}/ecosystem.config.cjs` },
   ]);
 
@@ -43,6 +45,8 @@ async function main() {
     [
       `cd ${targetDir}`,
       'export PATH=$HOME/.local/nodejs/bin:$PATH',
+      'npx prisma db push --accept-data-loss',
+      'npx prisma generate',
       'npm run build',
       'pm2 delete lslife-api || true',
       'pm2 start ecosystem.config.cjs',

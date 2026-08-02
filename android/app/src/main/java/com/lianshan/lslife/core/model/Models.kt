@@ -199,6 +199,7 @@ data class PostPage(
     val page: Int,
     val pageSize: Int,
     val list: List<Post>,
+    val aggregations: Map<String, Map<String, Int>> = emptyMap(),
 )
 
 @Serializable

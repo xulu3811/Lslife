@@ -101,6 +101,9 @@ data class AiGenerateDescResponse(
 data class UploadResult(val url: String)
 
 @Serializable
+data class BatchUploadResult(val urls: List<String>)
+
+@Serializable
 data class RechargeRequest(
     val amount: Double,
     val type: String = "cash",

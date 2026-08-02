@@ -19,6 +19,7 @@ model User {
   avatar              String?
   membershipTier      String    @default("free") // free | vip | premium
   membershipUntil     DateTime?
+  status              String    @default("active") // active | banned
   realNameStatus      String    @default("none") // none | pending | verified
   realName            String?
   idCardHash          String? // 实名身份证仅存哈希
@@ -307,6 +308,8 @@ model Post {
   @@index([userId])
   @@index([category])
   @@index([categoryId])
+  @@index([status, category]) // 新增复合索引加速搜索
+  @@index([status, price])    // 新增复合索引加速价格过滤
 }
 
 // ================= 会员订阅 =================

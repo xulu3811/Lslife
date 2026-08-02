@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { Prisma } from '@prisma/client';
 import { ok, ApiError } from '../lib/http.js';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
@@ -281,10 +282,65 @@ router.get(
       }),
     ]);
 
+    // 计算高并发下钻过滤聚合结果 (Facet Aggregations)
+    // 聚合当前过滤条件下的各属性数量分布，帮助客户端进行精准过滤引导
+    let aggregations: Record<string, Record<string, number>> = {};
+    if (page === 1) {
+      const isPostgres = process.env.DATABASE_URL?.startsWith('postgres');
+      if (isPostgres) {
+        try {
+          // 1. 先取出所有匹配的 IDs (防注入且复用 Prisma 的组合 Where 过滤逻辑)
+          const allMatchingIds = await prisma.post.findMany({
+            where,
+            select: { id: true }
+          });
+
+          if (allMatchingIds.length > 0) {
+            const ids = allMatchingIds.map(p => p.id);
+            // 2. 利用 PostgreSQL 专属的 jsonb_each_text 把 JSON keys/values 炸开，进行数据库层的 Group By
+            const rawAgg = await prisma.$queryRaw<Array<{ key: string; value: string; cnt: number | bigint }>>`
+              SELECT key, value, count(*) as cnt 
+              FROM "Post" p, jsonb_each_text(p.attributes::jsonb) 
+              WHERE p.id IN (${Prisma.join(ids)}) 
+              GROUP BY key, value
+            `;
+            
+            for (const row of rawAgg) {
+              if (!row.value || row.value.trim() === '') continue;
+              if (!aggregations[row.key]) aggregations[row.key] = {};
+              aggregations[row.key][row.value] = Number(row.cnt);
+            }
+          }
+        } catch (e) {
+          console.error('PostgreSQL jsonb aggregation failed:', e);
+        }
+      }
+      
+      // SQLite 开发环境内存兜底逻辑 (或当 Postgres 查询失败时)
+      if (!isPostgres || Object.keys(aggregations).length === 0) {
+        const allMatchingPosts = await prisma.post.findMany({
+          where,
+          select: { attributes: true }
+        });
+        
+        for (const p of allMatchingPosts) {
+          try {
+            const attrs = JSON.parse(p.attributes) as Record<string, string>;
+            for (const [k, v] of Object.entries(attrs)) {
+              if (!v || v.trim() === '') continue;
+              if (!aggregations[k]) aggregations[k] = {};
+              aggregations[k][v] = (aggregations[k][v] || 0) + 1;
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
     return ok(res, {
       total,
       page,
       pageSize,
+      aggregations,
       list: posts.map((p) => ({
         ...p,
         images: JSON.parse(p.images) as string[],

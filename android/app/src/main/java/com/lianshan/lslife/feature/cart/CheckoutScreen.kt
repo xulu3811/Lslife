@@ -90,7 +90,7 @@ fun CheckoutScreen(
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text("实付: ", style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    "£${"%.2f".format(state.totalAmount)}",
+                                    "${"%.2f".format(state.totalAmount)}元",
                                     color = Color(0xFFE52F2F),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 20.sp
@@ -244,7 +244,7 @@ fun CheckoutScreen(
                                             Text(name, style = MaterialTheme.typography.titleSmall, maxLines = 2)
                                             Spacer(modifier = Modifier.height(Dimens.xs))
                                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                                                Text("£${"%.2f".format(price)}", color = Color(0xFFE52F2F), fontWeight = FontWeight.Bold)
+                                                Text("${"%.2f".format(price)}元", color = Color(0xFFE52F2F), fontWeight = FontWeight.Bold)
                                                 Text("x${entry.quantity}", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                                             }
                                         }
@@ -265,10 +265,10 @@ fun CheckoutScreen(
                                 Text("支付方式", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 Spacer(modifier = Modifier.height(Dimens.sm))
                                 
+                                val isEnglish = java.util.Locale.getDefault().language == "en"
                                 val paymentMethods = listOf(
-                                    Triple("wechat", "WeChat Pay", "安全快捷"),
-                                    Triple("alipay", "Alipay", "支持花呗"),
-                                    Triple("card", "Bank Card", "支持储蓄卡及信用卡"),
+                                    Triple("wechat", if (isEnglish) "WeChat Pay" else "微信支付", "安全快捷"),
+                                    Triple("alipay", if (isEnglish) "Alipay" else "支付宝", "支持花呗")
                                 )
                                 
                                 paymentMethods.forEach { (id, name, desc) ->
@@ -304,11 +304,11 @@ fun CheckoutScreen(
                                 
                                 Row(Modifier.fillMaxWidth().padding(vertical = Dimens.xs), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text("商品小计", color = Color.Gray)
-                                    Text("£${"%.2f".format(state.itemsTotal)}")
+                                    Text("${"%.2f".format(state.itemsTotal)}元")
                                 }
                                 Row(Modifier.fillMaxWidth().padding(vertical = Dimens.xs), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text("配送费", color = Color.Gray)
-                                    Text(if (state.deliveryFee == 0.0) "包邮" else "£${"%.2f".format(state.deliveryFee)}")
+                                    Text(if (state.deliveryFee == 0.0) "包邮" else "${"%.2f".format(state.deliveryFee)}元")
                                 }
                             }
                         }

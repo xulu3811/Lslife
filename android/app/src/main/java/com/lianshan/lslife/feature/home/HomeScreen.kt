@@ -364,24 +364,24 @@ fun HomeScreen(
                                 val selected = state.sort == id
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.clickable { viewModel.onSort(id) }.padding(vertical = 4.dp)
+                                    modifier = Modifier.clickable { viewModel.onSort(id) }.padding(vertical = 4.dp, horizontal = 2.dp)
                                 ) {
                                     Text(
                                         text = name,
-                                        fontSize = 13.sp,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant
+                                        fontSize = 14.sp,
+                                        fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+                                        color = if (selected) MaterialTheme.colorScheme.onBackground else androidx.compose.ui.graphics.Color(0xFF888888)
                                     )
                                     if (selected) {
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(modifier = Modifier.height(3.dp))
                                         Box(
                                             modifier = Modifier
                                                 .height(3.dp)
-                                                .width(16.dp)
-                                                .background(MaterialTheme.colorScheme.onBackground, CircleShape)
+                                                .width(14.dp)
+                                                .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(999.dp))
                                         )
                                     } else {
-                                        Spacer(modifier = Modifier.height(7.dp))
+                                        Spacer(modifier = Modifier.height(6.dp))
                                     }
                                 }
                             }
@@ -445,7 +445,14 @@ fun HomeScreen(
 
                     if (state.isUgcMode) {
                         items(state.posts, key = { it.id }) { post ->
-                            com.lianshan.lslife.ui.components.PostListCard(post) { onOpenPost(post.id) }
+                            com.lianshan.lslife.ui.components.PostListCard(
+                                post = post, 
+                                onClick = { onOpenPost(post.id) },
+                                onAddCartClick = { 
+                                    viewModel.addToCart(post.id)
+                                    android.widget.Toast.makeText(context, "已加入购物车", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            )
                         }
                         if (state.posts.isEmpty()) {
                             item(span = StaggeredGridItemSpan.FullLine) {
@@ -533,6 +540,7 @@ private fun RowScope.CategoryItemView(
             CategoryIconView(
                 iconUrl = item.iconUrl,
                 iconName = item.icon,
+                categoryName = item.name,
                 size = 36.dp, // Larger icon
                 tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )

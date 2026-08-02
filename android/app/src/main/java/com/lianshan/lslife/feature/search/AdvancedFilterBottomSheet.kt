@@ -27,6 +27,7 @@ fun AdvancedFilterBottomSheet(
     minPrice: Double?,
     maxPrice: Double?,
     attributesFilter: Map<String, Set<String>>,
+    aggregations: Map<String, Map<String, Int>> = emptyMap(),
     onPublisherTypeChange: (String?) -> Unit,
     onListingTypeChange: (String?) -> Unit,
     onCategoryChange: (String?) -> Unit,
@@ -263,6 +264,7 @@ fun AdvancedFilterBottomSheet(
                 OptFlowRow(
                     options = field.options,
                     selectedVals = attributesFilter[field.label] ?: attributesFilter[field.key],
+                    counts = aggregations[field.key] ?: aggregations[field.label],
                     onSelect = { onAttributeToggle(field.label, it) }
                 )
             }
@@ -296,6 +298,7 @@ fun AdvancedFilterBottomSheet(
 private fun OptFlowRow(
     options: List<String>,
     selectedVals: Set<String>?,
+    counts: Map<String, Int>? = null,
     onSelect: (String) -> Unit
 ) {
     FlowRow(
@@ -305,10 +308,13 @@ private fun OptFlowRow(
     ) {
         options.forEach { opt ->
             val isSelected = selectedVals?.contains(opt) == true
+            val count = counts?.get(opt)
+            val labelText = if (count != null) "$opt ($count)" else opt
+            
             FilterChip(
                 selected = isSelected,
                 onClick = { onSelect(opt) },
-                label = { Text(opt) },
+                label = { Text(labelText) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer

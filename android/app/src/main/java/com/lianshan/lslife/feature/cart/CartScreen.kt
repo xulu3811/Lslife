@@ -91,7 +91,7 @@ fun CartScreen(
                                 .padding(vertical = Dimens.sm, horizontal = Dimens.lg)
                         ) {
                             Text(
-                                "满£29.00享自提包邮, 还差£12.00",
+                                "满29.00元享自提包邮, 还差12.00元",
                                 color = Color(0xFFE52F2F),
                                 style = MaterialTheme.typography.labelMedium
                             )
@@ -169,14 +169,14 @@ fun CartScreen(
                                 Row(verticalAlignment = Alignment.Bottom) {
                                     Text("合计: ", style = MaterialTheme.typography.bodyMedium)
                                     Text(
-                                        "£${"%.2f".format(state.total)}",
+                                        "${"%.2f".format(state.total)}元",
                                         color = Color(0xFFE52F2F),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 18.sp
                                     )
                                 }
                                 if (state.savedAmount > 0) {
-                                    Text("已省: £${"%.2f".format(state.savedAmount)}", color = Color.Gray, fontSize = 12.sp)
+                                    Text("已省: ${"%.2f".format(state.savedAmount)}元", color = Color.Gray, fontSize = 12.sp)
                                 }
                             }
                             
@@ -276,10 +276,10 @@ private fun CartRow(
             
             Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.fillMaxWidth()) {
                 Column {
-                    Text("£${"%.2f".format(price)}", color = Color(0xFFE52F2F), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("${"%.2f".format(price)}元", color = Color(0xFFE52F2F), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     if (originalPrice != null && originalPrice > price) {
                         Text(
-                            "£${"%.2f".format(originalPrice)}", 
+                            "${"%.2f".format(originalPrice)}元", 
                             color = Color.Gray, 
                             fontSize = 12.sp,
                             style = androidx.compose.ui.text.TextStyle(textDecoration = TextDecoration.LineThrough)

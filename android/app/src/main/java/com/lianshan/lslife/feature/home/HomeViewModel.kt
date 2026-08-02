@@ -199,4 +199,10 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    fun addToCart(postId: String) {
+        viewModelScope.launch {
+            repo.upsertCart(postId = postId, quantity = 1)
+        }
+    }
 }

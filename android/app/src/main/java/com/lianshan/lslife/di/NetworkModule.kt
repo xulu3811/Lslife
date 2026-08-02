@@ -28,12 +28,15 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttp(authInterceptor: AuthInterceptor): OkHttpClient {
+    fun provideOkHttp(authInterceptor: AuthInterceptor, retryInterceptor: com.lianshan.lslife.core.network.RetryInterceptor): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
         }
+        val pool = okhttp3.ConnectionPool(5, 5, java.util.concurrent.TimeUnit.MINUTES)
         return OkHttpClient.Builder()
+            .connectionPool(pool)
             .addInterceptor(authInterceptor)
+            .addInterceptor(retryInterceptor)
             .addInterceptor(logging)
             .pingInterval(15, java.util.concurrent.TimeUnit.SECONDS)
             .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)

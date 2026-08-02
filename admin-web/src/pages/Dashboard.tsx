@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Users, ShoppingBag, Activity, AlertTriangle } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '../utils/axios';
 import { Link } from 'react-router-dom';
 
@@ -36,6 +37,7 @@ export default function Dashboard() {
     activeOrders: 0,
     revenue: 0,
     pendingReviews: 0,
+    trendData: [],
   });
 
   useEffect(() => {
@@ -58,8 +60,25 @@ export default function Dashboard() {
       <div className="grid gap-6" style={{ gridTemplateColumns: '2fr 1fr' }}>
         <div className="glass-panel p-6" style={{ minHeight: '400px' }}>
           <h3 className="text-lg font-semibold m-0 mb-6">平台核心指标趋势 (安全快照)</h3>
-          <div className="flex items-center justify-center text-secondary h-full" style={{ border: '1px dashed var(--surface-border)', borderRadius: '8px', minHeight: '300px' }}>
-            [ 图表区域: 需接入 ECharts 等第三方库 ]
+          <div className="h-full" style={{ minHeight: '300px' }}>
+            {stats.trendData && stats.trendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={stats.trendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <Line type="monotone" name="新增用户" dataKey="users" stroke="#e53935" strokeWidth={2} activeDot={{ r: 6 }} />
+                  <Line type="monotone" name="营收流水(元)" dataKey="revenue" stroke="#10b981" strokeWidth={2} />
+                  <CartesianGrid stroke="#ccc" strokeDasharray="5 5" opacity={0.2} />
+                  <XAxis dataKey="date" stroke="var(--secondary-text)" tick={{ fontSize: 12 }} />
+                  <YAxis yAxisId="left" stroke="var(--secondary-text)" tick={{ fontSize: 12 }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--secondary-text)" tick={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--panel-bg)', borderColor: 'var(--surface-border)', borderRadius: '8px' }} />
+                  <Legend verticalAlign="top" height={36} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center text-secondary h-full" style={{ border: '1px dashed var(--surface-border)', borderRadius: '8px', minHeight: '300px' }}>
+                图表数据加载中...
+              </div>
+            )}
           </div>
         </div>
 

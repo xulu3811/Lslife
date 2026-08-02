@@ -43,9 +43,19 @@ class LsRepository @Inject constructor(
     suspend fun merchant(id: String) = safeCall { api.merchant(id) }
 
     // 购物车
+    val cartUpdateFlow = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
     suspend fun cart() = safeCall { api.cart() }
-    suspend fun upsertCart(productId: String? = null, postId: String? = null, quantity: Int) = safeCall { api.upsertCart(CartUpsertRequest(productId, postId, quantity)) }
-    suspend fun clearCart(merchantId: String? = null) = safeCall { api.clearCart(merchantId) }
+    suspend fun upsertCart(productId: String? = null, postId: String? = null, quantity: Int) = safeCall { 
+        val res = api.upsertCart(CartUpsertRequest(productId, postId, quantity)) 
+        if (res.code == 0) cartUpdateFlow.tryEmit(Unit)
+        res
+    }
+    suspend fun clearCart(merchantId: String? = null) = safeCall { 
+        val res = api.clearCart(merchantId) 
+        if (res.code == 0) cartUpdateFlow.tryEmit(Unit)
+        res
+    }
 
     // 订单
     suspend fun createOrder(req: CreateOrderRequest) = safeCall { api.createOrder(req) }
@@ -119,6 +129,7 @@ class LsRepository @Inject constructor(
 
     // 上传
     suspend fun uploadImage(part: okhttp3.MultipartBody.Part) = safeCall { api.uploadImage(part) }
+    suspend fun uploadImagesBatch(parts: List<okhttp3.MultipartBody.Part>) = safeCall { api.uploadImagesBatch(parts) }
     suspend fun uploadAudio(part: okhttp3.MultipartBody.Part) = safeCall { api.uploadAudio(part) }
 }
 

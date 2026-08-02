@@ -228,13 +228,12 @@ fun GlobalCategorySelectorBottomSheet(
                                                         ),
                                                     contentAlignment = Alignment.Center
                                                 ) {
-                                                    if (!l3Node.iconUrl.isNullOrBlank()) {
-                                                        CategoryIconView(iconUrl = l3Node.iconUrl, iconName = l3Node.icon, size = 36.dp)
-                                                    } else if (!l3Node.icon.isNullOrBlank()) {
-                                                        Text(l3Node.icon, fontSize = 28.sp)
-                                                    } else {
-                                                        Text(l3Node.name.take(1), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                                    }
+                                                    CategoryIconView(
+                                                        iconUrl = l3Node.iconUrl,
+                                                        iconName = l3Node.icon,
+                                                        categoryName = l3Node.name,
+                                                        size = 36.dp
+                                                    )
                                                 }
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(

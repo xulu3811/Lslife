@@ -1,4 +1,4 @@
-# 连山壮瑶同城 (LianShan Local Services) - V5.0 存档与交接准则
+# 连山壮瑶同城 (LianShan Local Services) - V6.0 存档与交接准则
 
 ## 📌 项目状态与客观现实 (Project State & Objective Reality)
 本项目是一款针对县域级市场（目标覆盖人口 3~10 万，并发支撑 3 万）量身打造的**本地同城生活服务交易与通讯平台**。

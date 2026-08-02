@@ -58,11 +58,37 @@ router.get(
 
     const pendingReviews = await prisma.post.count({ where: { status: 'pending_review' } });
 
+    // Generate trendData for the past 7 days
+    const trendData = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      const nextD = new Date(d);
+      nextD.setDate(nextD.getDate() + 1);
+      
+      const dayUsers = await prisma.user.count({
+        where: { createdAt: { gte: d, lt: nextD } }
+      });
+      
+      const dayPayments = await prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { status: 'success', paidAt: { gte: d, lt: nextD } }
+      });
+
+      trendData.push({
+        date: d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
+        users: dayUsers,
+        revenue: dayPayments._sum.amount || 0
+      });
+    }
+
     return ok(res, {
       newUsers,
       activeOrders,
       revenue: payments._sum.amount || 0,
       pendingReviews,
+      trendData
     });
   }),
 );
@@ -258,7 +284,6 @@ router.put(
   }),
 );
 
-/*
 router.put(
   '/users/:id/status',
   asyncHandler(async (req, res) => {
@@ -273,7 +298,6 @@ router.put(
     return ok(res, user, `已将用户状态设为 ${status === 'banned' ? '封禁' : '正常'}`);
   }),
 );
-*/
 
 // ================== 财务监控 ==================
 router.get(

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.ManageSearch
 import androidx.compose.material.icons.filled.ManageSearch
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -100,12 +101,15 @@ private val tabs = listOf(
     Tab(Routes.PROFILE, R.string.nav_profile, Icons.Filled.Person, Icons.Outlined.Person),
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val isLoggedIn by sessionViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val unreadCount by sessionViewModel.unreadCount.collectAsStateWithLifecycle()
     var showPublishMenu by remember { mutableStateOf(false) }
+
+    val cartItemCount by sessionViewModel.cartItemCount.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         sessionViewModel.navigateToChatFlow.collect { (sessionId, targetUserId, targetName) ->
@@ -131,6 +135,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                         tabs.forEach { tab ->
                             val selected = backStackEntry?.destination?.hierarchy?.any { it.route == tab.route } == true
                             val isPublish = tab.route == Routes.PUBLISH
+                            val isCart = tab.route == Routes.CART
                             NavigationBarItem(
                                 selected = selected,
                                 onClick = {
@@ -166,11 +171,31 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                                             )
                                         }
                                     } else {
-                                        Icon(
-                                            if (selected) tab.selectedIcon else tab.unselectedIcon,
-                                            contentDescription = stringResource(tab.labelRes),
-                                            modifier = Modifier.size(19.dp),
-                                        )
+                                        if (isCart && cartItemCount > 0) {
+                                            BadgedBox(
+                                                badge = {
+                                                    Badge(
+                                                        containerColor = androidx.compose.ui.graphics.Color(0xFFE53935),
+                                                        contentColor = androidx.compose.ui.graphics.Color.White
+                                                    ) {
+                                                        val text = if (cartItemCount > 99) "99+" else cartItemCount.toString()
+                                                        Text(text)
+                                                    }
+                                                }
+                                            ) {
+                                                Icon(
+                                                    if (selected) tab.selectedIcon else tab.unselectedIcon,
+                                                    contentDescription = stringResource(tab.labelRes),
+                                                    modifier = Modifier.size(19.dp),
+                                                )
+                                            }
+                                        } else {
+                                            Icon(
+                                                if (selected) tab.selectedIcon else tab.unselectedIcon,
+                                                contentDescription = stringResource(tab.labelRes),
+                                                modifier = Modifier.size(19.dp),
+                                            )
+                                        }
                                     }
                                 },
                                 label = if (isPublish) null else {

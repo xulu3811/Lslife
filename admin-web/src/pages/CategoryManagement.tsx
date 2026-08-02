@@ -191,12 +191,41 @@ export default function CategoryManagement() {
 
               <div className="flex-col gap-1">
                 <label className="text-sm font-medium text-secondary">图标 URL</label>
-                <input 
-                  type="text" 
-                  className="glass-input" 
-                  value={editCategory.iconUrl || ''} 
-                  onChange={e => setEditCategory({ ...editCategory, iconUrl: e.target.value })} 
-                />
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    className="glass-input flex-1" 
+                    value={editCategory.iconUrl || ''} 
+                    onChange={e => setEditCategory({ ...editCategory, iconUrl: e.target.value })} 
+                  />
+                  <input
+                    type="file"
+                    id="iconUpload"
+                    style={{ display: 'none' }}
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const formData = new FormData();
+                      formData.append('image', file);
+                      try {
+                        const res = await api.post('/upload/admin', formData, {
+                          headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        setEditCategory({ ...editCategory, iconUrl: res.data.data.url });
+                      } catch (err: any) {
+                        alert(err.response?.data?.message || '图片上传失败');
+                      }
+                    }}
+                  />
+                  <button 
+                    type="button" 
+                    className="glass-button secondary p-2 px-4"
+                    onClick={() => document.getElementById('iconUpload')?.click()}
+                  >
+                    上传图片
+                  </button>
+                </div>
               </div>
 
               <div className="flex gap-4">

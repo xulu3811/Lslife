@@ -36,6 +36,7 @@ data class SearchUiState(
     val hasMore: Boolean = true,
     val page: Int = 1,
     val posts: List<Post> = emptyList(),
+    val aggregations: Map<String, Map<String, Int>> = emptyMap(),
     val error: String? = null
 )
 
@@ -244,7 +245,8 @@ class SearchViewModel @Inject constructor(
                     val hasMore = resPage.page * resPage.pageSize < resPage.total
                     it.copy(
                         loading = false, loadingMore = false, refreshing = false, error = null,
-                        posts = newPosts, page = page, hasMore = hasMore
+                        posts = newPosts, page = page, hasMore = hasMore,
+                        aggregations = if (page == 1) resPage.aggregations else it.aggregations
                     )
                 }
             }.onFailure { e ->
@@ -255,6 +257,12 @@ class SearchViewModel @Inject constructor(
                     ) 
                 }
             }
+        }
+    }
+
+    fun addToCart(postId: String) {
+        viewModelScope.launch {
+            repo.upsertCart(postId = postId, quantity = 1)
         }
     }
 }

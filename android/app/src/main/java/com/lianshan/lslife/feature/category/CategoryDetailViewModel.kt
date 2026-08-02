@@ -22,8 +22,10 @@ data class CategoryDetailUiState(
     val error: String? = null,
     val categoryTree: List<CategoryNode> = emptyList(),
     val subCategories: List<CategoryNode> = emptyList(),
+    val leafCategories: List<CategoryNode> = emptyList(),
     val posts: List<Post> = emptyList(),
     val selectedSubCategory: String = "all",
+    val selectedLeafCategory: String = "all",
     val sort: String = "default",
     val minPrice: Double? = null,
     val maxPrice: Double? = null,
@@ -73,10 +75,43 @@ class CategoryDetailViewModel @Inject constructor(
 
     fun onSubCategory(c: String) {
         val newCat = if (_state.value.selectedSubCategory == c && c != "all") "all" else c
-        _state.update { it.copy(selectedSubCategory = newCat) }
+        
+        val tree = _state.value.categoryTree
+        val parentId = _state.value.parentCategoryId
+        val parentNode = tree.find { it.id == parentId }
+        val targetNode = parentNode?.children?.find { it.id == newCat }
+        val leafCats = targetNode?.children ?: emptyList()
+
+        _state.update { it.copy(
+            selectedSubCategory = newCat,
+            leafCategories = leafCats,
+            selectedLeafCategory = "all"
+        ) }
         
         val effectiveCat = if (newCat == "all") _state.value.parentCategoryId else newCat
         
+        viewModelScope.launch {
+            if (effectiveCat == "all") {
+                _state.update { it.copy(currentSchema = null, attributesFilter = emptyMap()) }
+            } else {
+                repo.categorySchema(effectiveCat).onSuccess { schema ->
+                    _state.update { it.copy(currentSchema = schema, attributesFilter = emptyMap()) }
+                }
+            }
+            load(showFullLoading = true, page = 1)
+        }
+    }
+
+    fun onLeafCategory(c: String) {
+        val newCat = if (_state.value.selectedLeafCategory == c && c != "all") "all" else c
+        _state.update { it.copy(selectedLeafCategory = newCat) }
+
+        val effectiveCat = if (newCat == "all") {
+            if (_state.value.selectedSubCategory == "all") _state.value.parentCategoryId else _state.value.selectedSubCategory
+        } else {
+            newCat
+        }
+
         viewModelScope.launch {
             if (effectiveCat == "all") {
                 _state.update { it.copy(currentSchema = null, attributesFilter = emptyMap()) }
@@ -153,7 +188,13 @@ class CategoryDetailViewModel @Inject constructor(
                 _state.update { it.copy(posts = emptyList()) }
             }
 
-            val catParam = if (s.selectedSubCategory == "all" || s.selectedSubCategory.isBlank()) s.parentCategoryId else s.selectedSubCategory
+            val catParam = if (s.selectedLeafCategory != "all" && s.selectedLeafCategory.isNotBlank()) {
+                s.selectedLeafCategory
+            } else if (s.selectedSubCategory != "all" && s.selectedSubCategory.isNotBlank()) {
+                s.selectedSubCategory
+            } else {
+                s.parentCategoryId
+            }
             val sortParam = if (s.sort == "default") null else s.sort
 
             repo.posts(
@@ -184,6 +225,12 @@ class CategoryDetailViewModel @Inject constructor(
                 .onFailure { e ->
                     _state.update { it.copy(loading = false, loadingMore = false, refreshing = false, error = e.message ?: "加载失败") }
                 }
+        }
+    }
+
+    fun addToCart(postId: String) {
+        viewModelScope.launch {
+            repo.upsertCart(postId = postId, quantity = 1)
         }
     }
 }

@@ -783,6 +783,7 @@ private fun CategoryTreeBottomSheet(
                                     CategoryIconView(
                                         iconUrl = node.iconUrl,
                                         iconName = node.icon,
+                                        categoryName = node.name,
                                         size = 20.dp,
                                         tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.DarkGray,
                                         modifier = Modifier.padding(end = 8.dp)
@@ -920,6 +921,7 @@ private fun CategoryListRow(
                 CategoryIconView(
                     iconUrl = leafNode.iconUrl,
                     iconName = leafNode.icon,
+                    categoryName = leafNode.name,
                     size = 20.dp,
                     tint = if (isHot) Color(0xFFFF5722) else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(end = 10.dp)

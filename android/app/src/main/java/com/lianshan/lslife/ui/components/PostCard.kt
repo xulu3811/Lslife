@@ -37,7 +37,7 @@ import coil.compose.AsyncImage
 import com.lianshan.lslife.core.model.Post
 
 @Composable
-fun PostListCard(post: Post, onClick: () -> Unit = {}) {
+fun PostListCard(post: Post, onClick: () -> Unit = {}, onAddCartClick: () -> Unit = {}) {
     val scheme = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier
@@ -88,7 +88,7 @@ fun PostListCard(post: Post, onClick: () -> Unit = {}) {
                 
                 // Price tag and Add Button
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -96,37 +96,38 @@ fun PostListCard(post: Post, onClick: () -> Unit = {}) {
                         Row(
                             verticalAlignment = Alignment.Bottom,
                         ) {
-                            Text("¥", style = MaterialTheme.typography.labelSmall, color = scheme.primary, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                            Text("¥", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color(0xFFE1251B), fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(bottom = 1.dp, end = 1.dp))
                             Text(
                                 "%.2f".format(post.price),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = scheme.primary,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 14.sp
+                                color = androidx.compose.ui.graphics.Color(0xFFE1251B),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 16.sp
                             )
                         }
                     } else {
                         Text(
                             "面议",
                             style = MaterialTheme.typography.labelMedium,
-                            color = scheme.primary,
+                            color = androidx.compose.ui.graphics.Color(0xFFE1251B),
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
+                            fontSize = 13.sp
                         )
                     }
 
                     Box(
                         modifier = Modifier
-                            .size(24.dp)
+                            .size(26.dp)
                             .clip(CircleShape)
-                            .background(scheme.primary),
+                            .background(androidx.compose.ui.graphics.Color(0xFFE1251B))
+                            .clickable(onClick = onAddCartClick),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Filled.Add, contentDescription = "购买", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.Add, contentDescription = "购买", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(18.dp))
                     }
                 }
                 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 
                 // Publisher
                 Row(verticalAlignment = Alignment.CenterVertically) {

@@ -86,6 +86,7 @@ fun SearchScreen(
             minPrice = state.minPrice,
             maxPrice = state.maxPrice,
             attributesFilter = state.attributesFilter,
+            aggregations = state.aggregations,
             onPublisherTypeChange = viewModel::updatePublisherType,
             onListingTypeChange = viewModel::updateListingType,
             onCategoryChange = { c -> viewModel.updateCategory(if (c == "all") null else c) },
@@ -358,7 +359,15 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(state.posts, key = { it.id }) { post ->
-                        PostListCard(post, onClick = { onPostClick(post.id) })
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        PostListCard(
+                            post = post, 
+                            onClick = { onPostClick(post.id) },
+                            onAddCartClick = {
+                                viewModel.addToCart(post.id)
+                                android.widget.Toast.makeText(context, "已加入购物车", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        )
                     }
                     if (state.loadingMore) {
                         item {

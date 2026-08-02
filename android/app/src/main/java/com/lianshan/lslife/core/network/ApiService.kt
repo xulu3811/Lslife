@@ -174,6 +174,10 @@ interface ApiService {
     suspend fun uploadImage(@Part image: okhttp3.MultipartBody.Part): ApiEnvelope<UploadResult>
 
     @Multipart
+    @POST("upload/batch")
+    suspend fun uploadImagesBatch(@Part images: List<okhttp3.MultipartBody.Part>): ApiEnvelope<BatchUploadResult>
+
+    @Multipart
     @POST("upload/audio")
     suspend fun uploadAudio(@Part audio: okhttp3.MultipartBody.Part): ApiEnvelope<UploadResult>
 

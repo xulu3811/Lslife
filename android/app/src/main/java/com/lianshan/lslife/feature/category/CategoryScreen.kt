@@ -51,10 +51,10 @@ fun CategoryScreen(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 48.dp, start = Dimens.md, end = Dimens.md, bottom = Dimens.sm)
-                .height(40.dp)
+                .padding(top = Dimens.md, start = Dimens.md, end = Dimens.md, bottom = Dimens.xs)
+                .height(36.dp)
                 .clickable { onSearchClick() },
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(18.dp),
             color = Color(0xFFF5F6F8),
         ) {
             Row(
@@ -106,6 +106,7 @@ fun CategoryScreen(
                         CategoryIconView(
                             iconUrl = category.iconUrl,
                             iconName = category.icon,
+                            categoryName = category.name,
                             size = 22.dp,
                             tint = if (selected) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -13,6 +13,7 @@ import com.lianshan.lslife.core.network.CreatePostRequest
 import com.lianshan.lslife.core.network.AiGenerateDescResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -259,25 +260,36 @@ class PublishViewModel @Inject constructor(
         _state.update { it.copy(submitting = true) }
         viewModelScope.launch {
             val uploadedUrls = try {
+                val httpUrls = mutableListOf<String>()
+                val localParts = mutableListOf<okhttp3.MultipartBody.Part>()
+                
+                // 1. 本地并发无损压缩
                 coroutineScope {
-                    s.images.map { uri ->
-                        async {
+                    s.images.mapIndexed { index, uri ->
+                        async(Dispatchers.IO) {
                             if (uri.startsWith("http")) {
-                                uri
+                                synchronized(httpUrls) { httpUrls.add(uri) }
                             } else {
                                 val bytes = ImageCompressor.compress(context, uri)
                                 val reqFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
-                                val part = okhttp3.MultipartBody.Part.createFormData("image", "upload.jpg", reqFile)
-                                val res = repo.uploadImage(part)
-                                if (res.isSuccess) {
-                                    res.getOrNull()?.url ?: throw Exception("图片上传返回空地址")
-                                } else {
-                                    throw Exception(res.exceptionOrNull()?.message ?: "图片上传失败")
-                                }
+                                val part = okhttp3.MultipartBody.Part.createFormData("images", "upload_${index}.jpg", reqFile)
+                                synchronized(localParts) { localParts.add(part) }
                             }
                         }
                     }.awaitAll()
                 }
+                
+                // 2. 一次性批量合并上传
+                if (localParts.isNotEmpty()) {
+                    val res = repo.uploadImagesBatch(localParts)
+                    if (res.isSuccess) {
+                        val batchUrls = res.getOrNull()?.urls ?: throw Exception("批量上传返回空地址")
+                        httpUrls.addAll(batchUrls)
+                    } else {
+                        throw Exception(res.exceptionOrNull()?.message ?: "批量图片上传失败")
+                    }
+                }
+                httpUrls
             } catch (e: Exception) {
                 _state.update { it.copy(submitting = false, message = "图片上传失败: ${e.message}") }
                 return@launch
