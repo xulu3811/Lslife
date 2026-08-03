@@ -848,32 +848,80 @@ private fun CategoryTreeBottomSheet(
                                 .fillMaxHeight()
                                 .background(Color(0xFFF7F8FA), RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
                         ) {
-                            items(publishableTree, key = { it.id }) { node ->
-                                val isSelected = selectedLevel1?.id == node.id
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { selectedLevel1 = node }
-                                        .background(if (isSelected) Color.White else Color.Transparent)
-                                        .padding(horizontal = 8.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    CategoryIconView(
-                                        iconUrl = node.iconUrl,
-                                        iconName = node.icon,
-                                        categoryName = node.name,
-                                        size = 20.dp,
-                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.DarkGray,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    )
-                                    Text(
-                                        text = node.name,
-                                        fontSize = 14.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
+                            val commerceTree = publishableTree.filter { it.tradeMode == "COMMERCE" }
+                            val infoTree = publishableTree.filter { it.tradeMode == "INFO" }
+                            
+                            if (commerceTree.isNotEmpty()) {
+                                item {
+                                    Column(modifier = Modifier.padding(start = 12.dp, top = 16.dp, bottom = 8.dp)) {
+                                        Text("直接交易", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
+                                        Text("在线交易·送货上门", fontSize = 9.sp, color = Color.Gray)
+                                    }
+                                }
+                                items(commerceTree, key = { it.id }) { node ->
+                                    val isSelected = selectedLevel1?.id == node.id
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { selectedLevel1 = node }
+                                            .background(if (isSelected) Color.White else Color.Transparent)
+                                            .padding(horizontal = 8.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        CategoryIconView(
+                                            iconUrl = node.iconUrl,
+                                            iconName = node.icon,
+                                            categoryName = node.name,
+                                            size = 20.dp,
+                                            tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.DarkGray,
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        )
+                                        Text(
+                                            text = node.name,
+                                            fontSize = 14.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (infoTree.isNotEmpty()) {
+                                item {
+                                    Column(modifier = Modifier.padding(start = 12.dp, top = 16.dp, bottom = 8.dp)) {
+                                        Text("本地信息", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
+                                        Text("信息发布·自主联系", fontSize = 9.sp, color = Color.Gray)
+                                    }
+                                }
+                                items(infoTree, key = { it.id }) { node ->
+                                    val isSelected = selectedLevel1?.id == node.id
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { selectedLevel1 = node }
+                                            .background(if (isSelected) Color.White else Color.Transparent)
+                                            .padding(horizontal = 8.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        CategoryIconView(
+                                            iconUrl = node.iconUrl,
+                                            iconName = node.icon,
+                                            categoryName = node.name,
+                                            size = 20.dp,
+                                            tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.DarkGray,
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        )
+                                        Text(
+                                            text = node.name,
+                                            fontSize = 14.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }

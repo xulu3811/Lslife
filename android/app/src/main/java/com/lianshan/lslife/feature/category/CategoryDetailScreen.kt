@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridS
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedFilterChip
@@ -134,6 +136,31 @@ fun CategoryDetailScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
         ) {
+            val parentNode = state.categoryTree.find { it.id == state.parentCategoryId }
+            val tradeMode = parentNode?.tradeMode ?: "INFO"
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(if (tradeMode == "COMMERCE") Color(0xFFFFF8E1) else Color(0xFFE3F2FD))
+                    .padding(horizontal = Dimens.lg, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = if (tradeMode == "COMMERCE") Icons.Outlined.Security else Icons.Outlined.Campaign,
+                    contentDescription = null,
+                    tint = if (tradeMode == "COMMERCE") Color(0xFFF57F17) else Color(0xFF1565C0),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (tradeMode == "COMMERCE") "官方担保交易，支持购物车统一结算" else "自由信息对接，请自行辨别交易风险",
+                    fontSize = 11.sp,
+                    color = if (tradeMode == "COMMERCE") Color(0xFFF57F17) else Color(0xFF1565C0)
+                )
+            }
+
             if (state.subCategories.isNotEmpty()) {
                 val displayCategories = remember(state.subCategories) {
                     listOf(com.lianshan.lslife.core.model.CategoryNode(id = "all", name = "全部", icon = "all")) + state.subCategories
