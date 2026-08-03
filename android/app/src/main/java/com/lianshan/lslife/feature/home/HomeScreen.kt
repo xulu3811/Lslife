@@ -29,8 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.ArrowForward
@@ -84,21 +82,20 @@ private data class CategoryItem(
     val id: String,
     val name: String,
     val icon: String,
-    val iconUrl: String? = null,
-    val tradeMode: String = "COMMERCE"
+    val iconUrl: String? = null
 )
 
 private val defaultCategories = listOf(
-    CategoryItem("cat_veggies", "同城生鲜", "shopping-basket", "/assets/icons/3d_flat_fresh_food.png", "COMMERCE"),
-    CategoryItem("cat_service", "家政保洁", "cleaning-services", "/assets/icons/3d_flat_cleaning.png", "COMMERCE"),
-    CategoryItem("cat_maintenance", "水电维修", "build", "/assets/icons/3d_flat_repair.png", "COMMERCE"),
-    CategoryItem("cat_dining", "餐饮娱乐", "restaurant", "/assets/icons/3d_flat_dining.png", "COMMERCE"),
-    CategoryItem("cat_education", "教育培训", "school", "/assets/icons/3d_flat_education.png", "COMMERCE"),
-    CategoryItem("cat_idle", "个人闲置", "shopping-bag", "/assets/icons/3d_flat_secondhand.png", "INFO"),
-    CategoryItem("cat_house", "房屋租售", "home", "/assets/icons/3d_flat_housing.png", "INFO"),
-    CategoryItem("cat_job", "招聘求职", "work", "/assets/icons/3d_flat_jobs.png", "INFO"),
-    CategoryItem("cat_car_rental", "拼车/租车", "local-shipping", "/assets/icons/3d_flat_car_rental.png", "INFO"),
-    CategoryItem("cat_part_time", "兼职零工", "schedule", "/assets/icons/3d_flat_parttime.png", "INFO")
+    CategoryItem("cat_idle", "个人闲置", "shopping-bag", "/assets/icons/3d_flat_secondhand.png"),
+    CategoryItem("cat_house", "房屋租售", "home", "/assets/icons/3d_flat_housing.png"),
+    CategoryItem("cat_service", "家政保洁", "cleaning-services", "/assets/icons/3d_flat_cleaning.png"),
+    CategoryItem("cat_maintenance", "水电维修", "build", "/assets/icons/3d_flat_repair.png"),
+    CategoryItem("cat_veggies", "同城生鲜", "shopping-basket", "/assets/icons/3d_flat_fresh_food.png"),
+    CategoryItem("cat_job", "招聘求职", "work", "/assets/icons/3d_flat_jobs.png"),
+    CategoryItem("cat_car_rental", "拼车/租车", "local-shipping", "/assets/icons/3d_flat_car_rental.png"),
+    CategoryItem("cat_part_time", "兼职零工", "schedule", "/assets/icons/3d_flat_parttime.png"),
+    CategoryItem("cat_education", "教育培训", "school", "/assets/icons/3d_flat_education.png"),
+    CategoryItem("cat_dining", "餐饮娱乐", "restaurant", "/assets/icons/3d_flat_dining.png"),
 )
 
 private val sorts = listOf(
@@ -130,7 +127,7 @@ fun HomeScreen(
     val gridState = rememberLazyStaggeredGridState()
 
     val displayCategories = androidx.compose.runtime.remember(state.categoryTree) {
-        if (state.categoryTree.isEmpty()) {
+        val list = if (state.categoryTree.isEmpty()) {
             defaultCategories.toMutableList()
         } else {
             state.categoryTree.map { node ->
@@ -138,11 +135,11 @@ fun HomeScreen(
                     id = node.id,
                     name = node.name,
                     icon = node.icon ?: "📁",
-                    iconUrl = node.iconUrl,
-                    tradeMode = node.tradeMode
+                    iconUrl = node.iconUrl
                 )
             }.toMutableList()
         }
+        list
     }
 
 
@@ -293,32 +290,65 @@ fun HomeScreen(
             ) {
                 item(span = StaggeredGridItemSpan.FullLine) {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(24.dp),
-                        modifier = Modifier.padding(top = 8.dp, bottom = Dimens.md)
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                     ) {
-                        val commerceList = displayCategories.filter { it.tradeMode == "COMMERCE" }
-                        val infoList = displayCategories.filter { it.tradeMode == "INFO" }
+                        val pages = displayCategories.chunked(10)
+                        val pagerState = rememberPagerState(pageCount = { pages.size })
 
-                        if (commerceList.isNotEmpty()) {
-                            CategorySection(
-                                title = "直接交易",
-                                subtitle = "支持在线担保交易、购物车与配送",
-                                iconVector = Icons.Outlined.Security,
-                                items = commerceList,
-                                selectedCategory = state.category,
-                                onNavigateToCategory = onNavigateToCategory
-                            )
+                        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { pageIndex ->
+                            val pageItems = pages[pageIndex]
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                ) {
+                                    pageItems.take(5).forEach { item ->
+                                        CategoryItemView(item, state.category) { id, name ->
+                                            onNavigateToCategory(id, name)
+                                        }
+                                    }
+                                    repeat(5 - pageItems.take(5).size) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                                if (pageItems.size > 5) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly,
+                                    ) {
+                                        pageItems.drop(5).take(5).forEach { item ->
+                                            CategoryItemView(item, state.category) { id, name ->
+                                                onNavigateToCategory(id, name)
+                                            }
+                                        }
+                                        repeat(5 - pageItems.drop(5).size) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
                         }
                         
-                        if (infoList.isNotEmpty()) {
-                            CategorySection(
-                                title = "同城信息",
-                                subtitle = "仅提供信息展示与供需对接",
-                                iconVector = Icons.Outlined.Campaign,
-                                items = infoList,
-                                selectedCategory = state.category,
-                                onNavigateToCategory = onNavigateToCategory
-                            )
+                        // Optional: Pager indicator could go here if pages.size > 1
+                        if (pages.size > 1) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = Dimens.sm),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                repeat(pages.size) { iteration ->
+                                    val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else Color.LightGray
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(2.dp)
+                                            .clip(CircleShape)
+                                            .background(color)
+                                            .size(6.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -527,70 +557,5 @@ private fun RowScope.CategoryItemView(
             maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
-    }
-}
-
-@Composable
-private fun CategorySection(
-    title: String,
-    subtitle: String,
-    iconVector: androidx.compose.ui.graphics.vector.ImageVector,
-    items: List<CategoryItem>,
-    selectedCategory: String,
-    onNavigateToCategory: (String, String) -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), // Glassmorphism container
-        border = null
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = Dimens.md, horizontal = Dimens.sm)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(start = Dimens.sm, end = Dimens.sm, bottom = Dimens.md)
-            ) {
-                Icon(
-                    imageVector = iconVector,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            val pages = items.chunked(5)
-            Column(verticalArrangement = Arrangement.spacedBy(Dimens.md)) {
-                pages.forEach { rowItems ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        rowItems.forEach { item ->
-                            CategoryItemView(item, selectedCategory) { id, name ->
-                                onNavigateToCategory(id, name)
-                            }
-                        }
-                        repeat(5 - rowItems.size) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-        }
     }
 }
