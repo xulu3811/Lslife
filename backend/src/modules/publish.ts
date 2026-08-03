@@ -234,26 +234,44 @@ router.get(
     if (attrFilter) {
       try {
         const parsed = JSON.parse(attrFilter) as Record<string, string>;
-        const andConditions: Record<string, unknown>[] = [];
-        for (const [k, v] of Object.entries(parsed)) {
-          if (v && v.trim() !== '') {
-            const values = v.split('||').map(s => s.trim()).filter(Boolean);
-            if (values.length > 0) {
-              const valueOrs = values.flatMap(val => [
-                { attributes: { contains: `"${k}":"${val}"` } },
-                { attributes: { contains: `"${k}": "${val}"` } }
-              ]);
-              andConditions.push({ OR: valueOrs });
+        const isPg = process.env.DATABASE_URL?.startsWith('postgres');
+        
+        if (isPg) {
+          const conditions = [];
+          for (const [k, v] of Object.entries(parsed)) {
+            if (v && v.trim() !== '') {
+              const values = v.split('||').map(s => s.trim()).filter(Boolean);
+              if (values.length > 0) {
+                conditions.push(Prisma.sql`(attributes::jsonb ->> ${k} IN (${Prisma.join(values)}))`);
+              }
             }
           }
-        }
-        if (andConditions.length > 0) {
-          if (Array.isArray(where.AND)) {
-            (where.AND as unknown[]).push(...andConditions);
-          } else if (where.AND) {
-            where.AND = [where.AND, ...andConditions];
-          } else {
-            where.AND = andConditions;
+          if (conditions.length > 0) {
+            const rawResult = await prisma.$queryRaw<{id: string}[]>`SELECT id FROM "Post" WHERE ${Prisma.join(conditions, Prisma.sql` AND `)}`;
+            where.id = { in: rawResult.map(r => r.id) };
+          }
+        } else {
+          const andConditions: Record<string, unknown>[] = [];
+          for (const [k, v] of Object.entries(parsed)) {
+            if (v && v.trim() !== '') {
+              const values = v.split('||').map(s => s.trim()).filter(Boolean);
+              if (values.length > 0) {
+                const valueOrs = values.flatMap(val => [
+                  { attributes: { contains: `"${k}":"${val}"` } },
+                  { attributes: { contains: `"${k}": "${val}"` } }
+                ]);
+                andConditions.push({ OR: valueOrs });
+              }
+            }
+          }
+          if (andConditions.length > 0) {
+            if (Array.isArray(where.AND)) {
+              (where.AND as unknown[]).push(...andConditions);
+            } else if (where.AND) {
+              where.AND = [where.AND, ...andConditions];
+            } else {
+              where.AND = andConditions;
+            }
           }
         }
       } catch (e) {

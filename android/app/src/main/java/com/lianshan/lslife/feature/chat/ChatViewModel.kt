@@ -116,6 +116,11 @@ class ChatViewModel @Inject constructor(
         chatRepository.sendMessage(targetUserId, content, type)
     }
 
+    fun sendLocation(lat: Double, lng: Double, name: String, address: String) {
+        val json = """{"lat":$lat,"lng":$lng,"name":"$name","address":"$address"}"""
+        sendMessage(json, "location")
+    }
+
     fun recallMessage(messageId: String) {
         if (currentSessionId.isEmpty()) return
         viewModelScope.launch {

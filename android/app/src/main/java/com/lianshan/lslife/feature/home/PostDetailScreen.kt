@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.ShoppingCartCheckout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,10 +39,12 @@ fun PostDetailScreen(
     onBack: () -> Unit,
     onChatClick: (String, String) -> Unit, // targetUserId, targetName
     onBuyClick: (String) -> Unit, // postId
+    onPhoneClick: (String) -> Unit = {}, // phone number
     viewModel: PostDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scheme = MaterialTheme.colorScheme
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(postId) {
         viewModel.loadPost(postId)
@@ -74,34 +78,76 @@ fun PostDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(Dimens.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
-                            onClick = {
-                                val targetId = state.post?.user?.id
-                                if (targetId != null) {
-                                    onChatClick(targetId, state.post?.user?.nickname ?: "卖家")
-                                }
-                            },
-                            modifier = Modifier.weight(1f).height(48.dp),
-                            shape = RoundedCornerShape(24.dp)
-                        ) {
-                            Icon(Icons.Filled.Chat, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("联系卖家", fontWeight = FontWeight.Bold)
-                        }
-                        
-                        Button(
-                            onClick = { 
-                                viewModel.addToCart {
-                                    onBuyClick(state.post!!.id) 
-                                }
-                            },
-                            modifier = Modifier.weight(1f).height(48.dp),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = scheme.error)
-                        ) {
-                            Icon(Icons.Filled.ShoppingCartCheckout, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("加入购物车", fontWeight = FontWeight.Bold)
+                        if (state.post?.tradeMode == "INFO") {
+                            // INFO BottomBar: 收藏, 在线私聊, 拨打电话
+                            OutlinedButton(
+                                onClick = { /* TODO: 收藏功能 */ },
+                                modifier = Modifier.height(48.dp),
+                                shape = RoundedCornerShape(24.dp)
+                            ) {
+                                Icon(Icons.Filled.FavoriteBorder, null, modifier = Modifier.size(18.dp))
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    val targetId = state.post?.user?.id
+                                    if (targetId != null) {
+                                        onChatClick(targetId, state.post?.user?.nickname ?: "发布者")
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = RoundedCornerShape(24.dp)
+                            ) {
+                                Icon(Icons.Filled.Chat, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("在线私聊", fontWeight = FontWeight.Bold)
+                            }
+                            Button(
+                                onClick = {
+                                    val phone = state.post?.contactPhone
+                                    if (!phone.isNullOrBlank()) {
+                                        onPhoneClick(phone)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = scheme.primary)
+                            ) {
+                                Icon(Icons.Filled.Phone, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("拨打电话", fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            // COMMERCE BottomBar: 联系卖家, 加入购物车
+                            OutlinedButton(
+                                onClick = {
+                                    val targetId = state.post?.user?.id
+                                    if (targetId != null) {
+                                        onChatClick(targetId, state.post?.user?.nickname ?: "卖家")
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = RoundedCornerShape(24.dp)
+                            ) {
+                                Icon(Icons.Filled.Chat, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("联系卖家", fontWeight = FontWeight.Bold)
+                            }
+                            
+                            Button(
+                                onClick = { 
+                                    viewModel.addToCart(
+                                        onSuccess = { onBuyClick(state.post!!.id) },
+                                        onError = { msg -> android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show() }
+                                    )
+                                },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = scheme.error)
+                            ) {
+                                Icon(Icons.Filled.ShoppingCartCheckout, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("加入购物车", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

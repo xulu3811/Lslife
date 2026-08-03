@@ -364,8 +364,11 @@ fun SearchScreen(
                             post = post, 
                             onClick = { onPostClick(post.id) },
                             onAddCartClick = {
-                                viewModel.addToCart(post.id)
-                                android.widget.Toast.makeText(context, "已加入购物车", android.widget.Toast.LENGTH_SHORT).show()
+                                viewModel.addToCart(
+                                    postId = post.id,
+                                    onSuccess = { android.widget.Toast.makeText(context, "已加入购物车", android.widget.Toast.LENGTH_SHORT).show() },
+                                    onError = { msg -> android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show() }
+                                )
                             }
                         )
                     }

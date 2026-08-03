@@ -16,6 +16,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.ui.input.pointer.pointerInput
@@ -85,6 +87,16 @@ fun ChatScreen(
 
     DisposableEffect(Unit) {
         onDispose { audioManager.release() }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.sendLocation(24.77, 112.08, "连山壮族瑶族自治县", "广东省清远市")
+        } else {
+            android.widget.Toast.makeText(context, "需要定位权限", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -177,6 +189,17 @@ fun ChatScreen(
                         }
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = "发送图片", tint = Color.Gray)
+                    }
+                    IconButton(
+                        onClick = {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                                viewModel.sendLocation(24.77, 112.08, "连山壮族瑶族自治县", "广东省清远市")
+                            } else {
+                                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Filled.LocationOn, contentDescription = "发送位置", tint = Color.Gray)
                     }
                     IconButton(
                         onClick = {
@@ -438,6 +461,37 @@ fun ChatBubble(
                     }
                 } else {
                     Text("不支持的卡片消息", color = Color.Gray)
+                }
+            } else if (message.type == "location") {
+                val locData = try { org.json.JSONObject(message.content) } catch (e: Exception) { null }
+                if (locData != null) {
+                    Column(modifier = Modifier.width(220.dp)) {
+                        Text(
+                            text = locData.optString("name", "位置信息"),
+                            color = if (isMe) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = locData.optString("address", "未知地址"),
+                            color = if (isMe) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.LightGray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Place, contentDescription = "Map Placeholder", tint = PrimaryRed, modifier = Modifier.size(36.dp))
+                        }
+                    }
+                } else {
+                    Text("不支持的位置卡片", color = Color.Gray)
                 }
             } else if (message.type == "voice") {
                 val voiceData = try {

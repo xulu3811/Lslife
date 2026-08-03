@@ -31,13 +31,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Icon
 import coil.compose.AsyncImage
 import com.lianshan.lslife.core.model.Post
 
 @Composable
-fun PostListCard(post: Post, onClick: () -> Unit = {}, onAddCartClick: () -> Unit = {}) {
+fun PostListCard(
+    post: Post,
+    onClick: () -> Unit = {},
+    onAddCartClick: () -> Unit = {},
+    onPhoneClick: () -> Unit = onClick,
+    onChatClick: () -> Unit = onClick
+) {
     val scheme = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier
@@ -92,38 +100,83 @@ fun PostListCard(post: Post, onClick: () -> Unit = {}, onAddCartClick: () -> Uni
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    if (post.price != null && post.price > 0) {
-                        Row(
-                            verticalAlignment = Alignment.Bottom,
-                        ) {
-                            Text("¥", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color(0xFFE1251B), fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(bottom = 1.dp, end = 1.dp))
+                    if (post.tradeMode == "INFO") {
+                        if (post.price != null && post.price > 0) {
                             Text(
-                                "%.2f".format(post.price),
+                                "%.2f".format(post.price) + "元",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = androidx.compose.ui.graphics.Color(0xFFE1251B),
                                 fontWeight = FontWeight.Black,
-                                fontSize = 16.sp
+                                fontSize = 14.sp
+                            )
+                        } else {
+                            Text(
+                                "面议",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = androidx.compose.ui.graphics.Color(0xFFE1251B),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
                             )
                         }
                     } else {
-                        Text(
-                            "面议",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = androidx.compose.ui.graphics.Color(0xFFE1251B),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
+                        if (post.price != null && post.price > 0) {
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                            ) {
+                                Text("¥", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color(0xFFE1251B), fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(bottom = 1.dp, end = 1.dp))
+                                Text(
+                                    "%.2f".format(post.price),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = androidx.compose.ui.graphics.Color(0xFFE1251B),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 16.sp
+                                )
+                            }
+                        } else {
+                            Text(
+                                "面议",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = androidx.compose.ui.graphics.Color(0xFFE1251B),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(androidx.compose.ui.graphics.Color(0xFFE1251B))
-                            .clickable(onClick = onAddCartClick),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = "购买", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(18.dp))
+                    if (post.tradeMode == "INFO") {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(androidx.compose.ui.graphics.Color(0xFFF5F5F5))
+                                    .clickable(onClick = onPhoneClick),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Filled.Phone, contentDescription = "拨打", tint = scheme.primary, modifier = Modifier.size(14.dp))
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(androidx.compose.ui.graphics.Color(0xFFE8F5E9))
+                                    .clickable(onClick = onChatClick),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Filled.Chat, contentDescription = "私聊", tint = androidx.compose.ui.graphics.Color(0xFF4CAF50), modifier = Modifier.size(14.dp))
+                            }
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(androidx.compose.ui.graphics.Color(0xFFE1251B))
+                                .clickable(onClick = onAddCartClick),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = "购买", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(18.dp))
+                        }
                     }
                 }
                 

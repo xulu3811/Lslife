@@ -1,28 +1,26 @@
 $ErrorActionPreference = "Stop"
 Write-Host "========================================="
-Write-Host "   LsLife V6.0 商业版 APK 自动化构建引擎   "
+Write-Host "   LsLife V6.0 APK Automated Build       "
 Write-Host "========================================="
 
 $projectDir = "D:\LsLife\android"
 $releaseDir = "D:\LsLife\releases"
 
-Write-Host "1. 配置构建环境..."
+Write-Host "1. Configuring build environment..."
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 Set-Location -Path $projectDir
 
-Write-Host "2. 启动 Gradle AssembleRelease 编译过程 (这可能需要几分钟)..."
+Write-Host "2. Starting Gradle AssembleRelease..."
 .\gradlew.bat assembleRelease
 
-Write-Host "3. 检查构建产物..."
-if (Test-Path "$releaseDir\LsLife-v6.0.0-release.apk") {
-    Write-Host "✅ 构建成功！" -ForegroundColor Green
-    Write-Host "产物已归档至: $releaseDir\LsLife-v6.0.0-release.apk" -ForegroundColor Green
-    
-    # 自动打开输出目录
+Write-Host "3. Checking build artifacts..."
+if (Test-Path "$releaseDir\*.apk") {
+    Write-Host "SUCCESS! Build Completed." -ForegroundColor Green
+    Write-Host "Location: $releaseDir\" -ForegroundColor Green
     Invoke-Item $releaseDir
 } else {
-    Write-Host "❌ 构建失败或未能找到预期产物，请检查上方 Gradle 日志。" -ForegroundColor Red
+    Write-Host "ERROR! Build failed or artifact not found." -ForegroundColor Red
 }
 
-Write-Host "按任意键退出..."
+Write-Host "Press any key to exit..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")

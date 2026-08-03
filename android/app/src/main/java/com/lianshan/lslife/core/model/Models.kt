@@ -169,6 +169,11 @@ data class Post(
     val title: String,
     val description: String,
     val price: Double? = null,
+    val originalPrice: Double? = null,
+    val contactPhone: String? = null,
+    val stock: Int = 0,
+    val deliveryType: String = "SELF_PICKUP",
+    val tradeMode: String = "COMMERCE", // Default to COMMERCE for backward compatibility with old backend data
     val images: List<String> = emptyList(),
     val status: String,
     val locationName: String? = null,
@@ -310,6 +315,7 @@ data class CategoryNode(
     val isLeaf: Boolean = false,
     val isActive: Boolean = true,
     val isHot: Boolean = false,
+    val tradeMode: String = "COMMERCE",
     val attributeSchema: List<DynamicField> = emptyList(),
     val children: List<CategoryNode> = emptyList(),
 )

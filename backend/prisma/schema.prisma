@@ -264,6 +264,7 @@ model Category {
   isLeaf          Boolean @default(false)
   isActive        Boolean @default(true) // 新增：是否启用
   isHot           Boolean @default(false) // 新增：是否为热门推荐
+  tradeMode       String  @default("INFO") // 新增：INFO 或 COMMERCE
   attributeSchema String? @default("[]") // JSON 字符串数组 DynamicField[]
 
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
@@ -285,11 +286,16 @@ model Post {
   publisherType String   @default("INDIVIDUAL") // INDIVIDUAL | MERCHANT
   merchantId    String?
   listingType   String   @default("GOODS") // GOODS | SERVICE
+  tradeMode     String   @default("INFO") // 新增：数据归属流向 (INFO / COMMERCE)
   category      String
   categoryId    String?
   title         String
   description   String
   price         Float?
+  originalPrice Float?   // 新增：划线原价
+  contactPhone  String?  // 新增：信息直连电话
+  stock         Int      @default(0)   // 新增：真实电商库存
+  deliveryType  String   @default("SELF_PICKUP") // 新增：配送方式
   images        String   @default("[]") // JSON 字符串数组
   latitude      Float?
   longitude     Float?

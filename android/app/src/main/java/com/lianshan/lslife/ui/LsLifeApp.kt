@@ -296,6 +296,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
             }
             composable(Routes.POST_DETAIL) { backStackEntry ->
                 val postId = backStackEntry.arguments?.getString("postId") ?: ""
+                val context = androidx.compose.ui.platform.LocalContext.current
                 com.lianshan.lslife.feature.home.PostDetailScreen(
                     postId = postId,
                     onBack = { navController.popBackStack() },
@@ -303,8 +304,17 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                         navController.navigate(Routes.chat("new", targetId, targetName, initPostId = postId))
                     },
                     onBuyClick = { id ->
-                        // Direct purchase can be simulated or a toast shown. Let's redirect to cart for now.
                         navController.navigate(Routes.CART)
+                    },
+                    onPhoneClick = { phone ->
+                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                            data = android.net.Uri.parse("tel:$phone")
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 )
             }

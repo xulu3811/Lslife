@@ -25,6 +25,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 
+enum class TradeMode { INFO, COMMERCE }
+
 data class PublishUiState(
     val publisherType: String = "INDIVIDUAL",
     val merchantId: String? = null,
@@ -45,6 +47,11 @@ data class PublishUiState(
     val title: String = "",
     val description: String = "",
     val price: String = "",
+    val contactPhone: String = "",
+    val originalPrice: String = "",
+    val stock: String = "99",
+    val deliveryType: String = "SELF_PICKUP",
+    val tradeMode: TradeMode = TradeMode.COMMERCE,
     val images: List<String> = emptyList(),
     val location: String = "连山壮族瑶族自治县",
     val quota: Quota? = null,
@@ -133,12 +140,14 @@ class PublishViewModel @Inject constructor(
     }
 
     fun onSelectLeafCategory(leafNode: CategoryNode, fullPath: String) {
+        val mode = if (leafNode.tradeMode == "COMMERCE") TradeMode.COMMERCE else TradeMode.INFO
         _state.update {
             it.copy(
                 selectedCategory = leafNode,
                 selectedCategoryPath = fullPath,
                 categoryId = leafNode.id,
                 dynamicFields = leafNode.attributeSchema,
+                tradeMode = mode
             )
         }
         if (leafNode.attributeSchema.isEmpty()) {
@@ -175,6 +184,11 @@ class PublishViewModel @Inject constructor(
                         title = post.title,
                         description = post.description,
                         price = post.price?.toString() ?: "",
+                        contactPhone = post.contactPhone ?: "",
+                        originalPrice = post.originalPrice?.toString() ?: "",
+                        stock = post.stock.toString(),
+                        deliveryType = post.deliveryType,
+                        tradeMode = if (post.tradeMode == "COMMERCE") TradeMode.COMMERCE else TradeMode.INFO,
                         images = post.images,
                         location = post.locationName ?: "连山壮族瑶族自治县",
                         dynamicFormValues = attrs,
@@ -194,6 +208,10 @@ class PublishViewModel @Inject constructor(
     fun onTitle(v: String) = _state.update { it.copy(title = v) }
     fun onDescription(v: String) = _state.update { it.copy(description = v) }
     fun onPrice(v: String) = _state.update { it.copy(price = v.filter { c -> c.isDigit() || c == '.' }) }
+    fun onContactPhone(v: String) = _state.update { it.copy(contactPhone = v.filter { c -> c.isDigit() }) }
+    fun onOriginalPrice(v: String) = _state.update { it.copy(originalPrice = v.filter { c -> c.isDigit() || c == '.' }) }
+    fun onStock(v: String) = _state.update { it.copy(stock = v.filter { c -> c.isDigit() }) }
+    fun onDeliveryType(v: String) = _state.update { it.copy(deliveryType = v) }
     fun onImagesSelected(uris: List<String>) {
         val current = _state.value.images
         _state.update { it.copy(images = current + uris) }
@@ -257,6 +275,20 @@ class PublishViewModel @Inject constructor(
             _state.update { it.copy(message = "请填写标题和描述") }
             return
         }
+        if (s.tradeMode == TradeMode.INFO && s.contactPhone.isBlank()) {
+            _state.update { it.copy(message = "请填写联系电话") }
+            return
+        }
+        if (s.tradeMode == TradeMode.COMMERCE) {
+            if (s.price.isBlank()) {
+                _state.update { it.copy(message = "请填写一口价") }
+                return
+            }
+            if (s.stock.isBlank()) {
+                _state.update { it.copy(message = "请填写库存数量") }
+                return
+            }
+        }
         _state.update { it.copy(submitting = true) }
         viewModelScope.launch {
             val uploadedUrls = try {
@@ -306,6 +338,11 @@ class PublishViewModel @Inject constructor(
                 title = s.title.ifBlank { "同城优质发布" },
                 description = s.description,
                 price = s.price.toDoubleOrNull(),
+                contactPhone = s.contactPhone.takeIf { it.isNotBlank() },
+                originalPrice = s.originalPrice.toDoubleOrNull(),
+                stock = s.stock.toIntOrNull() ?: 0,
+                deliveryType = s.deliveryType,
+                tradeMode = s.tradeMode.name,
                 images = uploadedUrls,
                 publisherType = s.publisherType,
                 merchantId = s.merchantId,

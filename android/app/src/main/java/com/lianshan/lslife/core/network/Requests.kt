@@ -72,6 +72,11 @@ data class CreatePostRequest(
     val publisherType: String = "INDIVIDUAL",
     val merchantId: String? = null,
     val listingType: String = "GOODS",
+    val tradeMode: String = "INFO",
+    val contactPhone: String? = null,
+    val originalPrice: Double? = null,
+    val stock: Int = 0,
+    val deliveryType: String = "SELF_PICKUP",
     val attributes: @Serializable(with = FlexibleJsonObjectSerializer::class) JsonObject = JsonObject(emptyMap()),
     val locationName: String? = null,
 )

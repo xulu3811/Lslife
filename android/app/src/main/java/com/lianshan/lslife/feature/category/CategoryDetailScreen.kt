@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.imageLoader
+import coil.request.ImageRequest
 import com.lianshan.lslife.feature.search.AdvancedFilterBottomSheet
 import com.lianshan.lslife.ui.components.CategoryPill
 import com.lianshan.lslife.ui.components.CategoryIconView
@@ -282,11 +284,25 @@ fun CategoryDetailScreen(
                 state.error != null && state.posts.isEmpty() -> {
                     ErrorBox(state.error!!, onRetry = { viewModel.load() })
                 }
-                else -> PullToRefreshBox(
-                    isRefreshing = state.refreshing,
-                    onRefresh = viewModel::refresh,
-                    modifier = Modifier.fillMaxSize()
-                ) {
+                else -> {
+                    val currentContext = androidx.compose.ui.platform.LocalContext.current
+                    LaunchedEffect(listState.firstVisibleItemIndex) {
+                        val visibleIndices = listState.layoutInfo.visibleItemsInfo.map { it.index }
+                        val maxVisible = visibleIndices.maxOrNull() ?: 0
+                        val toLoad = state.posts.drop(maxVisible + 1).take(7)
+                        for (post in toLoad) {
+                            val imgUrl = post.images.firstOrNull()
+                            if (imgUrl != null) {
+                                val req = ImageRequest.Builder(currentContext).data(imgUrl).build()
+                                currentContext.imageLoader.enqueue(req)
+                            }
+                        }
+                    }
+                    PullToRefreshBox(
+                        isRefreshing = state.refreshing,
+                        onRefresh = viewModel::refresh,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                     LazyVerticalStaggeredGrid(
                         columns = StaggeredGridCells.Fixed(2),
                         state = listState,
@@ -306,8 +322,11 @@ fun CategoryDetailScreen(
                                 post = post,
                                 onClick = { onOpenPost(post.id) },
                                 onAddCartClick = {
-                                    viewModel.addToCart(post.id)
-                                    android.widget.Toast.makeText(context, "已加入购物车", android.widget.Toast.LENGTH_SHORT).show()
+                                    viewModel.addToCart(
+                                        postId = post.id,
+                                        onSuccess = { android.widget.Toast.makeText(context, "已加入购物车", android.widget.Toast.LENGTH_SHORT).show() },
+                                        onError = { msg -> android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show() }
+                                    )
                                 }
                             )
                         }
@@ -352,6 +371,7 @@ fun CategoryDetailScreen(
                             }
                         }
                     }
+                }
                 }
             }
         }

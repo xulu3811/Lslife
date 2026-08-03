@@ -404,62 +404,140 @@ fun PublishScreen(
                     }
                 }
 
-                // Card 4: Price & Location
+                // Card 4: Dynamic Trade Mode Fields & Location
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color.White,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
-                        val priceFocusRequester = remember { FocusRequester() }
-                        val priceBringIntoView = remember { BringIntoViewRequester() }
+                        val focusRequester = remember { FocusRequester() }
+                        val bringIntoView = remember { BringIntoViewRequester() }
 
-                        // Price
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .bringIntoViewRequester(priceBringIntoView)
-                                .clickable {
-                                    priceFocusRequester.requestFocus()
-                                    scope.launch {
-                                        delay(300)
-                                        priceBringIntoView.bringIntoView()
+                        when (state.tradeMode) {
+                            TradeMode.INFO -> {
+                                // 期望薪资/租金
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("期望薪资/租金", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    BasicTextField(
+                                        value = state.price,
+                                        onValueChange = viewModel::onPrice,
+                                        textStyle = TextStyle(fontSize = 16.sp, color = Color.Red, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.End),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        decorationBox = { inner ->
+                                            if (state.price.isEmpty()) Text("面议", color = Color.LightGray, fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                                            else inner()
+                                        }
+                                    )
+                                }
+                                HorizontalDivider(color = Color(0xFFF5F5F5))
+                                // 联系电话
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("联系电话", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    BasicTextField(
+                                        value = state.contactPhone,
+                                        onValueChange = viewModel::onContactPhone,
+                                        textStyle = TextStyle(fontSize = 16.sp, color = Color.Black, textAlign = androidx.compose.ui.text.style.TextAlign.End),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                        decorationBox = { inner ->
+                                            if (state.contactPhone.isEmpty()) Text("必填", color = Color.LightGray, fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                                            else inner()
+                                        }
+                                    )
+                                }
+                            }
+                            TradeMode.COMMERCE -> {
+                                // 一口价
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("一口价", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    Row {
+                                        Text("¥", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                        BasicTextField(
+                                            value = state.price,
+                                            onValueChange = viewModel::onPrice,
+                                            textStyle = TextStyle(fontSize = 16.sp, color = Color.Red, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.End),
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                            decorationBox = { inner ->
+                                                if (state.price.isEmpty()) Text("0.00", color = Color.LightGray, fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                                                else inner()
+                                            }
+                                        )
                                     }
                                 }
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("价格/期望", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                BasicTextField(
-                                    value = state.price,
-                                    onValueChange = viewModel::onPrice,
-                                    textStyle = TextStyle(fontSize = 16.sp, color = Color.Red, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.End),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                    modifier = Modifier
-                                        .focusRequester(priceFocusRequester)
-                                        .onFocusChanged { f ->
-                                            if (f.isFocused) {
-                                                scope.launch {
-                                                    delay(300)
-                                                    priceBringIntoView.bringIntoView()
-                                                }
-                                            }
-                                        },
-                                    decorationBox = { inner ->
-                                        Row {
-                                            Text("¥", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                            if (state.price.isEmpty()) {
-                                                Text("0.00", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                            } else {
-                                                inner()
+                                HorizontalDivider(color = Color(0xFFF5F5F5))
+                                // 原价
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("原价 (选填)", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    BasicTextField(
+                                        value = state.originalPrice,
+                                        onValueChange = viewModel::onOriginalPrice,
+                                        textStyle = TextStyle(fontSize = 16.sp, color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.End),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        decorationBox = { inner ->
+                                            if (state.originalPrice.isEmpty()) Text("0.00", color = Color.LightGray, fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                                            else inner()
+                                        }
+                                    )
+                                }
+                                HorizontalDivider(color = Color(0xFFF5F5F5))
+                                // 库存
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("库存数量", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    BasicTextField(
+                                        value = state.stock,
+                                        onValueChange = viewModel::onStock,
+                                        textStyle = TextStyle(fontSize = 16.sp, color = Color.Black, textAlign = androidx.compose.ui.text.style.TextAlign.End),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        decorationBox = { inner ->
+                                            if (state.stock.isEmpty()) Text("99", color = Color.LightGray, fontSize = 16.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                                            else inner()
+                                        }
+                                    )
+                                }
+                                HorizontalDivider(color = Color(0xFFF5F5F5))
+                                // 配送方式
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("发货方式", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        listOf("SELF_PICKUP" to "自提", "DELIVERY" to "同城配送").forEach { (type, label) ->
+                                            val isSelected = state.deliveryType == type
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (isSelected) scheme.primary else Color(0xFFF5F5F5),
+                                                modifier = Modifier.clickable { viewModel.onDeliveryType(type) }
+                                            ) {
+                                                Text(label, color = if (isSelected) Color.White else Color.Black, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                                             }
                                         }
                                     }
-                                )
+                                }
                             }
                         }
+
                         HorizontalDivider(color = Color(0xFFF5F5F5))
 
                         // Location

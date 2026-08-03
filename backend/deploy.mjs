@@ -36,6 +36,7 @@ async function main() {
     { local: path.join(__dirname, 'src/middleware/auth.ts'), remote: `${targetDir}/src/middleware/auth.ts` },
     { local: path.join(__dirname, 'src/modules/admin.ts'), remote: `${targetDir}/src/modules/admin.ts` },
     { local: path.join(__dirname, 'src/modules/upload.ts'), remote: `${targetDir}/src/modules/upload.ts` },
+    { local: path.join(__dirname, 'src/modules/publish.ts'), remote: `${targetDir}/src/modules/publish.ts` },
     { local: path.join(__dirname, 'prisma/schema.prisma'), remote: `${targetDir}/prisma/schema.prisma` },
     { local: path.join(__dirname, 'ecosystem.config.cjs'), remote: `${targetDir}/ecosystem.config.cjs` },
   ]);

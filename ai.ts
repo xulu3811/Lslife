@@ -47,19 +47,18 @@ const mockProvider: AiProvider = {
   },
 };
 
-// TODO: 通义千问 DashScope (需 AI_API_KEY)
-const dashscopeProvider: AiProvider = {
+const deepseekProvider: AiProvider = {
   async recommend(prompt) {
-    if (!env.aiApiKey) throw new Error('AI_API_KEY 未配置');
+    const apiKey = env.aiApiKey || 'sk-30f79d21acbd487da71ec3cb5ce63d54';
     const merchants = await buildMerchantContext();
     const sys =
       '你是熟悉广东省清远市连山壮族瑶族自治县的同城生活专家。请基于给定商户数据做定制推荐, ' +
       '只输出合法 JSON: {"reply":"...","recommendations":[{"merchantId","itemId","name","price"}]}';
-    const resp = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.aiApiKey}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: env.aiModel,
+        model: 'deepseek-chat',
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: `商户数据:\n${JSON.stringify(merchants)}\n\n用户留言: ${prompt}` },
@@ -78,7 +77,8 @@ export function getAiProvider(): AiProvider {
     case 'dashscope':
     case 'qianfan':
     case 'doubao':
-      return dashscopeProvider;
+    case 'deepseek':
+      return deepseekProvider;
     default:
       return mockProvider;
   }
