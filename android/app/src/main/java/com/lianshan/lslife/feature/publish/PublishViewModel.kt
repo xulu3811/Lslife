@@ -25,7 +25,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 
-enum class TradeMode { INFO, COMMERCE }
+import com.lianshan.lslife.core.model.TradeMode
 
 data class PublishUiState(
     val publisherType: String = "INDIVIDUAL",
@@ -60,6 +60,7 @@ data class PublishUiState(
     val message: String? = null,
     val success: Boolean = false,
     val editingPostId: String? = null,
+    val publishedPostId: String? = null,
 )
 
 @HiltViewModel
@@ -140,7 +141,8 @@ class PublishViewModel @Inject constructor(
     }
 
     fun onSelectLeafCategory(leafNode: CategoryNode, fullPath: String) {
-        val mode = if (leafNode.tradeMode == "COMMERCE") TradeMode.COMMERCE else TradeMode.INFO
+        val attr = leafNode.attributeSchema.associate { it.key to "" }
+        val mode = leafNode.tradeMode
         _state.update {
             it.copy(
                 selectedCategory = leafNode,
@@ -188,7 +190,7 @@ class PublishViewModel @Inject constructor(
                         originalPrice = post.originalPrice?.toString() ?: "",
                         stock = post.stock.toString(),
                         deliveryType = post.deliveryType,
-                        tradeMode = if (post.tradeMode == "COMMERCE") TradeMode.COMMERCE else TradeMode.INFO,
+                        tradeMode = post.tradeMode,
                         images = post.images,
                         location = post.locationName ?: "连山壮族瑶族自治县",
                         dynamicFormValues = attrs,
@@ -275,12 +277,12 @@ class PublishViewModel @Inject constructor(
             _state.update { it.copy(message = "请填写标题和描述") }
             return
         }
-        if (s.tradeMode == TradeMode.INFO && s.contactPhone.isBlank()) {
-            _state.update { it.copy(message = "请填写联系电话") }
+        if ((s.tradeMode == TradeMode.INFO_PUBLISH || s.tradeMode == TradeMode.INFO) && s.contactPhone.isBlank()) {
+            _state.update { it.copy(message = "信息发布必须填写联系电话") }
             return
         }
-        if (s.tradeMode == TradeMode.COMMERCE) {
-            if (s.price.isBlank()) {
+        if (s.tradeMode == TradeMode.O2O_STORE || s.tradeMode == TradeMode.COMMERCE || s.tradeMode == TradeMode.SERVICE_ORDER || s.tradeMode == TradeMode.C2C_IDLE) {
+            if (s.price.isBlank() || s.price.toDoubleOrNull() == null) {
                 _state.update { it.copy(message = "请填写一口价") }
                 return
             }
@@ -327,12 +329,6 @@ class PublishViewModel @Inject constructor(
                 return@launch
             }
 
-            val isGoodsCategory = isPersonalIdleCategory(s.categoryId) ||
-                s.categoryId == "veggies" ||
-                s.categoryId == "veggies_fruit" ||
-                s.listingType == "GOODS"
-            val listingType = if (isGoodsCategory) "GOODS" else "SERVICE"
-
             val req = CreatePostRequest(
                 category = s.categoryId,
                 title = s.title.ifBlank { "同城优质发布" },
@@ -346,7 +342,7 @@ class PublishViewModel @Inject constructor(
                 images = uploadedUrls,
                 publisherType = s.publisherType,
                 merchantId = s.merchantId,
-                listingType = listingType,
+                listingType = if (s.tradeMode == TradeMode.SERVICE_ORDER) "SERVICE" else "GOODS",
                 attributes = kotlinx.serialization.json.JsonObject(s.dynamicFormValues.mapValues { kotlinx.serialization.json.JsonPrimitive(it.value) }),
                 locationName = s.location,
             )
@@ -357,8 +353,15 @@ class PublishViewModel @Inject constructor(
                 repo.createPost(req)
             }
             
-            result.onSuccess {
-                _state.update { PublishUiState(message = if (s.editingPostId != null) "修改成功，已提交审核" else "发布成功", success = true) }
+            result.onSuccess { post ->
+                _state.update { 
+                    it.copy(
+                        message = if (s.editingPostId != null) "修改成功，已提交审核" else "发布成功", 
+                        success = true, 
+                        publishedPostId = post.id,
+                        submitting = false
+                    ) 
+                }
                 loadQuota()
             }.onFailure { e ->
                 _state.update { it.copy(submitting = false, message = e.message ?: "发布失败") }

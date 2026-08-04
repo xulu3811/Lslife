@@ -1,6 +1,7 @@
 package com.lianshan.lslife.feature.cart
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,10 +9,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import com.lianshan.lslife.core.model.TradeMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +41,7 @@ import com.lianshan.lslife.ui.theme.Dimens
 @Composable
 fun CartScreen(
     onOpenMerchant: (String) -> Unit,
+    onOpenPost: (String) -> Unit,
     onCheckout: (merchantId: String?, sellerId: String?, entryIds: String?, deliveryMethod: String) -> Unit,
     viewModel: CartViewModel = hiltViewModel(),
 ) {
@@ -41,11 +50,26 @@ fun CartScreen(
     val scheme = MaterialTheme.colorScheme
 
     Scaffold(
-        containerColor = Color(0xFFF7F7F7),
+        containerColor = Color(0xFFF5F6F8),
         topBar = {
             TopAppBar(
-                title = { Text("购物车", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Row(modifier = Modifier.padding(bottom = 2.dp)) {
+                        Text("购物车", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        if (state.entries.isNotEmpty()) {
+                            Spacer(Modifier.width(4.dp))
+                            Text("(${state.entries.size})", fontSize = 16.sp, modifier = Modifier.alignByBaseline())
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = scheme.surface),
+                actions = {
+                    if (state.entries.isNotEmpty()) {
+                        TextButton(onClick = { viewModel.toggleManageMode() }) {
+                            Text(if (state.isManaging) "完成" else "管理", color = Color.Black, fontSize = 16.sp)
+                        }
+                    }
+                }
             )
         },
     ) { padding ->
@@ -98,8 +122,12 @@ fun CartScreen(
                         }
                     }
 
-                    // Cart Items
-                    val grouped = state.entries.groupBy { it.merchantId ?: it.sellerId ?: "unknown" }
+                    // Cart Items (Filter out INFO_PUBLISH)
+                    val filteredEntries = state.entries.filter { 
+                        it.post?.tradeMode != TradeMode.INFO_PUBLISH && 
+                        it.post?.tradeMode != TradeMode.INFO 
+                    }
+                    val grouped = filteredEntries.groupBy { it.merchantId ?: it.sellerId ?: "unknown" }
                     LazyColumn(
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(Dimens.md),
@@ -109,7 +137,11 @@ fun CartScreen(
                             val shopName = entries.firstOrNull()?.product?.merchant?.name ?: entries.firstOrNull()?.post?.user?.nickname ?: "未知卖家"
                             
                             item(key = "header-$groupId") {
-                                SoftCard {
+                                Surface(
+                                    color = Color.White,
+                                    shape = RoundedCornerShape(16.dp),
+                                    shadowElevation = 0.dp
+                                ) {
                                     Column(Modifier.padding(Dimens.md), verticalArrangement = Arrangement.spacedBy(Dimens.md)) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             val groupEntryIds = entries.map { it.id }.toSet()
@@ -119,11 +151,28 @@ fun CartScreen(
                                                 onCheckedChange = { viewModel.toggleGroupSelection(groupId) }
                                             )
                                             Spacer(modifier = Modifier.width(Dimens.sm))
+                                            
+                                            val firstEntry = entries.firstOrNull()
+                                            val isMerchant = firstEntry?.merchantId != null
+                                            if (isMerchant) {
+                                                Icon(Icons.Filled.Storefront, contentDescription = "Store", tint = Color.Gray, modifier = Modifier.size(20.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                            } else {
+                                                val avatar = firstEntry?.post?.user?.avatar
+                                                if (!avatar.isNullOrEmpty()) {
+                                                    NetworkImage(avatar, "Avatar", Modifier.size(20.dp).clip(CircleShape))
+                                                } else {
+                                                    Icon(Icons.Filled.Person, contentDescription = "User", tint = Color.Gray, modifier = Modifier.size(20.dp))
+                                                }
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                            }
+                                            
                                             Text(
                                                 shopName,
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold,
                                             )
+                                            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
                                         }
                                         entries.forEach { entry ->
                                             CartRow(
@@ -132,6 +181,9 @@ fun CartScreen(
                                                 onToggleSelect = { viewModel.toggleEntrySelection(entry) },
                                                 onAdd = { viewModel.changeQty(entry, 1) },
                                                 onRemove = { viewModel.changeQty(entry, -1) },
+                                                onClick = {
+                                                    entry.post?.id?.let { onOpenPost(it) }
+                                                }
                                             )
                                         }
                                     }
@@ -148,54 +200,70 @@ fun CartScreen(
                                 .padding(horizontal = Dimens.md, vertical = Dimens.sm),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            val allIds = state.entries.map { it.id }.toSet()
-                            val isAllSelected = state.selectedEntryIds.containsAll(allIds) && allIds.isNotEmpty()
+                            val isAllSelected = if (state.isManaging) {
+                                val allIds = state.entries.map { it.id }.toSet()
+                                state.selectedEntryIds.containsAll(allIds) && allIds.isNotEmpty()
+                            } else {
+                                val activeGroupId = state.entries.firstOrNull { it.id in state.selectedEntryIds }?.let { it.merchantId ?: it.sellerId ?: "unknown" } 
+                                    ?: state.entries.firstOrNull()?.let { it.merchantId ?: it.sellerId ?: "unknown" }
+                                val groupIds = state.entries.filter { (it.merchantId ?: it.sellerId ?: "unknown") == activeGroupId }.map { it.id }.toSet()
+                                state.selectedEntryIds.containsAll(groupIds) && groupIds.isNotEmpty()
+                            }
+
                             JoybuyCheckbox(
                                 checked = isAllSelected,
-                                onCheckedChange = {
-                                    if (isAllSelected) {
-                                        state.entries.firstOrNull()?.let { viewModel.toggleGroupSelection(it.merchantId ?: it.sellerId ?: "") } // Simplified logic
-                                    } else {
-                                        state.entries.firstOrNull()?.let { viewModel.toggleGroupSelection(it.merchantId ?: it.sellerId ?: "") }
-                                    }
-                                }
+                                onCheckedChange = { viewModel.selectAll() }
                             )
                             Spacer(modifier = Modifier.width(Dimens.xs))
                             Text("全选", style = MaterialTheme.typography.bodyMedium)
                             
                             Spacer(modifier = Modifier.weight(1f))
                             
-                            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = Dimens.md)) {
-                                Row(verticalAlignment = Alignment.Bottom) {
-                                    Text("合计: ", style = MaterialTheme.typography.bodyMedium)
-                                    Text(
-                                        "${"%.2f".format(state.total)}元",
-                                        color = Color(0xFFE52F2F),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    )
-                                }
-                                if (state.savedAmount > 0) {
-                                    Text("已省: ${"%.2f".format(state.savedAmount)}元", color = Color.Gray, fontSize = 12.sp)
+                            if (!state.isManaging) {
+                                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = Dimens.md)) {
+                                    Row(verticalAlignment = Alignment.Bottom) {
+                                        Text("合计: ", style = MaterialTheme.typography.bodyMedium)
+                                        Text(
+                                            "${"%.2f".format(state.total)}元",
+                                            color = Color(0xFFFF5000), // Taobao orange
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp
+                                        )
+                                    }
+                                    if (state.savedAmount > 0) {
+                                        Text("已省: ${"%.2f".format(state.savedAmount)}元", color = Color.Gray, fontSize = 12.sp)
+                                    }
                                 }
                             }
                             
                             val selectedCount = state.selectedEntryIds.size
-                            Button(
-                                onClick = {
-                                    val selectedEntries = state.entries.filter { it.id in state.selectedEntryIds }
-                                    val firstSelected = selectedEntries.firstOrNull()
-                                    if (firstSelected != null) {
-                                        val entryIdsStr = state.selectedEntryIds.joinToString(",")
-                                        onCheckout(firstSelected.merchantId, firstSelected.sellerId, entryIdsStr, state.deliveryMethod)
-                                    }
-                                },
-                                enabled = selectedCount > 0,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE52F2F)),
-                                shape = RoundedCornerShape(24.dp),
-                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
-                            ) {
-                                Text("去结算($selectedCount)", fontWeight = FontWeight.Bold, color = Color.White)
+                            if (state.isManaging) {
+                                Button(
+                                    onClick = { viewModel.removeSelectedItems() },
+                                    enabled = selectedCount > 0,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE52F2F)),
+                                    shape = RoundedCornerShape(24.dp),
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                                ) {
+                                    Text("删除", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            } else {
+                                Button(
+                                    onClick = {
+                                        val selectedEntries = state.entries.filter { it.id in state.selectedEntryIds }
+                                        val firstSelected = selectedEntries.firstOrNull()
+                                        if (firstSelected != null) {
+                                            val entryIdsStr = state.selectedEntryIds.joinToString(",")
+                                            onCheckout(firstSelected.merchantId, firstSelected.sellerId, entryIdsStr, state.deliveryMethod)
+                                        }
+                                    },
+                                    enabled = selectedCount > 0,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5000)), // Taobao orange
+                                    shape = RoundedCornerShape(24.dp),
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                                ) {
+                                    Text("结算($selectedCount)", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
                         }
                     }
@@ -241,6 +309,7 @@ private fun CartRow(
     onToggleSelect: () -> Unit,
     onAdd: () -> Unit,
     onRemove: () -> Unit,
+    onClick: () -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
     val name = entry.product?.name ?: entry.post?.title ?: "商品"
@@ -251,7 +320,7 @@ private fun CartRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggleSelect() }
+            .clickable { onClick() }
             .padding(vertical = Dimens.sm),
         verticalAlignment = Alignment.Top,
     ) {
@@ -290,13 +359,18 @@ private fun CartRow(
                 Spacer(modifier = Modifier.weight(1f))
                 
                 // Stepper
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
-                        Icon(if (entry.quantity <= 1) Icons.Filled.DeleteOutline else Icons.Filled.Remove, "减", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(4.dp))
+                ) {
+                    IconButton(onClick = onRemove, modifier = Modifier.size(26.dp)) {
+                        Icon(if (entry.quantity <= 1) Icons.Filled.DeleteOutline else Icons.Filled.Remove, "减", tint = Color.Gray, modifier = Modifier.size(14.dp))
                     }
-                    Text("${entry.quantity}", modifier = Modifier.padding(horizontal = Dimens.sm), fontSize = 14.sp)
-                    IconButton(onClick = onAdd, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Filled.Add, "加", tint = Color.Black, modifier = Modifier.size(16.dp))
+                    Box(modifier = Modifier.height(26.dp).padding(horizontal = Dimens.sm), contentAlignment = Alignment.Center) {
+                        Text("${entry.quantity}", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    }
+                    IconButton(onClick = onAdd, modifier = Modifier.size(26.dp)) {
+                        Icon(Icons.Filled.Add, "加", tint = Color.Black, modifier = Modifier.size(14.dp))
                     }
                 }
             }

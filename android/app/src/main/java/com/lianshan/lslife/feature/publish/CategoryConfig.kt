@@ -1,8 +1,11 @@
 package com.lianshan.lslife.feature.publish
 
+import com.lianshan.lslife.core.model.TradeMode
+
 data class CategoryConfig(
     val id: String,
     val name: String,
+    val tradeMode: TradeMode = TradeMode.INFO_PUBLISH,
     /** 使用引导填写（种类/品牌/参数），不再展示属性芯片 */
     val guidedFill: Boolean = false,
     val attr1Label: String? = null,
@@ -136,4 +139,15 @@ fun buildGuidedDescription(
     if (lines.isEmpty()) return ""
     lines += "同城自提优先，有意私聊。"
     return lines.joinToString("\n")
+}
+
+fun getEffectiveTradeMode(postTradeMode: TradeMode, categoryId: String?): TradeMode {
+    if (categoryId == null) return postTradeMode
+    val infoPrefixes = listOf("cat_house", "cat_job", "cat_part_time", "cat_car_rental", "cat_education", "job_", "house_", "car_", "edu_", "part_time_")
+    if (infoPrefixes.any { categoryId.startsWith(it) }) return TradeMode.INFO_PUBLISH
+    
+    val commercePrefixes = listOf("cat_idle", "cat_veggies", "cat_service", "cat_maintenance", "cat_dining", "second_hand", "cat_3c", "cat_clothing", "cat_dress", "cat_bag", "cat_luxury", "cat_home", "cat_beauty", "cat_baby", "cat_sports", "cat_hobby", "cat_other", "fresh_", "food_", "housekeeping_", "repair_")
+    if (commercePrefixes.any { categoryId.startsWith(it) }) return TradeMode.COMMERCE
+    
+    return postTradeMode
 }

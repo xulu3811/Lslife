@@ -15,6 +15,7 @@ interface CategoryNodeResponse {
   isLeaf: boolean;
   isActive: boolean;
   isHot: boolean;
+  tradeMode: string;
   attributeSchema: any[];
   children: CategoryNodeResponse[];
 }
@@ -58,6 +59,7 @@ router.get(
             isLeaf: c.isLeaf,
             isActive: (c as any).isActive !== undefined ? (c as any).isActive : true,
             isHot: (c as any).isHot ?? false,
+            tradeMode: (c as any).tradeMode ?? 'INFO',
             attributeSchema: schema,
             children: buildTree(c.id),
           };
@@ -103,6 +105,7 @@ router.get(
         isLeaf: c.isLeaf,
         isActive: (c as any).isActive !== undefined ? (c as any).isActive : true,
         isHot: (c as any).isHot ?? false,
+        tradeMode: (c as any).tradeMode ?? 'INFO',
         attributeSchema: schema,
       };
     });

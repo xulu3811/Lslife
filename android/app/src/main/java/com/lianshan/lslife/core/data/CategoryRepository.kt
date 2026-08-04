@@ -40,7 +40,25 @@ class CategoryRepository @Inject constructor(
         _loading.value = false
         
         res.onSuccess { tree ->
-            _categoryTree.value = tree
+            // --- Fallback/Override to guarantee correct TradeMode even if backend is outdated ---
+            val commerceIds = setOf("cat_idle", "cat_veggies", "cat_service", "cat_maintenance", "cat_dining")
+            val infoIds = setOf("cat_house", "cat_job", "cat_part_time", "cat_car_rental", "cat_education")
+            
+            fun fixTradeMode(nodes: List<CategoryNode>, parentId: String?): List<CategoryNode> {
+                return nodes.map { node ->
+                    val topId = parentId ?: node.id
+                    val fixedMode = when {
+                        commerceIds.contains(topId) -> com.lianshan.lslife.core.model.TradeMode.O2O_STORE
+                        infoIds.contains(topId) -> com.lianshan.lslife.core.model.TradeMode.INFO_PUBLISH
+                        else -> node.tradeMode
+                    }
+                    val finalMode = if (topId == "cat_idle") com.lianshan.lslife.core.model.TradeMode.C2C_IDLE else fixedMode
+                    node.copy(tradeMode = finalMode, children = fixTradeMode(node.children, topId))
+                }
+            }
+            val fixedTree = fixTradeMode(tree, null)
+            // ----------------------------------------------------------------------------------
+            _categoryTree.value = fixedTree
             _error.value = null
         }.onFailure { e ->
             if (_categoryTree.value.isEmpty()) {

@@ -143,7 +143,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                                         showPublishMenu = true
                                     } else {
                                         navController.navigate(tab.route) {
-                                            popUpTo(Routes.HOME) { saveState = true }
+                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                             launchSingleTop = true
                                             restoreState = true
                                         }
@@ -286,7 +286,16 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
             ) { entry -> 
                 val rawPostId = entry.arguments?.getString("postId")
                 val validPostId = if (rawPostId == "{postId}" || rawPostId.isNullOrBlank()) null else rawPostId
-                PublishScreen(postId = validPostId) 
+                PublishScreen(
+                    postId = validPostId,
+                    onClose = { navController.popBackStack() },
+                    onOpenPost = { id -> navController.navigate(Routes.postDetail(id)) },
+                    onBackHome = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.HOME) { inclusive = true }
+                        }
+                    }
+                ) 
             }
             composable(Routes.MY_POSTS) {
                 MyPostsScreen(
@@ -321,6 +330,7 @@ fun LsLifeApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
             composable(Routes.CART) {
                 CartScreen(
                     onOpenMerchant = { navController.navigate(Routes.merchant(it)) },
+                    onOpenPost = { navController.navigate(Routes.postDetail(it)) },
                     onCheckout = { mId, sId, eIds, dMethod -> navController.navigate(Routes.checkout(mId, sId, eIds, dMethod)) }
                 )
             }

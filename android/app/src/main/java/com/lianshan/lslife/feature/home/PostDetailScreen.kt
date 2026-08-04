@@ -78,7 +78,7 @@ fun PostDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(Dimens.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (state.post?.tradeMode == "INFO") {
+                        if (state.post?.tradeMode == com.lianshan.lslife.core.model.TradeMode.INFO_PUBLISH || state.post?.tradeMode == com.lianshan.lslife.core.model.TradeMode.INFO) {
                             // INFO BottomBar: 收藏, 在线私聊, 拨打电话
                             OutlinedButton(
                                 onClick = { /* TODO: 收藏功能 */ },
@@ -95,11 +95,12 @@ fun PostDetailScreen(
                                     }
                                 },
                                 modifier = Modifier.weight(1f).height(48.dp),
-                                shape = RoundedCornerShape(24.dp)
+                                shape = RoundedCornerShape(24.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
-                                Icon(Icons.Filled.Chat, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("在线私聊", fontWeight = FontWeight.Bold)
+                                Icon(Icons.Filled.Chat, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("在线私聊", fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
                             }
                             Button(
                                 onClick = {
@@ -110,11 +111,12 @@ fun PostDetailScreen(
                                 },
                                 modifier = Modifier.weight(1f).height(48.dp),
                                 shape = RoundedCornerShape(24.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = scheme.primary)
+                                colors = ButtonDefaults.buttonColors(containerColor = scheme.primary),
+                                contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
-                                Icon(Icons.Filled.Phone, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("拨打电话", fontWeight = FontWeight.Bold)
+                                Icon(Icons.Filled.Phone, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("拨打电话", fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
                             }
                         } else {
                             // COMMERCE BottomBar: 联系卖家, 加入购物车
@@ -126,11 +128,12 @@ fun PostDetailScreen(
                                     }
                                 },
                                 modifier = Modifier.weight(1f).height(48.dp),
-                                shape = RoundedCornerShape(24.dp)
+                                shape = RoundedCornerShape(24.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
-                                Icon(Icons.Filled.Chat, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("联系卖家", fontWeight = FontWeight.Bold)
+                                Icon(Icons.Filled.Chat, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("联系卖家", fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
                             }
                             
                             Button(
@@ -142,11 +145,12 @@ fun PostDetailScreen(
                                 },
                                 modifier = Modifier.weight(1f).height(48.dp),
                                 shape = RoundedCornerShape(24.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = scheme.error)
+                                colors = ButtonDefaults.buttonColors(containerColor = scheme.error),
+                                contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
-                                Icon(Icons.Filled.ShoppingCartCheckout, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("加入购物车", fontWeight = FontWeight.Bold)
+                                Icon(Icons.Filled.ShoppingCartCheckout, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("加入购物车", fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
                             }
                         }
                     }

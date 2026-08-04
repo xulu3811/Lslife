@@ -17,6 +17,7 @@ data class CartUiState(
     val entries: List<CartEntry> = emptyList(),
     val selectedEntryIds: Set<String> = emptySet(),
     val deliveryMethod: String = "DELIVERY", // DELIVERY | PICKUP
+    val isManaging: Boolean = false,
 ) {
     val total: Double get() = entries
         .filter { it.id in selectedEntryIds }
@@ -62,13 +63,43 @@ class CartViewModel @Inject constructor(
         }
     }
 
+    fun toggleManageMode() {
+        _state.update { it.copy(isManaging = !it.isManaging, selectedEntryIds = emptySet()) }
+    }
+
+    fun removeSelectedItems() {
+        viewModelScope.launch {
+            val selectedIds = _state.value.selectedEntryIds
+            val entriesToRemove = _state.value.entries.filter { it.id in selectedIds }
+            
+            // 乐观更新
+            _state.update { st ->
+                st.copy(
+                    entries = st.entries.filter { it.id !in selectedIds },
+                    selectedEntryIds = emptySet(),
+                    isManaging = false
+                )
+            }
+            
+            // 网络请求
+            entriesToRemove.forEach { entry ->
+                repo.upsertCart(
+                    productId = entry.product?.id,
+                    postId = entry.post?.id,
+                    quantity = 0
+                )
+            }
+            load()
+        }
+    }
+
     fun toggleEntrySelection(entry: CartEntry) {
         val groupId = entry.merchantId ?: entry.sellerId ?: "unknown"
         _state.update { st ->
             val currentSelected = st.entries.filter { it.id in st.selectedEntryIds }
             val currentGroupId = currentSelected.firstOrNull()?.let { it.merchantId ?: it.sellerId ?: "unknown" }
             
-            val newSelected = if (currentGroupId != null && currentGroupId != groupId) {
+            val newSelected = if (!st.isManaging && currentGroupId != null && currentGroupId != groupId) {
                 // User selected an item from a different merchant. Clear previous selection to enforce single-merchant checkout.
                 setOf(entry.id)
             } else {
@@ -89,10 +120,36 @@ class CartViewModel @Inject constructor(
             
             val allSelected = st.selectedEntryIds.containsAll(groupEntryIds) && groupEntryIds.isNotEmpty()
             if (allSelected) {
-                st.copy(selectedEntryIds = emptySet())
+                st.copy(selectedEntryIds = st.selectedEntryIds - groupEntryIds)
             } else {
-                // Select all in this group, clearing any other group
-                st.copy(selectedEntryIds = groupEntryIds)
+                if (st.isManaging) {
+                    st.copy(selectedEntryIds = st.selectedEntryIds + groupEntryIds)
+                } else {
+                    // Select all in this group, clearing any other group
+                    st.copy(selectedEntryIds = groupEntryIds)
+                }
+            }
+        }
+    }
+
+    fun selectAll() {
+        _state.update { st ->
+            if (st.isManaging) {
+                val allIds = st.entries.map { it.id }.toSet()
+                val isAllSelected = st.selectedEntryIds.containsAll(allIds) && allIds.isNotEmpty()
+                st.copy(selectedEntryIds = if (isAllSelected) emptySet() else allIds)
+            } else {
+                // In normal mode, select all selects the first group or active group
+                val activeGroupId = st.entries.firstOrNull { it.id in st.selectedEntryIds }?.let { it.merchantId ?: it.sellerId ?: "unknown" } 
+                    ?: st.entries.firstOrNull()?.let { it.merchantId ?: it.sellerId ?: "unknown" }
+                
+                if (activeGroupId != null) {
+                    val groupEntryIds = st.entries.filter { (it.merchantId ?: it.sellerId ?: "unknown") == activeGroupId }.map { it.id }.toSet()
+                    val allSelected = st.selectedEntryIds.containsAll(groupEntryIds) && groupEntryIds.isNotEmpty()
+                    st.copy(selectedEntryIds = if (allSelected) emptySet() else groupEntryIds)
+                } else {
+                    st.copy()
+                }
             }
         }
     }

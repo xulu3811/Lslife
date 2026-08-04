@@ -38,7 +38,7 @@ class PostDetailViewModel @Inject constructor(
 
     fun addToCart(onSuccess: () -> Unit, onError: (String) -> Unit) {
         val post = _state.value.post ?: return
-        if (post.tradeMode == "INFO") {
+        if (post.tradeMode == com.lianshan.lslife.core.model.TradeMode.INFO_PUBLISH || post.tradeMode == com.lianshan.lslife.core.model.TradeMode.INFO) {
             onError("信息类服务不支持加入购物车，请直接联系发布者")
             return
         }

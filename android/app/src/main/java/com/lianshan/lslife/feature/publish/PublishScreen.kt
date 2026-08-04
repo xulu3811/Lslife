@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -40,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.lianshan.lslife.core.model.CategoryNode
 import com.lianshan.lslife.core.model.DynamicField
+import com.lianshan.lslife.core.model.TradeMode
 import androidx.compose.ui.text.style.TextOverflow
 import com.lianshan.lslife.ui.components.CategoryIconView
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -57,7 +59,9 @@ import kotlinx.coroutines.withContext
 fun PublishScreen(
     postId: String? = null,
     viewModel: PublishViewModel = hiltViewModel(),
-    onClose: () -> Unit = {}
+    onClose: () -> Unit = {},
+    onOpenPost: (String) -> Unit = {},
+    onBackHome: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -115,10 +119,15 @@ fun PublishScreen(
         }
     }
     
-    LaunchedEffect(state.success) {
-        if (state.success) {
-            onClose()
-        }
+    val publishedPostId = state.publishedPostId
+    if (state.success && publishedPostId != null) {
+        PublishSuccessView(
+            message = state.message ?: "操作成功",
+            postId = publishedPostId,
+            onViewPost = { onOpenPost(publishedPostId) },
+            onBackHome = onBackHome
+        )
+        return
     }
 
     Scaffold(
@@ -415,7 +424,7 @@ fun PublishScreen(
                         val bringIntoView = remember { BringIntoViewRequester() }
 
                         when (state.tradeMode) {
-                            TradeMode.INFO -> {
+                            TradeMode.INFO, TradeMode.INFO_PUBLISH -> {
                                 // 期望薪资/租金
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -454,7 +463,7 @@ fun PublishScreen(
                                     )
                                 }
                             }
-                            TradeMode.COMMERCE -> {
+                            TradeMode.COMMERCE, TradeMode.C2C_IDLE, TradeMode.O2O_STORE, TradeMode.SERVICE_ORDER -> {
                                 // 一口价
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -848,8 +857,8 @@ private fun CategoryTreeBottomSheet(
                                 .fillMaxHeight()
                                 .background(Color(0xFFF7F8FA), RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
                         ) {
-                            val commerceTree = publishableTree.filter { it.tradeMode == "COMMERCE" }
-                            val infoTree = publishableTree.filter { it.tradeMode == "INFO" }
+                            val commerceTree = publishableTree.filter { it.tradeMode == TradeMode.COMMERCE || it.tradeMode == TradeMode.O2O_STORE || it.tradeMode == TradeMode.C2C_IDLE || it.tradeMode == TradeMode.SERVICE_ORDER }
+                            val infoTree = publishableTree.filter { it.tradeMode == TradeMode.INFO || it.tradeMode == TradeMode.INFO_PUBLISH }
                             
                             if (commerceTree.isNotEmpty()) {
                                 item {
@@ -1081,6 +1090,74 @@ private fun CategoryListRow(
                 tint = Color(0xFF9CA3AF),
                 modifier = Modifier.size(18.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun PublishSuccessView(
+    message: String,
+    postId: String,
+    onViewPost: () -> Unit,
+    onBackHome: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF7F8FA))
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = Color(0xFFE8F5E9),
+            modifier = Modifier.size(80.dp)
+        ) {
+            Icon(
+                Icons.Filled.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF43A047),
+                modifier = Modifier.padding(16.dp).fillMaxSize()
+            )
+        }
+        
+        Spacer(Modifier.height(24.dp))
+        
+        Text(
+            text = message,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+        
+        Spacer(Modifier.height(8.dp))
+        
+        Text(
+            text = "您可以随时在“我的发布”中编辑或下架该信息",
+            fontSize = 14.sp,
+            color = Color.Gray
+        )
+        
+        Spacer(Modifier.height(48.dp))
+        
+        Button(
+            onClick = onViewPost,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Text("查看已发布内容", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+        
+        Spacer(Modifier.height(16.dp))
+        
+        OutlinedButton(
+            onClick = onBackHome,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Text("返回首页", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
         }
     }
 }

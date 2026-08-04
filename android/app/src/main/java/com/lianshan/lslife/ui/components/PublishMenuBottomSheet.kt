@@ -69,46 +69,96 @@ fun PublishMenuBottomSheet(
                 modifier = Modifier.padding(bottom = Dimens.xl)
             )
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(5),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.sm),
-                verticalArrangement = Arrangement.spacedBy(Dimens.lg),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(publishMenuItems) { item ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onDismiss()
-                                onNavigateToPublish(item.id)
-                            },
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .background(item.tintColor.copy(alpha = 0.1f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CategoryIconView(
-                                iconUrl = item.iconUrl,
-                                iconName = item.iconName,
-                                size = 48.dp,
-                                tint = item.tintColor
-                            )
+            val commerceIds = setOf("cat_idle", "cat_veggies", "cat_service", "cat_maintenance", "cat_dining")
+            val commerceItems = publishMenuItems.filter { it.id in commerceIds }
+            if (commerceItems.isNotEmpty()) {
+                Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    color = Color(0xFFFFF5F2),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = Dimens.md)
+                ) {
+                    Column(modifier = Modifier.padding(vertical = Dimens.md)) {
+                        Column(modifier = Modifier.padding(start = Dimens.md, end = Dimens.md, bottom = Dimens.md)) {
+                            Text("📦 直接交易服务", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFD84315))
+                            Text("支持在线担保交易、购物车与配送", style = MaterialTheme.typography.bodySmall, color = Color(0xFFE64A19))
                         }
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = item.title,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            commerceItems.forEach { item ->
+                                PublishMenuItemBox(item, onDismiss, onNavigateToPublish)
+                            }
+                            repeat(5 - commerceItems.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
+
+            val infoIds = setOf("cat_house", "cat_job", "cat_part_time", "cat_car_rental", "cat_education")
+            val infoItems = publishMenuItems.filter { it.id in infoIds }
+            if (infoItems.isNotEmpty()) {
+                Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    color = Color(0xFFF2F8FF),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(vertical = Dimens.md)) {
+                        Column(modifier = Modifier.padding(start = Dimens.md, end = Dimens.md, bottom = Dimens.md)) {
+                            Text("📢 本地同城信息", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+                            Text("仅提供信息展示与供需对接", style = MaterialTheme.typography.bodySmall, color = Color(0xFF1976D2))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            infoItems.forEach { item ->
+                                PublishMenuItemBox(item, onDismiss, onNavigateToPublish)
+                            }
+                            repeat(5 - infoItems.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
             }
             Spacer(Modifier.height(Dimens.xxl))
         }
+    }
+}
+
+@Composable
+private fun RowScope.PublishMenuItemBox(
+    item: PublishMenuItem,
+    onDismiss: () -> Unit,
+    onNavigateToPublish: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .clickable {
+                onDismiss()
+                onNavigateToPublish(item.id)
+            },
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(item.tintColor.copy(alpha = 0.1f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            CategoryIconView(
+                iconUrl = item.iconUrl,
+                iconName = item.iconName,
+                size = 36.dp,
+                tint = item.tintColor
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = item.title,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
     }
 }

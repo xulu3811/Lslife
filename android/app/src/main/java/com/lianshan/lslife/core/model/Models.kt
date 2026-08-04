@@ -12,6 +12,18 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonObject
+
+@Serializable
+enum class TradeMode {
+    INFO_PUBLISH,
+    C2C_IDLE,
+    O2O_STORE,
+    SERVICE_ORDER,
+    // 兼容历史老数据
+    INFO,
+    COMMERCE
+}
 
 @Serializable
 data class ApiEnvelope<T>(
@@ -173,7 +185,8 @@ data class Post(
     val contactPhone: String? = null,
     val stock: Int = 0,
     val deliveryType: String = "SELF_PICKUP",
-    val tradeMode: String = "COMMERCE", // Default to COMMERCE for backward compatibility with old backend data
+    @kotlinx.serialization.SerialName("tradeMode")
+    val _tradeMode: TradeMode = TradeMode.COMMERCE, // Default to COMMERCE for backward compatibility with old backend data
     val images: List<String> = emptyList(),
     val status: String,
     val locationName: String? = null,
@@ -182,7 +195,10 @@ data class Post(
     val createdAt: String,
     val user: PostUser? = null,
     val merchant: PostMerchant? = null,
-)
+) {
+    val tradeMode: TradeMode
+        get() = com.lianshan.lslife.feature.publish.getEffectiveTradeMode(_tradeMode, category)
+}
 
 @Serializable
 data class PostMerchant(
@@ -315,7 +331,7 @@ data class CategoryNode(
     val isLeaf: Boolean = false,
     val isActive: Boolean = true,
     val isHot: Boolean = false,
-    val tradeMode: String = "COMMERCE",
+    val tradeMode: TradeMode = TradeMode.COMMERCE,
     val attributeSchema: List<DynamicField> = emptyList(),
     val children: List<CategoryNode> = emptyList(),
 )

@@ -293,60 +293,101 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(0.dp),
                         modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                     ) {
-                        val pages = displayCategories.chunked(10)
-                        val pagerState = rememberPagerState(pageCount = { pages.size })
+                        val commerceIds = setOf("cat_idle", "cat_veggies", "cat_service", "cat_maintenance", "cat_dining")
+                        val commerceItems = displayCategories.filter { it.id in commerceIds }
+                        val infoIds = setOf("cat_house", "cat_job", "cat_part_time", "cat_car_rental", "cat_education")
+                        val infoItems = displayCategories.filter { it.id in infoIds }
 
-                        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { pageIndex ->
-                            val pageItems = pages[pageIndex]
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly,
-                                ) {
-                                    pageItems.take(5).forEach { item ->
-                                        CategoryItemView(item, state.category) { id, name ->
-                                            onNavigateToCategory(id, name)
+                        if (commerceItems.isNotEmpty() || infoItems.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.White,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = Dimens.sm)
+                            ) {
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+                                        val w = size.width
+                                        val h = size.height
+                                        val yLeft = h * 0.42f
+                                        val yRight = h * 0.58f
+
+                                        // 底部：同城发布的蓝底
+                                        drawRect(color = Color(0xFFF2F8FF), size = androidx.compose.ui.geometry.Size(w, h))
+
+                                        // 顶部：同城交易的粉底，带有一条 S 型优雅切割曲线
+                                        val pinkPath = androidx.compose.ui.graphics.Path().apply {
+                                            moveTo(0f, 0f)
+                                            lineTo(w, 0f)
+                                            lineTo(w, yRight)
+                                            cubicTo(
+                                                w * 0.5f, yRight,
+                                                w * 0.5f, yLeft,
+                                                0f, yLeft
+                                            )
+                                            close()
                                         }
+                                        drawPath(pinkPath, color = Color(0xFFFFF5F2))
+
+                                        // 中间切割处的白色描边
+                                        val wavePath = androidx.compose.ui.graphics.Path().apply {
+                                            moveTo(0f, yLeft)
+                                            cubicTo(
+                                                w * 0.5f, yLeft,
+                                                w * 0.5f, yRight,
+                                                w, yRight
+                                            )
+                                        }
+                                        drawPath(
+                                            wavePath, 
+                                            color = Color.White, 
+                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.dp.toPx())
+                                        )
                                     }
-                                    repeat(5 - pageItems.take(5).size) {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
-                                }
-                                if (pageItems.size > 5) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceEvenly,
-                                    ) {
-                                        pageItems.drop(5).take(5).forEach { item ->
-                                            CategoryItemView(item, state.category) { id, name ->
-                                                onNavigateToCategory(id, name)
+
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp)) {
+                                            commerceItems.forEach { item ->
+                                                CategoryItemView(item, state.category) { id, name -> onNavigateToCategory(id, name) }
+                                            }
+                                            repeat(5 - commerceItems.size) {
+                                                Spacer(modifier = Modifier.weight(1f))
                                             }
                                         }
-                                        repeat(5 - pageItems.drop(5).size) {
-                                            Spacer(modifier = Modifier.weight(1f))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 2.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = "同城发布",
+                                                    fontSize = 17.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                                    color = Color(0xFF0D47A1)
+                                                )
+                                            }
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = "同城交易",
+                                                    fontSize = 17.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                                    color = Color(0xFFBF360C)
+                                                )
+                                            }
+                                        }
+
+                                        Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 16.dp)) {
+                                            infoItems.forEach { item ->
+                                                CategoryItemView(item, state.category) { id, name -> onNavigateToCategory(id, name) }
+                                            }
+                                            repeat(5 - infoItems.size) {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
                                         }
                                     }
-                                }
-                            }
-                        }
-                        
-                        // Optional: Pager indicator could go here if pages.size > 1
-                        if (pages.size > 1) {
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = Dimens.sm),
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                repeat(pages.size) { iteration ->
-                                    val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else Color.LightGray
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(2.dp)
-                                            .clip(CircleShape)
-                                            .background(color)
-                                            .size(6.dp)
-                                    )
                                 }
                             }
                         }
@@ -445,17 +486,36 @@ fun HomeScreen(
 
                     if (state.isUgcMode) {
                         items(state.posts, key = { it.id }) { post ->
-                            com.lianshan.lslife.ui.components.PostListCard(
-                                post = post, 
-                                onClick = { onOpenPost(post.id) },
-                                onAddCartClick = { 
-                                    viewModel.addToCart(
-                                        postId = post.id,
-                                        onSuccess = { android.widget.Toast.makeText(context, "已加入购物车", android.widget.Toast.LENGTH_SHORT).show() },
-                                        onError = { msg -> android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show() }
-                                    )
-                                }
-                            )
+                            if (post.tradeMode == com.lianshan.lslife.core.model.TradeMode.INFO_PUBLISH || post.tradeMode == com.lianshan.lslife.core.model.TradeMode.INFO) {
+                                com.lianshan.lslife.ui.components.InfoPublishCard(
+                                    post = post,
+                                    onClick = { onOpenPost(post.id) },
+                                    onPhoneClick = { 
+                                        if (post.contactPhone.isNullOrBlank()) {
+                                            android.widget.Toast.makeText(context, "发布者未留电话", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            android.widget.Toast.makeText(context, "拨打电话: ${post.contactPhone}", android.widget.Toast.LENGTH_SHORT).show()
+                                            // TODO: Intent to dialer
+                                        }
+                                    },
+                                    onChatClick = {
+                                        android.widget.Toast.makeText(context, "联系发布者私聊", android.widget.Toast.LENGTH_SHORT).show()
+                                        // TODO: navigate to chat
+                                    }
+                                )
+                            } else {
+                                com.lianshan.lslife.ui.components.O2OProductCard(
+                                    post = post, 
+                                    onClick = { onOpenPost(post.id) },
+                                    onAddCartClick = { 
+                                        viewModel.addToCart(
+                                            postId = post.id,
+                                            onSuccess = { android.widget.Toast.makeText(context, "已加入购物车", android.widget.Toast.LENGTH_SHORT).show() },
+                                            onError = { msg -> android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show() }
+                                        )
+                                    }
+                                )
+                            }
                         }
                         if (state.posts.isEmpty()) {
                             item(span = StaggeredGridItemSpan.FullLine) {
